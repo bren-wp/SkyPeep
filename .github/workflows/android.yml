@@ -65,8 +65,8 @@ jobs:
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+30" app/build.gradle
-          grep -Fq "versionName '0.3.18'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+31" app/build.gradle
+          grep -Fq "versionName '0.3.19'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/bundle/release/app-release.aab
           unzip -t app/build/outputs/apk/debug/app-debug.apk > /dev/null
@@ -157,7 +157,7 @@ jobs:
   release:
     name: Publish verified preview
     needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.18-edge-hud-touch'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.19-fair-pickups-gates'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -179,7 +179,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.18-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.19-preview.${GITHUB_RUN_NUMBER}"
           APK="$(find release-artifacts -type f -name 'app-debug.apk' -print -quit)"
           AAB="$(find release-artifacts -type f -name 'app-release.aab' -print -quit)"
           test -s "$APK" && test -s "$AAB"
@@ -190,7 +190,7 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "SkyPeep $VERSION" \
             --draft --prerelease \
-            --notes '0.3.18: fix out-of-bounds top/bottom source-image sampling on tall Android displays; anchor gameplay coin/gem HUD and pause control to true screen edges on wider screens; keep the real pause tap target aligned with its art. Add JVM UV-boundary and HUD geometry regressions. APK debug-installable, AAB UNSIGNED / NOT GOOGLE PLAY READY. Full pixel-level 1:1 visual parity and physical device notch testing remain pending. Requires Android build, unit and real emulator smoke. Debug APK installable; AAB UNSIGNED. Full 1:1 art parity still pending.'
+            --notes '0.3.19: fair art-aligned circular coin/gem pickups; bounded, reachable neighbouring pillar passages across all six worlds and three difficulties; QA fixtures no longer overwrite real saved progress. Includes new JVM regression tests, dead-code audit and Android emulator smoke. Debug APK is installable. AAB is UNSIGNED — NOT GOOGLE PLAY READY. Physical-device testing, exact image-alpha collision calibration and all-screen pixel-level 1:1 parity remain pending.'
           # A stale draft is never published; delete it and its temporary tag.
           publish_head="$(gh api "repos/$GH_REPO/git/ref/heads/$GITHUB_REF_NAME" --jq '.object.sha')"
           if [[ "$publish_head" != "$GITHUB_SHA" ]]; then

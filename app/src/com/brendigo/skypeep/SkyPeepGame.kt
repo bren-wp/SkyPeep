@@ -111,6 +111,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private var lastBackgroundLogSecond = -1
     private var lastPhysicsLogSample = -1
     private var nextGate = 1.5f
+    private var lastGateCenter: Float? = null
     private val gates = mutableListOf<Gate>()
     private var message = ""
     private var messageTimer = 0f
@@ -632,6 +633,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         earnedStars=0
         nextGate=2.0f
         gates.clear()
+        lastGateCenter = if (qaPillars) 1050f else null
         if (qaPillars) gates.add(Gate(W - 300f,1050f))
         verticalSpeed=0f
         birdY=840f
@@ -703,7 +705,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         nextGate -= dt
         if (nextGate <= 0f) {
             nextGate=SkyRouteRules.spawnSeconds(level,difficulty)
-            val center = MathUtils.random(570f,1110f)
+            val center = SkyPeepGatePlacement.next(
+                lastGateCenter, level, difficulty, MathUtils.random())
+            lastGateCenter = center
             gates.add(Gate(SkyPeepScreenFrame.pillarSpawnX(visibleFrame),
                 center,gem=(score>0 && MathUtils.random(0,9)==0)))
         }
@@ -719,31 +723,22 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 finish(false)
                 return
             }
-            // Match the actual drawn coin centre and avoid collecting an
-            // item solely because the gate crosses the bird's horizontal band.
-            if (!gate.coinTaken && FlightRules.overlapsPickup(
-                playerX = BIRD_X + BIRD_W * .5f,
-                playerY = birdY + BIRD_H * .5f,
-                pickupX = gate.x + 118f,
-                pickupY = gate.centerY + 9f,
-                radiusX = 128f,
-                radiusY = 102f
+            // Same centre and 37-unit radius as drawCoin below. Only actual
+            // torso/pickup overlap earns a coin, never a broad invisible halo.
+            if (!gate.coinTaken && SkyPeepPickup.overlaps(
+                birdBody, gate.x + 118f, gate.centerY + 9f,
+                SkyPeepPickup.COIN_RADIUS
             )) {
                 gate.coinTaken=true
                 coins = SkyPeepEconomy.credit(coins,5)
                 earnedCoins = SkyPeepEconomy.credit(earnedCoins,5)
                 playSound("coin")
             }
-            // Gems have their own hitbox; collecting a coin must not grant a distant gem.
+            // Gem centre and 41-unit radius exactly follow drawDiamond.
             if (gate.gem && !gate.gemTaken &&
-                FlightRules.overlapsPickup(
-                    playerX = BIRD_X + BIRD_W * .5f,
-                    playerY = birdY + BIRD_H * .5f,
-                    pickupX = gate.x + 118f,
-                    pickupY = gate.centerY + 93f,
-                    radiusX = 68f,
-                    radiusY = 57f
-                )) {
+                SkyPeepPickup.overlaps(birdBody,
+                    gate.x + 113f, gate.centerY + 93f,
+                    SkyPeepPickup.GEM_RADIUS)) {
                 gate.gemTaken=true
                 gems = SkyPeepEconomy.credit(gems,1)
                 playSound("coin")
@@ -835,10 +830,10 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             image("pillar_${level}_bottom",gate.x,bottomY-bottom.height,
                 pillarWidth,bottom.height.toFloat())
             if (!gate.coinTaken) {
-                drawCoin(gate.x+118f,gate.centerY+9f,37f)
+                drawCoin(gate.x+118f,gate.centerY+9f,SkyPeepPickup.COIN_RADIUS)
             }
             if (gate.gem && !gate.gemTaken) {
-                drawDiamond(gate.x+113f,gate.centerY+93f,41f)
+                drawDiamond(gate.x+113f,gate.centerY+93f,SkyPeepPickup.GEM_RADIUS)
             }
         }
         drawFlightTrail()
@@ -1333,6 +1328,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         if (effectsEnabled) try { sounds[kind]?.play(.45f) } catch (_:Exception) { }
     }
     private fun save() {
+        // QA launch extras are synthetic fixtures, not genuine progress.
+        if (!SkyPeepQaSession.shouldPersist(qaWorld, qaMapUnlocked)) return
         prefs.putInteger("best",best)
         prefs.putInteger("difficulty",difficulty.ordinal)
         for (mode in SkyDifficulty.entries) {
