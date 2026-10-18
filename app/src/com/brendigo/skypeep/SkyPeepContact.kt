@@ -12,7 +12,8 @@ package com.brendigo.skypeep
  */
 internal object SkyPeepContact {
     // The winged artwork is ~295 × 232 but the solid torso/head is smaller.
-    // Contact only the beak/head/torso core. No collision for open wings,\n    // animated feather tips, scarf or transparent texture padding.
+    // Contact only the beak/head/torso core. No collision for open wings,
+    // animated feather tips, scarf or transparent texture padding.
     const val BODY_CENTRE_X = .595f
     const val BODY_CENTRE_Y = .465f
     // Only the opaque belly/head is solid. Wings, scarf, goggles and beak
