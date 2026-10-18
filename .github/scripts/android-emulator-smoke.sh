@@ -113,6 +113,23 @@ tap_ui 868 65
 capture pause PAUSE
 tap_ui 460 1040
 capture pause-home MENU
+
+# Lifecycle regression: return from Android Home to a paused flight. Managed
+# runtime-generated Pixmap textures must be restorable if EGL is recreated.
+tap_ui 470 1000
+capture lifecycle-in-flight PLAY
+adb shell input keyevent KEYCODE_HOME
+sleep 3
+adb shell am start -W -n com.brendigo.skypeep/.MainActivity
+capture lifecycle-restored PAUSE
+adb logcat -d -s SkyPeepLifecycle:I '*:S' | grep -q 'resume generatedManaged=true' || {
+  echo "FAIL: generated art was not managed after activity resume"
+  exit 1
+}
+tap_ui 460 1040
+capture lifecycle-return-home MENU
+echo "PASS: illustrated GPU textures survived Android Home/Resume."
+
 echo "PASS: all major SkyPeep screens launched without process death."
 
 # Diagnostic-only level override exists exclusively in debuggable APKs.
