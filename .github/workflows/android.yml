@@ -137,8 +137,13 @@ jobs:
           set -euo pipefail
           image="system-images;android-35;default;x86_64"
           path="$ANDROID_HOME/system-images/android-35/default/x86_64"
+          sdkmanager_bin="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          test -x "$sdkmanager_bin" || {
+            echo "Android command-line tools not found under $ANDROID_HOME/cmdline-tools"
+            exit 1
+          }
           for attempt in 1 2 3; do
-            if sdkmanager --install "$image" && test -s "$path/system.img"; then
+            if "$sdkmanager_bin" --install "$image" && test -s "$path/system.img"; then
               echo "Android 35 emulator image verified"
               exit 0
             fi
