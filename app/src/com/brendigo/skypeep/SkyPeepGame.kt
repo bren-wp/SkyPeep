@@ -173,12 +173,13 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         val pixel = Pixmap(1, 1, Pixmap.Format.RGBA8888)
         pixel.setColor(Color.WHITE)
         pixel.fill()
-        solid = Texture(pixel)
-        pixel.dispose()
+        solid = SkyPeepManagedTexture.fromPixmap(pixel)
         prepareChrome()
         costumes = SkyPeepBirdCostumes.prepare()
         victoryStar = createVictoryStar()
         trailTexture = SkyPeepTrailArtwork.create()
+        Gdx.app.log("SkyPeepLifecycle",
+            "generatedManaged=" + generatedTexturesManaged())
         for (kind in arrayOf("flap", "coin", "win", "fail", "click")) {
             try { sounds[kind] = Gdx.audio.newSound(Gdx.files.internal("$kind.wav")) }
             catch (_: Exception) { /* audio is optional on unsupported devices */ }
@@ -1220,9 +1221,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         star(64,67,59,29,Color.valueOf("49220F"))
         star(64,61,56,27,Color.valueOf("FFB52D"))
         star(60,56,47,22,Color.valueOf("FFE34D"))
-        val tx=Texture(pix)
+        val tx=SkyPeepManagedTexture.fromPixmap(pix)
         tx.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear)
-        pix.dispose()
         return tx
     }
 
@@ -1272,12 +1272,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 }
                 pix.drawPixel(x,y,Color.rgba8888(c))
             }
-            val image=Texture(pix).also {
+            val image=SkyPeepManagedTexture.fromPixmap(pix).also {
                 it.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear)
             }
             chromeTextures[name]=image
             chrome[name]=com.badlogic.gdx.graphics.g2d.NinePatch(image,32,32,32,32)
-            pix.dispose()
         }
     }
 
@@ -1358,7 +1357,21 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         save()
         music?.pause()
     }
-    override fun resume() { if (musicEnabled) music?.play() }
+    private fun generatedTexturesManaged(): Boolean =
+        ::solid.isInitialized && solid.isManaged &&
+        chromeTextures.isNotEmpty() && chromeTextures.values.all { it.isManaged } &&
+        costumes.isNotEmpty() && costumes.values.all { it.isManaged } &&
+        victoryStar?.isManaged == true &&
+        pillarStem?.isManaged == true &&
+        trailTexture?.isManaged == true
+
+    override fun resume() {
+        // libGDX reloads managed textures when Android restores the GL context.
+        // A normal UI pause must not reset progress or recreate menu textures.
+        Gdx.app.log("SkyPeepLifecycle",
+            "resume generatedManaged=" + generatedTexturesManaged())
+        if (musicEnabled) music?.play()
+    }
     override fun dispose() {
         save()
         music?.dispose()

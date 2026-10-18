@@ -19,9 +19,8 @@ internal object SkyPeepTrailArtwork {
             p.setColor(Color(1f,1f,1f,if(i==0).85f else .54f))
             p.fillTriangle(v[0],v[1],v[2],v[3],v[4],v[5])
         }
-        val texture=Texture(p)
+        val texture=SkyPeepManagedTexture.fromPixmap(p)
         texture.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear)
-        p.dispose()
         return texture
     }
 }

@@ -23,9 +23,8 @@ internal object SkyPeepBirdCostumes {
             3 -> cosmic(canvas)
             4 -> royal(canvas)
         }
-        val texture = Texture(canvas)
+        val texture = SkyPeepManagedTexture.fromPixmap(canvas)
         texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-        canvas.dispose()
         texture
     }
 

@@ -64,9 +64,8 @@ internal object SkyPeepPillarStem {
         pix.drawLine(97,109,91,120)
         pix.drawLine(40,25,33,33)
         pix.drawLine(33,33,44,45)
-        val tex=Texture(pix)
+        val tex=SkyPeepManagedTexture.fromPixmap(pix)
         tex.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear)
-        pix.dispose()
         return tex
     }
 }

@@ -65,8 +65,8 @@ jobs:
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+31" app/build.gradle
-          grep -Fq "versionName '0.3.19'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+32" app/build.gradle
+          grep -Fq "versionName '0.3.20'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/bundle/release/app-release.aab
           unzip -t app/build/outputs/apk/debug/app-debug.apk > /dev/null
@@ -131,6 +131,28 @@ jobs:
       - name: Enable KVM acceleration
         run: |
           if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+      - name: Prepare Android emulator image with retries
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="system-images;android-35;default;x86_64"
+          path="$ANDROID_HOME/system-images/android-35/default/x86_64"
+          sdkmanager_bin="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          test -x "$sdkmanager_bin" || {
+            echo "Android command-line tools not found under $ANDROID_HOME/cmdline-tools"
+            exit 1
+          }
+          for attempt in 1 2 3; do
+            if "$sdkmanager_bin" --install "$image" && test -s "$path/system.img"; then
+              echo "Android 35 emulator image verified"
+              exit 0
+            fi
+            echo "Android SDK image install attempt $attempt failed; cleaning corrupt download"
+            rm -rf "$path"
+            sleep $((attempt * 5))
+          done
+          echo "Android SDK image unavailable after three attempts"
+          exit 1
       - name: Android emulator startup smoke
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -157,7 +179,7 @@ jobs:
   release:
     name: Publish verified preview
     needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.19-fair-pickups-gates'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.20-android-lifecycle'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -179,7 +201,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.19-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.20-preview.${GITHUB_RUN_NUMBER}"
           APK="$(find release-artifacts -type f -name 'app-debug.apk' -print -quit)"
           AAB="$(find release-artifacts -type f -name 'app-release.aab' -print -quit)"
           test -s "$APK" && test -s "$AAB"
@@ -190,7 +212,7 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "SkyPeep $VERSION" \
             --draft --prerelease \
-            --notes '0.3.19: fair art-aligned circular coin/gem pickups; bounded, reachable neighbouring pillar passages across all six worlds and three difficulties; QA fixtures no longer overwrite real saved progress. Includes new JVM regression tests, dead-code audit and Android emulator smoke. Debug APK is installable. AAB is UNSIGNED — NOT GOOGLE PLAY READY. Physical-device testing, exact image-alpha collision calibration and all-screen pixel-level 1:1 parity remain pending.'
+            --notes '0.3.20: repair OpenGL context-loss handling for dynamically generated bird costumes, UI controls, pillar stems, collectible star and trail art through managed GPU textures; add Android Home/Resume lifecycle verification and robust emulator image setup with retries. Existing original artwork, progression and prices are preserved. Debug APK for testing; release AAB remains UNSIGNED — NOT GOOGLE PLAY READY. Exact 1:1 visual parity and physical-device crash reproduction require additional testing.'
           # A stale draft is never published; delete it and its temporary tag.
           publish_head="$(gh api "repos/$GH_REPO/git/ref/heads/$GITHUB_REF_NAME" --jq '.object.sha')"
           if [[ "$publish_head" != "$GITHUB_SHA" ]]; then
