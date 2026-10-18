@@ -32,6 +32,10 @@ class SkyPeepGatePlacementTest {
             assertEquals(1110f, SkyPeepGatePlacement.next(null, 1, mode, 1f), 0.001f)
             assertTrue(SkyPeepGatePlacement.next(Float.NaN, 6, mode, .5f)
                 in 570f..1110f)
+            assertTrue(SkyPeepGatePlacement.next(999999f, 6, mode, .5f)
+                in 570f..1110f)
+            assertTrue(SkyPeepGatePlacement.next(-999999f, 6, mode, .5f)
+                in 570f..1110f)
             assertEquals(SkyPeepGatePlacement.next(900f, 6, mode, 1f),
                 SkyPeepGatePlacement.next(900f, 6, mode, 12f), 0.001f)
         }

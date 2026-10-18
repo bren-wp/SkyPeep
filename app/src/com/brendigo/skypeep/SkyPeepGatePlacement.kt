@@ -24,14 +24,11 @@ internal object SkyPeepGatePlacement {
         val maxCenter = min(MAX_CENTRE, SkyPeepScreenFrame.REFERENCE_HEIGHT - halfGap - safety)
         require(minCenter <= maxCenter)
         val step = maxShift(world, difficulty)
-        val low = if (previous != null && previous.isFinite()) max(minCenter, previous - step)
-            else minCenter
-        val high = if (previous != null && previous.isFinite()) min(maxCenter, previous + step)
-            else maxCenter
-        // A stored centre is always inside these bounds. Defensive handling
-        // also allows fixtures outside the normal range without an exception.
-        val lower = min(low, high)
-        val upper = max(low, high)
-        return lower + (upper - lower) * sample.coerceIn(0f, 1f)
+        // Malformed or old fixtures are clamped before computing the next
+        // route; an invalid previous centre cannot spawn an unreachable gate.
+        val anchor = previous?.takeIf { it.isFinite() }?.coerceIn(minCenter, maxCenter)
+        val low = if (anchor != null) max(minCenter, anchor - step) else minCenter
+        val high = if (anchor != null) min(maxCenter, anchor + step) else maxCenter
+        return low + (high - low) * sample.coerceIn(0f, 1f)
     }
 }
