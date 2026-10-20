@@ -19,7 +19,7 @@
 Guide SkyPeep, a small aviator with a big heart, between illustrated towers. Tap to flap, collect coins and gems, unlock colourful costumes and flight trails, and complete increasingly demanding sky routes.
 
 - **Responsive Android gameplay:** original character and interface proportions are preserved across portrait phones and larger displays; the on-screen HUD and pause control follow the visible viewport.
-- **Fair flight controls:** short fixed-bound physics substeps, core-body hitbox geometry and precise collectible contact improve the consistency of near misses, rewards and obstacle navigation.
+- **Fair flight controls:** short fixed-bound physics substeps, core-body hitbox geometry and precise collectible contact improve the consistency of near misses, rewards and obstacle navigation. Accurate passes are judged as the gate midpoint crosses SkyPeep, and spawn intervals preserve timing across different frame rates.
 - **Meaningful progression:** six worlds, three difficulties, local bests, skill-based stars, character skins and cosmetic flight trails.
 - **All local:** no account, ads, trackers, mandatory network access or real-money purchases.
 
