@@ -46,12 +46,23 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // Rendered pillar assets occupy the full width, including their caps.
         private const val GATE_WIDTH = 275f
         private const val MAX_LEVEL = 6
+        private val LEVEL_TITLES = arrayOf("Sky Start","Cloud Pass","Crystal Drop",
+            "Wind Gate","Moon Glow","Sun Peak")
+        private val SCORE_STROKE_OFFSETS = floatArrayOf(-2.8f,0f,2.8f)
+        private val SCORE_OUTLINE = Color.valueOf("10264B")
+        private val SCORE_OUTLINE_GOLD = Color.valueOf("603217")
+        private val SCORE_INK = arrayOf("159DE8","164F9C","FFE45C",
+            "2584BE","A9C1FF","FFBE31").map(Color::valueOf)
+        private val TRAIL_TINTS = arrayOf(Color.WHITE, Color.valueOf("43DBFF"),
+            Color.valueOf("FFD145"), Color.valueOf("C078FF"))
     }
 
     private enum class Screen { SPLASH, MENU, MAP, PLAY, PAUSE, RESULT, SKINS, SHOP, SETTINGS }
     private data class Gate(var x: Float, var centerY: Float, var scored: Boolean = false,
                             var coinTaken: Boolean = false, var gemTaken: Boolean = false,
-                            val gem: Boolean = false)
+                            val gem: Boolean = false,
+                            var precisionSampled: Boolean = false,
+                            var preciseAtCrossing: Boolean = false)
 
     private lateinit var batch: SpriteBatch
     private lateinit var camera: OrthographicCamera
@@ -286,7 +297,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     override fun render() {
-        val delta = Gdx.graphics.deltaTime.coerceIn(0f, .05f)
+        val delta = SkyPeepPhysicsStep.boundedDelta(Gdx.graphics.deltaTime)
         animationTime += delta
         if (screen == Screen.PLAY && !readyForFirstTap) flightBackgroundTime += delta
         if (messageTimer > 0f) messageTimer -= delta
@@ -454,25 +465,30 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         x >= l && x <= l+w && y >= t && y <= t+h
 
     private fun clickMenu(x: Float, y: Float) {
-        playSound("click")
         when {
-            hit(x,y,170f,895f,590f,248f) -> begin(level)
-            hit(x,y,95f,1155f,364f,169f) -> screen = Screen.MAP
-            hit(x,y,471f,1155f,370f,169f) -> screen = Screen.SKINS
-            hit(x,y,95f,1318f,364f,173f) -> screen = Screen.SHOP
-            hit(x,y,471f,1318f,370f,173f) -> screen = Screen.SETTINGS
-            hit(x,y,243f,0f,100f,130f) -> toast("EARN COINS IN FLIGHT")
-            hit(x,y,815f,0f,110f,130f) -> toast("COMPLETE WORLDS FOR GEMS")
+            hit(x,y,170f,895f,590f,248f) -> { playSound("click"); begin(level) }
+            hit(x,y,95f,1155f,364f,169f) -> { playSound("click"); screen = Screen.MAP }
+            hit(x,y,471f,1155f,370f,169f) -> { playSound("click"); screen = Screen.SKINS }
+            hit(x,y,95f,1318f,364f,173f) -> { playSound("click"); screen = Screen.SHOP }
+            hit(x,y,471f,1318f,370f,173f) -> { playSound("click"); screen = Screen.SETTINGS }
+            hit(x,y,243f,0f,100f,130f) -> { playSound("click"); toast("EARN COINS IN FLIGHT") }
+            hit(x,y,815f,0f,110f,130f) -> { playSound("click"); toast("COMPLETE WORLDS FOR GEMS") }
         }
     }
 
     private fun clickMap(x: Float, y: Float) {
-        playSound("click")
         when {
-            SkyPeepMapLayout.back.contains(x,y) -> screen = Screen.MENU
-            SkyPeepMapLayout.play.contains(x,y) -> begin(level)
+            SkyPeepMapLayout.back.contains(x,y) -> {
+                playSound("click")
+                screen = Screen.MENU
+            }
+            SkyPeepMapLayout.play.contains(x,y) -> {
+                playSound("click")
+                begin(level)
+            }
             else -> {
                 val tapped=SkyPeepMapLayout.worldAt(x,y) ?: return
+                playSound("click")
                 if (tapped > unlocked) {
                     Gdx.app.log("SkyPeepMap","world_locked=$tapped unlocked=$unlocked")
                     toast("COMPLETE PREVIOUS LEVEL")
@@ -528,19 +544,31 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     private fun clickSkins(x: Float, y: Float) {
-        playSound("click")
         if (y < 140f && x in 240f..355f) {
+            playSound("click")
             toast("EARN COINS IN FLIGHT")
             return
         }
         if (y < 140f && x in 825f..935f) {
+            playSound("click")
             toast("COMPLETE WORLDS FOR GEMS")
             return
         }
-        if (SkyPeepUiTouch.skinsBack(x,y)) { screen = Screen.MENU; return }
-        if (hit(x,y,285f,810f,398f,120f)) { selectedSkin = 0; save(); toast("DEFAULT EQUIPPED"); return }
+        if (SkyPeepUiTouch.skinsBack(x,y)) {
+            playSound("click")
+            screen = Screen.MENU
+            return
+        }
+        if (hit(x,y,285f,810f,398f,120f)) {
+            playSound("click")
+            selectedSkin = 0
+            save()
+            toast("DEFAULT EQUIPPED")
+            return
+        }
         // Card art and prices are informational, only the BUY/EQUIP control is actionable.
         val skin = SkyPeepUiTouch.skinPurchaseAt(x,y) ?: return
+        playSound("click")
         if (ownedSkins[skin]) {
             selectedSkin = skin
             save()
@@ -618,8 +646,18 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
 
     private fun setMusic(enabled:Boolean) {
         musicEnabled=enabled
-        if (enabled) music?.play() else music?.pause()
+        updateMusicPlayback(enabled)
         save()
+    }
+
+    private fun updateMusicPlayback(playing:Boolean) {
+        // Audio focus/device changes must never crash an otherwise offline
+        // flight. The sound resource is optional and will be disposed at exit.
+        try {
+            if (playing) music?.play() else music?.pause()
+        } catch (_: Exception) {
+            Gdx.app.log("SkyPeepAudio","Music unavailable during playback transition")
+        }
     }
 
     private fun begin(chosen: Int) {
@@ -705,7 +743,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         val moveSpeed = SkyRouteRules.speed(level,difficulty)
         nextGate -= dt
         if (nextGate <= 0f) {
-            nextGate=SkyRouteRules.spawnSeconds(level,difficulty)
+            nextGate=SkyPeepGatePass.nextSpawnCountdown(
+                nextGate, SkyRouteRules.spawnSeconds(level,difficulty))
             val center = SkyPeepGatePlacement.next(
                 lastGateCenter, level, difficulty, MathUtils.random())
             lastGateCenter = center
@@ -744,6 +783,15 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 gems = SkyPeepEconomy.credit(gems,1)
                 playSound("coin")
             }
+            // Precision belongs to the moment the gate MIDPOINT crosses the
+            // bird. Sampling on the score screen's later trailing-edge pass
+            // penalised flaps that happened safely after crossing the opening.
+            if (!gate.precisionSampled &&
+                SkyPeepGatePass.reachedBirdCentre(gate.x,gateWidth,birdBody.cx)) {
+                gate.precisionSampled=true
+                gate.preciseAtCrossing=SkyRouteRules.isPrecisionPass(
+                    birdBody.cy,gate.centerY,gap)
+            }
             if (!gate.scored && gate.x+gateWidth < BIRD_X+40f) {
                 gate.scored=true
                 score++
@@ -752,8 +800,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 // Precision routes reward keeping SkyPeep on the centreline.
                 // This gives each world an optional skill challenge beyond
                 // merely passing the obstacles, without forcing microtransactions.
-                val precise=SkyRouteRules.isPrecisionPass(
-                    birdY+BIRD_H*.5f,gate.centerY,gap)
+                val precise=gate.precisionSampled && gate.preciseAtCrossing
                 if (precise) {
                     precisionPasses++
                     precisionStreak++
@@ -869,12 +916,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private fun drawFlightTrail() {
         if (readyForFirstTap) return
         val tx=trailTexture ?: return
-        val tint=when(selectedTrail) {
-            1 -> Color.valueOf("43DBFF")
-            2 -> Color.valueOf("FFD145")
-            3 -> Color.valueOf("C078FF")
-            else -> Color.WHITE
-        }
+        val tint=TRAIL_TINTS[selectedTrail.coerceIn(0,TRAIL_TINTS.lastIndex)]
         batch.color=tint
         val drift=kotlin.math.sin(animationTime*9f)*7f
         batch.draw(tx,BIRD_X-158f,birdY+41f+drift,180f,129f)
@@ -941,17 +983,10 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         val size=1.30f
         val available=171f
         val center=W/2f
-        val outline=Color.valueOf(if(level==6) "603217" else "10264B")
-        val ink=Color.valueOf(when(level) {
-            1 -> "159DE8"
-            2 -> "164F9C"
-            3 -> "FFE45C"
-            4 -> "2584BE"
-            5 -> "A9C1FF"
-            else -> "FFBE31"
-        })
-        for (dx in floatArrayOf(-2.8f,0f,2.8f))
-            for (dy in floatArrayOf(-2.8f,0f,2.8f))
+        val outline=if(level==6) SCORE_OUTLINE_GOLD else SCORE_OUTLINE
+        val ink=SCORE_INK[(level-1).coerceIn(0,SCORE_INK.lastIndex)]
+        for (dx in SCORE_STROKE_OFFSETS)
+            for (dy in SCORE_STROKE_OFFSETS)
                 if (dx!=0f || dy!=0f)
                     fitted(text,baseline+dy,fontLarge,size,available,center+dx,outline)
         fitted(text,baseline,fontLarge,size,available,center,ink)
@@ -1142,12 +1177,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             badge("cream",99f,y,743f,174f)
             badge("wood",119f,y+24f,110f,122f)
             if(tx!=null) {
-                batch.color=when(offer.id) {
-                    1 -> Color.valueOf("43DBFF")
-                    2 -> Color.valueOf("FFD145")
-                    3 -> Color.valueOf("C078FF")
-                    else -> Color.WHITE
-                }
+                batch.color=TRAIL_TINTS[offer.id.coerceIn(0,TRAIL_TINTS.lastIndex)]
                 batch.draw(tx,132f,y+48f,90f,74f)
                 batch.color=Color.WHITE
             }
@@ -1320,8 +1350,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         message=value
         messageTimer=2.3f
     }
-    private fun levelTitle(i:Int)=arrayOf("Sky Start","Cloud Pass","Crystal Drop",
-        "Wind Gate","Moon Glow","Sun Peak")[i.coerceIn(1,MAX_LEVEL)-1]
+    private fun levelTitle(i:Int)=LEVEL_TITLES[i.coerceIn(1,MAX_LEVEL)-1]
     private fun skinName(i:Int)=SkyPeepSkinCatalog.get(i).name
     private fun playSound(kind:String) {
         if (effectsEnabled) try { sounds[kind]?.play(.45f) } catch (_:Exception) { }
@@ -1355,7 +1384,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // App backgrounding must never leave a live run progressing behind a system UI.
         if (screen == Screen.PLAY) screen = Screen.PAUSE
         save()
-        music?.pause()
+        updateMusicPlayback(false)
     }
     private fun generatedTexturesManaged(): Boolean =
         ::solid.isInitialized && solid.isManaged &&
@@ -1370,7 +1399,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // A normal UI pause must not reset progress or recreate menu textures.
         Gdx.app.log("SkyPeepLifecycle",
             "resume generatedManaged=" + generatedTexturesManaged())
-        if (musicEnabled) music?.play()
+        if (musicEnabled) updateMusicPlayback(true)
     }
     override fun dispose() {
         save()

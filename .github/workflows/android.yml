@@ -65,8 +65,8 @@ jobs:
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+32" app/build.gradle
-          grep -Fq "versionName '0.3.20'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+33" app/build.gradle
+          grep -Fq "versionName '0.3.21'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/bundle/release/app-release.aab
           unzip -t app/build/outputs/apk/debug/app-debug.apk > /dev/null
@@ -179,7 +179,7 @@ jobs:
   release:
     name: Publish verified preview
     needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.20-android-lifecycle'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.21-flight-polish-audit'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -201,7 +201,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.20-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.21-preview.${GITHUB_RUN_NUMBER}"
           APK="$(find release-artifacts -type f -name 'app-debug.apk' -print -quit)"
           AAB="$(find release-artifacts -type f -name 'app-release.aab' -print -quit)"
           test -s "$APK" && test -s "$AAB"
@@ -212,7 +212,7 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "SkyPeep $VERSION" \
             --draft --prerelease \
-            --notes '0.3.20: repair OpenGL context-loss handling for dynamically generated bird costumes, UI controls, pillar stems, collectible star and trail art through managed GPU textures; add Android Home/Resume lifecycle verification and robust emulator image setup with retries. Existing original artwork, progression and prices are preserved. Debug APK for testing; release AAB remains UNSIGNED — NOT GOOGLE PLAY READY. Exact 1:1 visual parity and physical-device crash reproduction require additional testing.'
+            --notes '0.3.21: accurate precision scoring at obstacle mid-crossing; frame-rate-consistent gate intervals; reduced HUD draw allocations and corrected inert-menu tap audio; hardened optional music lifecycle; remove superseded legacy collision helpers and strengthen dead-code auditing. Maintains original six worlds, game modes, currency, sprites and player progress. Verified preview includes debug APK and UNSIGNED / NOT PLAY READY AAB. Pixel-exact 1:1 art parity and physical-device crash reproduction are still pending.'
           # A stale draft is never published; delete it and its temporary tag.
           publish_head="$(gh api "repos/$GH_REPO/git/ref/heads/$GITHUB_REF_NAME" --jq '.object.sha')"
           if [[ "$publish_head" != "$GITHUB_SHA" ]]; then

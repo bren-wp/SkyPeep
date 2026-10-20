@@ -1,34 +1,27 @@
-# SkyPeep 0.3.15 — Fair Contact and Edge-to-Edge Android QA
+# SkyPeep 0.3.21 — Contact fairness and full-screen Android QA
 
-## Collision correction
+## Collision and gameplay geometry
 
-Prior versions used a broad axis-aligned collision rectangle across the animated bird's wing/scarf/transparent margins and almost the entire illustrated stone-cap width. This caused a failure before the visible torso actually touched a pillar.
+The original authored canvas is 941 × 1672 virtual coordinates. `SkyPeepBirdLayout` paints the original animated bird at a 295 × 232 nominal box while `SkyPeepContact` uses a smaller **47 × 44 radius torso/head ellipse**, anchored at 59.5% of the width and 46.5% of the height. Decorative wing, beak, scarf and anti-alias margins are excluded. An additional 5 virtual-pixel contact grace and 36-pixel obstacle cap side inset prevent invisible near-miss deaths without disabling actual solid-stone contact.
 
-The new pure Kotlin `SkyPeepContact` subsystem uses the bird's **central-body ellipse** (68×65 virtual-pixel radii), excludes the cap's transparent side margins (22 virtual pixels), and tests ellipse-to-rectangle nearest-point penetration against the top and bottom walls separately. Tangency, a corner near-miss and a scarf/wing near-miss do not end the flight. Real stone penetration does. Floor/ceiling contacts are checked against the visible world bounds, not the old hidden HUD/floor margins.
+Coins and gems use `SkyPeepPickup`: exact ellipse-to-circle collision with the **rendered** sprite centres and radii (coin 37, gem 41), rather than the superseded large invisible pickup ellipses. The old `FlightRules.intersectsObstacle` and `FlightRules.overlapsPickup` helpers and their obsolete test cases were removed as dead production code in v0.3.21.
 
-`SkyPeepContactTest` validates near-wall safety, contact vs tangency, diagonal-corner false positives, transparent cap margins, real solid contact and exact world boundaries. The legacy `FlightRules` pickup and progression APIs remain intact.
+The bounded frame delta is at most 50 ms; gameplay integrates the capped delta in physics steps of at most 1/120 second. Invalid renderer deltas are rejected. Gate spawn timing carries fractional overrun, so obstacle periods do not vary systematically by frame rate. `SkyPeepGatePlacement` limits consecutive opening jumps for each of the six worlds and three difficulties.
 
-## Fullscreen without deformation
+**New in 0.3.21:** A precision passage is evaluated when the gate midpoint crosses the bird body centre, not when the trailing edge passes behind it. The result remains fixed even if the bird flaps after safely clearing the centre.
 
-The game still uses the original **941×1672 design coordinates**, including the photographed, interactive menu, map, skins, pause and results illustrations. `ExtendViewport` fills the entire device display while maintaining the original design aspect: on screens with additional vertical/horizontal room, only the exterior region is filled with narrow edge samples from the existing illustrated screen. There is no stretched bird, warped button or global scrolling.
+## Full-screen illustration, HUD and UI
 
-The virtual reference rectangle remains centred and untouched; a `SkyPeepScreenFrame` geometry class computes actual visible top/bottom/left/right bounds. Gameplay score/header/pause stay anchored to the device's **physical top** on tall displays. Stone shafts extend to the physical boundaries. Ordinary menu/dialogue buttons work only in the original artwork region; gameplay taps outside that region still flap.
+`ExtendViewport` preserves reference-screen character art and button geometry; illustrated background margins fill extra Android viewport space. Score remains centred relative to the original canvas, while coin, gem and pause HUD plates remain anchored to the displayed world edges. Pause touch geometry is matched to the visible art.
 
-## UI polish
+Settings and Shop use the project's branded illustrated button palette and mascot, not placeholder stock images. Menu, map and skins hit regions activate only real on-screen controls; empty backgrounds no longer produce misleading click audio. Optional Android audio playback failure cannot terminate a flight.
 
-Shared buttons used by Settings, Shop, Pause overlays and Victory now have more reference-like espresso outlines, subtle rounded highlights, bevelled edges and shaded lower surfaces. Shop and Settings use the original transparent SkyPeep bird mascot, including the player's equipped costume, without static screenshots standing in for interactive UI.
+## Emulator coverage
 
-## Device testing (real Android emulator)
+GitHub CI builds debug APK and unsigned AAB, validates the static dead-code audit, resource-art SHA-256, native ABIs and merged manifest, and then runs on an Android API 35 emulator. It exercises splash/menu, world map, skins and purchases, shop, settings, all six world scenes, pause/resume, result screens, score displays, skin customization and saved settings after restart.
 
-CI takes actual screenshots and tests original menu/PLAY/PAUSE touch targets at:
+Responsive device-size checks run for **360×640, 720×1280, 1080×2400, 1200×1920 and 1600×2000**. Actual screenshots and logcat traces are stored as `SkyPeep-Emulator-Smoke-*` workflow artifacts; `tools/ResponsiveViewportQa.java` checks screen continuity and the original canvas alignment.
 
-- 1080×2400 (very tall)
-- 720×1280 (compact phone)
-- 1200×1920 (wider screen/tablet)
-- Original emulator resolution plus standard all-six-world gameplay, settings, map, shop, skins, loss, victory and 18-route persistence.
+## Remaining limits
 
-The JDK-only `tools/ResponsiveViewportQa.java` compares the centre of every new screenshot to the reference image and checks that extended top/bottom or side areas are painted, rather than being unfilled letterbox bars. The report is uploaded with the emulator artifact.
-
-## Open visual fidelity work
-
-This update corrects collision fairness and viewport scaling, and improves UI chrome. It **does not prove total 1:1 fidelity** across every Android aspect ratio. The original art remains aligned 1:1 *within the centred reference canvas*, but the margins must show additional illustration rather than independently authored extension art. Custom Settings/Shop screenshots were not among the supplied original reference images, so those screens follow the established cartoon visual language rather than claiming an exact pixel match to an absent reference. Crystal Drop, Wind Gate, Moon Glow and Sun Peak still require world-layer visual reconstruction, physical device/notch testing, and signed Google Play build configuration.
+Pixel-perfect 1:1 parity for every visual reference, original alpha-mapped pillar collision, large foldable safe areas, physical-device EGL/memory pressure, and a signed Google Play release remain to be verified separately. A green emulator build cannot certify all Android GPUs or reproduce a user-device crash without that device's stack trace.

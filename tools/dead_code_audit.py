@@ -42,7 +42,53 @@ for file in sorted(list(SOURCE.glob("*.kt")) + list(TOOLS.glob("*.java"))):
 report.append(f"Inspected {checked} Kotlin/Java production source files")
 report.append(f"High-confidence unused symbols: {len(problems)}")
 report.extend(" - " + x for x in problems)
-report.append("Dynamic reachability, native GPU allocation and packaged assets are checked by Gradle / emulator CI separately.")
+
+# Second pass: production-vs-tests reachability. Pure Kotlin helpers that only
+# appear in tests are candidates for manual removal, NOT automatic failures:
+# Java callbacks, data-class accessors and dynamic resources are legitimate.
+production_files = sorted(SOURCE.glob("*.kt"))
+test_dir = ROOT / "app" / "src" / "test" / "java" / "com" / "brendigo" / "skypeep"
+test_files = sorted(test_dir.glob("*.kt"))
+production = "\n".join(p.read_text(encoding="utf-8") for p in production_files)
+tests = "\n".join(p.read_text(encoding="utf-8") for p in test_files)
+def stripped(source: str) -> str:
+    source = re.sub(r"(?s)/\*.*?\*/", "", source)
+    return re.sub(r"(?m)//[^\n]*", "", source)
+
+production_code = stripped(production)
+test_code = stripped(tests)
+test_only = []
+unreferenced_candidates = []
+# Android/LibGDX lifecycle and framework hook names are invoked externally.
+framework_hooks = {
+    "onCreate", "create", "render", "resize", "pause", "resume", "dispose"
+}
+for file in production_files:
+    content = stripped(file.read_text(encoding="utf-8"))
+    # Anchor at the beginning of a line to exclude calls and lambdas.
+    declarations = re.findall(
+        r"(?m)^\s*(?:(?:internal|public|private|override|suspend|inline|tailrec)\s+)*fun\s+(\w+)\s*\(",
+        content)
+    for symbol in declarations:
+        if symbol in framework_hooks:
+            continue
+        production_uses = len(re.findall(r"\b" + re.escape(symbol) + r"\b", production_code))
+        if production_uses != 1:
+            continue
+        location = f"{file.relative_to(ROOT)}::{symbol}"
+        if re.search(r"\b" + re.escape(symbol) + r"\b", test_code):
+            test_only.append(location)
+        else:
+            unreferenced_candidates.append(location)
+report.append(f"Inspected {len(test_files)} Kotlin JVM regression test files")
+report.append(f"Test-only helper candidates for review: {len(test_only)}")
+report.extend(" QA-only: " + name for name in test_only)
+report.append(f"Potentially unreferenced production methods: {len(unreferenced_candidates)}")
+report.extend(" REVIEW: " + name for name in unreferenced_candidates)
+report.append("This second pass is informational: source-level token searches cannot establish")
+report.append("reflection/framework/dynamically-named reachability. It never deletes art, tests or code.")
+report.append("Dynamic artwork reachability, native GPU allocation and packaged assets are")
+report.append("checked by Gradle packaging, resource SHA-256 verification and emulator CI.")
 destination = ROOT / "smoke-results" / "dead-code-audit.txt"
 destination.parent.mkdir(exist_ok=True)
 destination.write_text("\n".join(report) + "\n", encoding="utf-8")
