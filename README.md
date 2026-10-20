@@ -10,7 +10,7 @@
 
 ![SkyPeep original gameplay design reference](assets/previews/gameplay.jpg)
 
-[Latest GitHub releases](https://github.com/bren-wp/SkyPeep/releases/latest) · [Build & QA](#build-and-quality-assurance) · [Privacy](#privacy-first)
+[Latest GitHub releases](https://github.com/bren-wp/SkyPeep/releases) · [Build & QA](#build-and-quality-assurance) · [Privacy](#privacy-first)
 
 </div>
 
@@ -56,7 +56,7 @@ The following are **design reference illustrations**, not screenshots of a runni
 
 ## Install a preview
 
-1. Open the [latest SkyPeep GitHub release](https://github.com/bren-wp/SkyPeep/releases/latest).
+1. Open the [latest SkyPeep GitHub release](https://github.com/bren-wp/SkyPeep/releases).
 2. Download `app-debug.apk` from a successfully validated preview release.
 3. Install the APK on an Android device where installation of this downloaded APK is explicitly allowed.
 

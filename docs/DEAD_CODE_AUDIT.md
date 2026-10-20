@@ -2,6 +2,8 @@
 
 ## Production source and regression tests
 
+Last complete audit on the 0.3.21 branch: **30 Kotlin/Java production files**, **0 confidently unused symbols**, **0 unreferenced production methods**, and **1 intentional QA-only helper** (`SkyPeepBirdLayout.aspectError`, referenced by the aspect-ratio test). Existing dynamic texture names and Android framework entry points remain protected.
+
 CI runs `python3 tools/dead_code_audit.py` on **all production Kotlin files and Java asset tooling**. It fails on confidently unused imports and private symbols. A new second pass compares production method definitions against **all production Kotlin sources and all JVM regression tests**; QA-only methods and externally unreferenced methods are reported for manual classification, rather than being silently deleted.
 
 **Confirmed obsolete implementation removed in 0.3.21:** `FlightRules.intersectsObstacle` (legacy rectangle collision) and `FlightRules.overlapsPickup` (oversized ellipse/halo model). They had no production call sites after migrating to `SkyPeepContact` and `SkyPeepPickup`; their old-only unit cases have been removed. The current ellipse-to-stone and body-to-collectible regression tests remain.
