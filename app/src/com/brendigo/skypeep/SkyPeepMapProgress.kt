@@ -47,7 +47,23 @@ internal object SkyPeepMapLayout {
     )
     fun marker(world:Int)=markers[world-1]
     fun starRow(world:Int)=starRows[world-1]
-    fun worldAt(x:Float,y:Float):Int? =
-        islands.indexOfFirst { it.contains(x,y) }
-            .takeIf { it>=0 }?.plus(1)
+    fun worldAt(x:Float,y:Float):Int? {
+        // Some reference-painted island touch rectangles overlap slightly.
+        // Choose the nearest VISIBLE island marker rather than whichever
+        // rectangle happens to appear first in the array.
+        if (!x.isFinite() || !y.isFinite()) return null
+        var closest: Int? = null
+        var distance = Float.POSITIVE_INFINITY
+        for (i in islands.indices) {
+            if (!islands[i].contains(x,y)) continue
+            val dx = x - markers[i].x
+            val dy = y - markers[i].y
+            val square = dx*dx + dy*dy
+            if (square < distance) {
+                distance = square
+                closest = i+1
+            }
+        }
+        return closest
+    }
 }

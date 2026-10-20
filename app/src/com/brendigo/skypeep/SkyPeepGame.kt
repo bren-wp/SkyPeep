@@ -55,6 +55,14 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             "2584BE","A9C1FF","FFBE31").map(Color::valueOf)
         private val TRAIL_TINTS = arrayOf(Color.WHITE, Color.valueOf("43DBFF"),
             Color.valueOf("FFD145"), Color.valueOf("C078FF"))
+        private val SHOP_SHADE = Color(.04f,.13f,.30f,.72f)
+        private val SETTINGS_SHADE = Color(0f,.07f,.17f,.68f)
+        private val RESULT_SHADE = Color(.06f,.16f,.32f,.29f)
+        private val UNLIT_STAR = Color(.38f,.44f,.56f,.85f)
+        private val VICTORY_HEADLINE_COLOR = Color.valueOf("6B3D26")
+        private val SHOP_NAME_COLOR = Color.valueOf("5B3526")
+        private val SHOP_PRICE_COLOR = Color.valueOf("734428")
+        private val SETTINGS_NAMES = arrayOf("MUSIC","SOUND EFFECTS","VIBRATION","DIFFICULTY")
     }
 
     private enum class Screen { SPLASH, MENU, MAP, PLAY, PAUSE, RESULT, SKINS, SHOP, SETTINGS }
@@ -119,6 +127,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private var animationTime = 0f
     // Separate motion clock freezes scenery when paused or in a menu.
     private var flightBackgroundTime = 0f
+    // Independent elapsed physics clock: gust sampling must not depend on
+    // a phone's rendering refresh rate, UI redraw, or a paused animation.
+    private var flightPhysicsTime = 0f
     private var lastBackgroundLogSecond = -1
     private var lastPhysicsLogSample = -1
     private var nextGate = 1.5f
@@ -399,10 +410,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // otherwise tall devices show a bright rectangular seam around the
         // centre panel while its photographed background is dimmed.
         val shade=when(screen) {
-            Screen.SHOP -> Color(.04f,.13f,.30f,.72f)
-            Screen.SETTINGS -> Color(0f,.07f,.17f,.68f)
-            Screen.RESULT -> if(resultWon) Color(.06f,.16f,.32f,.29f)
-                             else null
+            Screen.SHOP -> SHOP_SHADE
+            Screen.SETTINGS -> SETTINGS_SHADE
+            Screen.RESULT -> if(resultWon) RESULT_SHADE else null
             else -> null
         }
         if(shade!=null) {
@@ -679,6 +689,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         flapTimer=0f
         animationTime=0f
         flightBackgroundTime=0f
+        flightPhysicsTime=0f
         lastBackgroundLogSecond=-1
         lastPhysicsLogSample=-1
         readyForFirstTap=true
@@ -715,7 +726,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         if (readyForFirstTap) return
         flapTimer = max(0f,flapTimer-dt)
         val gravity=SkyRouteRules.gravity(difficulty)
-        val skyCurrent=SkyRouteRules.windAcceleration(level,difficulty,flightBackgroundTime)
+        val skyCurrent=SkyPeepWindClock.windAtStepMidpoint(
+            level,difficulty,flightPhysicsTime,dt)
+        flightPhysicsTime = SkyPeepWindClock.advance(flightPhysicsTime,dt)
         // Debug-only real-physics QA: log while a live flight updates, never
         // during the frozen-background visual screenshot fixture.
         if (qaDifficulty >= 0 && qaWorld in 1..MAX_LEVEL) {
@@ -1051,7 +1064,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // Winner screen deliberately has its own composition: no sad bird or
         // baked GAME OVER heading from the loss-only reference artwork.
         image("bg_$level",0f,0f,W,H)
-        drawRect(0f,0f,W,H,Color(.06f,.16f,.32f,.29f))
+        drawRect(0f,0f,W,H,RESULT_SHADE)
         image("bird_up",366f,1375f,212f,185f)
         if (selectedSkin != 0) costumes[selectedSkin]?.let {
             batch.draw(it,412f,1468f,120f,72f)
@@ -1063,12 +1076,12 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // A genuine three-star rating based on how accurately the player
         // navigated each sky route, not an unconditional triple gold reward.
         for (i in 0..2) victoryStar?.let {
-            if(i >= earnedStars) batch.color=Color(.38f,.44f,.56f,.85f)
+            if(i >= earnedStars) batch.color=UNLIT_STAR
             batch.draw(it,291f+i*120f,1009f,115f,115f)
             batch.color=Color.WHITE
         }
         badge("cream",99f,448f,743f,551f)
-        fitted("FLIGHT COMPLETED",924f,fontSmall,1.55f,675f,W/2f,Color.valueOf("6B3D26"))
+        fitted("FLIGHT COMPLETED",924f,fontSmall,1.55f,675f,W/2f,VICTORY_HEADLINE_COLOR)
         badge("dark",137f,706f,313f,146f)
         badge("dark",492f,706f,311f,146f)
         fitted("SCORE",826f,fontSmall,1.30f,275f,294f)
@@ -1160,7 +1173,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
 
     private fun drawShop() {
         // Dedicated functional store, not the old SKINS screen duplicated.
-        drawRect(0f,0f,W,H,Color(.04f,.13f,.30f,.72f))
+        drawRect(0f,0f,W,H,SHOP_SHADE)
         badge("cream",72f,180f,797f,1320f)
         badge("wood",117f,1365f,708f,122f)
         // Native bird illustration gives the SHOP its own SkyPeep identity,
@@ -1181,9 +1194,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 batch.draw(tx,132f,y+48f,90f,74f)
                 batch.color=Color.WHITE
             }
-            fitted(offer.name.uppercase(Locale.ROOT),y+121f,fontSmall,1.10f,322f,410f,Color.valueOf("5B3526"))
+            fitted(offer.name.uppercase(Locale.ROOT),y+121f,fontSmall,1.10f,322f,410f,SHOP_NAME_COLOR)
             fitted(SkyPeepTrailCatalog.priceLabel(offer),y+66f,
-                fontSmall,1.05f,322f,410f,Color.valueOf("734428"))
+                fontSmall,1.05f,322f,410f,SHOP_PRICE_COLOR)
             val buyButton = SkyPeepUiTouch.shopPurchaseRect(offer.id)
             badge(if(selectedTrail==offer.id)"green" else if(ownedTrails[offer.id])"blue" else "wood",
                 buyButton.left,H-buyButton.top-buyButton.height,buyButton.width,buyButton.height)
@@ -1200,16 +1213,15 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
 
     private fun drawSettings() {
         // Branded parchment and wooden controls, shared with the PAUSED art style.
-        drawRect(0f,0f,W,H,Color(0f,.07f,.17f,.68f))
+        drawRect(0f,0f,W,H,SETTINGS_SHADE)
         badge("cream",91f,348f,759f,1020f)
         badge("wood",132f,1214f,677f,139f)
         drawMenuMascot(381f,1350f,179f)
         fitted("SETTINGS",1340f,fontLarge,1.55f,627f)
-        val names=arrayOf("MUSIC","SOUND EFFECTS","VIBRATION","DIFFICULTY")
-        for(i in names.indices) {
+        for(i in SETTINGS_NAMES.indices) {
             val yy=1010f-i*143f
             badge("wood",137f,yy,666f,119f)
-            label(names[i],162f,yy+77f,fontSmall)
+            label(SETTINGS_NAMES[i],162f,yy+77f,fontSmall)
             if(i<3) {
                 toggle(657f,yy+28f,when(i) {
                     0 -> musicEnabled
