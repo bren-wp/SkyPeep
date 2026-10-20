@@ -477,12 +477,18 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     private fun clickMap(x: Float, y: Float) {
-        playSound("click")
         when {
-            SkyPeepMapLayout.back.contains(x,y) -> screen = Screen.MENU
-            SkyPeepMapLayout.play.contains(x,y) -> begin(level)
+            SkyPeepMapLayout.back.contains(x,y) -> {
+                playSound("click")
+                screen = Screen.MENU
+            }
+            SkyPeepMapLayout.play.contains(x,y) -> {
+                playSound("click")
+                begin(level)
+            }
             else -> {
                 val tapped=SkyPeepMapLayout.worldAt(x,y) ?: return
+                playSound("click")
                 if (tapped > unlocked) {
                     Gdx.app.log("SkyPeepMap","world_locked=$tapped unlocked=$unlocked")
                     toast("COMPLETE PREVIOUS LEVEL")
@@ -538,19 +544,31 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     private fun clickSkins(x: Float, y: Float) {
-        playSound("click")
         if (y < 140f && x in 240f..355f) {
+            playSound("click")
             toast("EARN COINS IN FLIGHT")
             return
         }
         if (y < 140f && x in 825f..935f) {
+            playSound("click")
             toast("COMPLETE WORLDS FOR GEMS")
             return
         }
-        if (SkyPeepUiTouch.skinsBack(x,y)) { screen = Screen.MENU; return }
-        if (hit(x,y,285f,810f,398f,120f)) { selectedSkin = 0; save(); toast("DEFAULT EQUIPPED"); return }
+        if (SkyPeepUiTouch.skinsBack(x,y)) {
+            playSound("click")
+            screen = Screen.MENU
+            return
+        }
+        if (hit(x,y,285f,810f,398f,120f)) {
+            playSound("click")
+            selectedSkin = 0
+            save()
+            toast("DEFAULT EQUIPPED")
+            return
+        }
         // Card art and prices are informational, only the BUY/EQUIP control is actionable.
         val skin = SkyPeepUiTouch.skinPurchaseAt(x,y) ?: return
+        playSound("click")
         if (ownedSkins[skin]) {
             selectedSkin = skin
             save()
