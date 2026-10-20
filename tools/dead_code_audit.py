@@ -49,11 +49,11 @@ report.extend(" - " + x for x in problems)
 production_files = sorted(SOURCE.glob("*.kt"))
 test_dir = ROOT / "app" / "src" / "test" / "java" / "com" / "brendigo" / "skypeep"
 test_files = sorted(test_dir.glob("*.kt"))
-production = "\\n".join(p.read_text(encoding="utf-8") for p in production_files)
-tests = "\\n".join(p.read_text(encoding="utf-8") for p in test_files)
+production = "\n".join(p.read_text(encoding="utf-8") for p in production_files)
+tests = "\n".join(p.read_text(encoding="utf-8") for p in test_files)
 def stripped(source: str) -> str:
-    source = re.sub(r"(?s)/\\*.*?\\*/", "", source)
-    return re.sub(r"(?m)//[^\\n]*", "", source)
+    source = re.sub(r"(?s)/\*.*?\*/", "", source)
+    return re.sub(r"(?m)//[^\n]*", "", source)
 
 production_code = stripped(production)
 test_code = stripped(tests)
@@ -67,16 +67,16 @@ for file in production_files:
     content = stripped(file.read_text(encoding="utf-8"))
     # Anchor at the beginning of a line to exclude calls and lambdas.
     declarations = re.findall(
-        r"(?m)^\\s*(?:(?:internal|public|private|override|suspend|inline|tailrec)\\s+)*fun\\s+(\\w+)\\s*\\(",
+        r"(?m)^\s*(?:(?:internal|public|private|override|suspend|inline|tailrec)\s+)*fun\s+(\w+)\s*\(",
         content)
     for symbol in declarations:
         if symbol in framework_hooks:
             continue
-        production_uses = len(re.findall(r"\\b" + re.escape(symbol) + r"\\b", production_code))
+        production_uses = len(re.findall(r"\b" + re.escape(symbol) + r"\b", production_code))
         if production_uses != 1:
             continue
         location = f"{file.relative_to(ROOT)}::{symbol}"
-        if re.search(r"\\b" + re.escape(symbol) + r"\\b", test_code):
+        if re.search(r"\b" + re.escape(symbol) + r"\b", test_code):
             test_only.append(location)
         else:
             unreferenced_candidates.append(location)
