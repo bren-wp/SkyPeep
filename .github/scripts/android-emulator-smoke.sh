@@ -329,6 +329,24 @@ sleep 4
 adb logcat -d -s SkyPeepDifficulty:I '*:S' | grep -q 'loaded=TEMPEST' || {
   echo "FAIL: difficulty was not persisted across cold restart"; exit 1;
 }
+# A standalone debug-only difficulty fixture must NOT leak into the real save.
+# Player preference stays TEMPEST even after the synthetic BREEZE fixture
+# pauses/disposes its activity.
+adb shell am force-stop com.brendigo.skypeep
+adb logcat -c
+adb shell am start -W --ei sky_peep_qa_difficulty 0   -n com.brendigo.skypeep/.MainActivity
+sleep 3
+adb logcat -d -s SkyPeepDifficulty:I '*:S' | grep -q 'loaded=BREEZE' || {
+  echo "FAIL: isolated QA BREEZE fixture did not apply"; exit 1;
+}
+adb shell am force-stop com.brendigo.skypeep
+adb logcat -c
+adb shell am start -W -n com.brendigo.skypeep/.MainActivity
+sleep 3
+adb logcat -d -s SkyPeepDifficulty:I '*:S' | grep -q 'loaded=TEMPEST' || {
+  echo "FAIL: standalone QA override leaked into saved player difficulty"; exit 1;
+}
+echo "PASS: isolated debug QA settings cannot overwrite real player progress."
 # Android QA extras are ignored by non-debuggable production builds.
 adb shell am force-stop com.brendigo.skypeep
 adb logcat -c
