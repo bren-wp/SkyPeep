@@ -1099,9 +1099,13 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // overlay pills that hide the original decorative cyan borders.
         fitted(hudText.coins(coins),top-50f,fontSmall,1.50f,104f,left+150f)
         fitted(hudText.gems(gems),top-49f,fontSmall,1.48f,64f,right+117f)
-        // Each original score face is cleared and reconstructed during build.
-        // Render changing points on its own themed face, with a crisp outline.
+        // Keep the original score face and button positions untouched.
         drawWingedScore()
+        // A single restrained goal pill replaces cluttered precision/bonus
+        // indicators. Never conflate spendable wallet coins and world pickups.
+        badge("dark",W/2f-137f,top-247f,274f,55f)
+        fitted(SkyPeepCoinGoal.label(worldCoins[level-1]),
+            top-211f,fontSmall,.86f,258f,W/2f)
     }
 
     private fun drawWingedScore() {
@@ -1229,9 +1233,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         badge("cream",201f,H-947f,153f,90f)
         badge("cream",402f,H-947f,160f,90f)
         badge("cream",665f,H-947f,122f,90f)
-        fitted(score.toString(),H-874f,fontLarge,1f,142f,277f,Color.valueOf("673A22"))
-        fitted(routeBests[difficulty.ordinal].toString(),H-874f,fontLarge,1f,148f,483f,Color.valueOf("673A22"))
-        fitted(earnedCoins.toString(),H-874f,fontLarge,1f,112f,726f,Color.valueOf("673A22"))
+        fitted(score.toString(),H-874f,fontLarge,1f,142f,277f,RESULT_VALUE_COLOR)
+        fitted(routeBests[difficulty.ordinal].toString(),H-874f,fontLarge,1f,148f,483f,RESULT_VALUE_COLOR)
+        fitted(earnedCoins.toString(),H-874f,fontLarge,1f,112f,726f,RESULT_VALUE_COLOR)
         val progress=SkyPeepCoinGoal.fraction(worldCoins[level-1])
         badge("dark",293f,H-1100f,463f,57f)
         if(progress>.02f) badge("blue",299f,H-1095f,450f*progress,47f)
@@ -1254,10 +1258,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         fitted(SkyPeepHudNumbers.compact(coins),H-35f,fontSmall,1.28f,153f,199f)
         badge("wallet",733f,H-103f,111f,65f)
         fitted(SkyPeepHudNumbers.compact(gems),H-35f,fontSmall,1.28f,104f,788f)
-        if (selectedSkin!=0) {
-            badge("cream",341f,H-821f,282f,68f)
-            fitted(skinName(selectedSkin).uppercase(Locale.ROOT),H-775f,fontSmall,1.3f,265f,W/2f,Color.valueOf("603F2B"))
-        }
+        badge("cream",341f,H-821f,282f,68f)
+        fitted(skinName(selectedSkin).uppercase(Locale.ROOT),
+            H-775f,fontSmall,1.30f,265f,W/2f,TEXT_ON_CREAM)
         for (i in 1..4) {
             // Draw every visible purchase/equip action inside EXACTLY the
             // same illustrated rectangle that handles the corresponding tap.
@@ -1391,10 +1394,6 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         batch.color=color
         batch.draw(solid,x,y,w,h)
         batch.color=Color.WHITE
-    }
-
-    private fun label(text:String,x:Float,y:Float,font:BitmapFont) {
-        font.draw(batch,text,x,y)
     }
 
     private fun toast(value:String) {
