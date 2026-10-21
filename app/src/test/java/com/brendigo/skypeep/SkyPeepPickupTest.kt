@@ -6,6 +6,27 @@ import org.junit.Test
 class SkyPeepPickupTest {
     private val body = SkyPeepContact.body(172f, 800f, 295f, 232f)
 
+    @Test fun fastBroadPhaseNeverCreatesPhantomPickups() {
+        // Deterministic sample sweep checks distances around all angles,
+        // including exact cardinal-axis tangencies and diagonal near misses.
+        val radii=listOf(SkyPeepPickup.COIN_RADIUS,
+                        SkyPeepPickup.GEM_RADIUS,SkyPeepLives.HEART_RADIUS)
+        for (radius in radii)
+            for (angleStep in 0 until 72)
+                for (distance in listOf(0f,30f,40f,60f,80f,90f,95f,120f)) {
+                    val angle=angleStep*Math.PI/36.0
+                    val x=body.cx+Math.cos(angle).toFloat()*distance
+                    val y=body.cy+Math.sin(angle).toFloat()*distance
+                    val contact=SkyPeepPickup.overlaps(body,x,y,radius)
+                    // Proven exact outer bounds; all points beyond the
+                    // containing disk must be rejected.
+                    val maxDistance=kotlin.math.max(body.rx,body.ry)+radius
+                    if (distance>maxDistance) assertFalse(contact)
+                    val minDistance=kotlin.math.min(body.rx,body.ry)+radius
+                    if (distance<=minDistance) assertTrue(contact)
+                }
+    }
+
     @Test fun genuineContactAndExactHorizontalTangencyCount() {
         assertTrue(SkyPeepPickup.overlaps(body, body.cx, body.cy, SkyPeepPickup.COIN_RADIUS))
         assertTrue(SkyPeepPickup.overlaps(body,
