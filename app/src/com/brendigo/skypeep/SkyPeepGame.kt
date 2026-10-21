@@ -52,7 +52,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         private val SCORE_OUTLINE = Color.valueOf("10264B")
         private val SCORE_OUTLINE_GOLD = Color.valueOf("603217")
         private val SCORE_INK = arrayOf("159DE8","164F9C","FFE45C",
-            "2584BE","A9C1FF","FFBE31").map(Color::valueOf)
+            "C6EEFF","A9C1FF","FFBE31").map(Color::valueOf)
         private val TRAIL_TINTS = arrayOf(Color.WHITE, Color.valueOf("43DBFF"),
             Color.valueOf("FFD145"), Color.valueOf("C078FF"))
         private val SHOP_SHADE = Color(.04f,.13f,.30f,.72f)

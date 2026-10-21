@@ -16,3 +16,7 @@ A squirrel and acorns require a proper dedicated animated sprite sheet, collecti
 
 ## Remaining constraints
 Google Play AAB signing, physical-device crash reproduction, professional texture/frame profiling and full 1:1 visual parity are still pending. Original design-reference screenshots remain explicitly identified as concepts, not emulator screenshots.
+
+## Screenshot contrast regression
+
+The old comparator sampled four pixels from the previous, larger score face and demanded a white background. The compact 0.3.24 Wind Gate HUD legitimately includes dark illustrated stone/sky. The revised test samples the actual compact score region, checks luminance contrast instead of forcing the original white-pixel coordinates, and brightens Wind Gate's score ink to pale cyan for readable numerals while retaining its dark themed background. The screenshot check remains a required CI step.

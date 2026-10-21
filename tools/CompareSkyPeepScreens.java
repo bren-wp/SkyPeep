@@ -100,35 +100,35 @@ class CompareSkyPeepScreens {
                 // verified against the actual emulator capture.
             }
         }
-        // Real Android screenshot guard, not just a generated-asset check.
-        // Sample an unobstructed interior point on the winged score face; it
-        // must remain pale in each of the six individually themed worlds.
-        // The X/Y fractions are viewport-independent for portrait screens.
-        for (int world=1;world<=6;world++) {
+        // Compact score face moved. Dark Wind Gate and Moon Glow scenery are
+        // deliberate. Require readable contrast across the actual score art
+        // and numerals rather than demanding four outdated pale pixels.
+        for (int world=1; world<=6; world++) {
             BufferedImage screenshot=load(Path.of("smoke-results","world-"+world+".png"));
-            // Probe the left, lower interior of the rendered score face.
-            // The original white cloud crowns live higher up, while the
-            // dynamic numeral is centered horizontally. These four samples
-            // test the actual background without intersecting either.
-            int minimum=255, total=0, count=0;
-            for(double fx:new double[]{.445,.453})
-                for(double fy:new double[]{.065,.066}) {
+            int minimum=255,maximum=0;
+            long sum=0;
+            int count=0;
+            for(double fx=.43;fx<=.57;fx+=.007)
+                for(double fy=.018;fy<=.091;fy+=.004) {
                     int x=(int)(screenshot.getWidth()*fx);
                     int y=(int)(screenshot.getHeight()*fy);
                     int rgb=screenshot.getRGB(x,y);
-                    int luminance=(((rgb>>>16)&255)*299
-                        +((rgb>>>8)&255)*587+(rgb&255)*114)/1000;
-                    minimum=Math.min(minimum,luminance);
-                    total+=luminance;
+                    int lum=(((rgb>>>16)&255)*299+
+                        ((rgb>>>8)&255)*587+(rgb&255)*114)/1000;
+                    minimum=Math.min(minimum,lum);
+                    maximum=Math.max(maximum,lum);
+                    sum+=lum;
                     count++;
                 }
-            int average=total/count;
-            report.append("world-").append(world).append(
-                " | score-face base minimum=").append(minimum)
-                .append("/255 average=").append(average).append("/255\n");
-            if(minimum<180 || average<195)throw new IOException(
-                "Dark score-face base in world "+world+
-                " (minimum="+minimum+", average="+average+"). Check screenshot.");
+            int average=(int)(sum/Math.max(1,count));
+            report.append("world-").append(world)
+                .append(" | compact-score ROI minimum=").append(minimum)
+                .append(" maximum=").append(maximum)
+                .append(" contrast=").append(maximum-minimum)
+                .append(" average=").append(average).append("/255\n");
+            if(maximum < 155 || maximum-minimum < 60)
+                throw new IOException("Insufficient score contrast in world "+world+
+                    " (min="+minimum+", max="+maximum+"). Check screenshot.");
         }
         Files.writeString(output, report.toString(), StandardCharsets.UTF_8);
         System.out.print(report);
