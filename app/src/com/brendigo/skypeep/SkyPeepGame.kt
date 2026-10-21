@@ -103,6 +103,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private val tmp = GlyphLayout()
     private val fontColorScratch = Color()
     private val hudText = SkyPeepHudTextCache()
+    private val backgroundCrop = SkyPeepBackgroundMotion.MutableCrop()
     private val touch = Vector2()
     private var lastContinuousRendering: Boolean? = null
 
@@ -813,18 +814,17 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         verticalSpeed = max(-900f * difficulty.gravityFactor,
             verticalSpeed + (skyCurrent - gravity)*dt)
         birdY += verticalSpeed * dt
-        val birdBody=SkyPeepContact.body(BIRD_X,birdY,BIRD_W,BIRD_H)
+        var birdBody=SkyPeepContact.body(BIRD_X,birdY,BIRD_W,BIRD_H)
         if (SkyPeepContact.hitsWorldEdge(birdBody,
                 visibleFrame.bottom,visibleFrame.top)) {
-            // Reflect gently from the real visible boundary, without changing
-            // worlds, reloading backgrounds or teleporting to a new scene.
-            val yMin = visibleFrame.bottom + SkyPeepContact.BODY_RADIUS_Y +
-                12f - BIRD_H * SkyPeepContact.BODY_CENTRE_Y
-            val yMax = visibleFrame.top - SkyPeepContact.BODY_RADIUS_Y -
-                12f - BIRD_H * SkyPeepContact.BODY_CENTRE_Y
-            val hitFloor = birdY < yMin
-            birdY = birdY.coerceIn(yMin,yMax)
-            verticalSpeed = if (hitFloor) 235f else -235f
+            // Recompute the collision body after recovering to the painted
+            // edge: the stale pre-bounce ellipse could cause a false stone
+            // hit or miss a real coin/gem/heart pickup during the same step.
+            val recovery=SkyPeepWorldBounds.recover(
+                birdY,visibleFrame.bottom,visibleFrame.top,BIRD_H)
+            birdY=recovery.birdY
+            verticalSpeed=recovery.speedY
+            birdBody=SkyPeepContact.body(BIRD_X,birdY,BIRD_W,BIRD_H)
             if (takeDamage()) return
         }
         val gap = SkyRouteRules.gap(level,difficulty)
@@ -967,18 +967,21 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // Keep the illustrated composition edge-to-edge while introducing
         // subtle depth. No wrap seam, external image, or gameplay collision shift.
         pictures["bg_$level"]?.let { background ->
-            val crop = SkyPeepBackgroundMotion.crop(
-                background.width, flightBackgroundTime, !readyForFirstTap
-            )
+            // Reuse the same pair of crop coordinates on every GL frame.
+            // Camera movement and the initial 1.4s fade remain unchanged.
+            SkyPeepBackgroundMotion.cropInto(
+                background.width, flightBackgroundTime,
+                !readyForFirstTap, backgroundCrop)
             if (qaBackgroundMotion && qaWorld in 1..MAX_LEVEL) {
                 val second = flightBackgroundTime.toInt()
                 if (second != lastBackgroundLogSecond) {
-                    Gdx.app.log("SkyPeepBackground", "second=$second offset_px=${crop.sourceX} world=$level")
+                    Gdx.app.log("SkyPeepBackground", "second=$second offset_px=${backgroundCrop.sourceX} world=$level")
                     lastBackgroundLogSecond = second
                 }
             }
             batch.draw(background,0f,0f,W,H,
-                crop.sourceX,0,crop.sourceWidth,background.height,false,false)
+                backgroundCrop.sourceX,0,backgroundCrop.sourceWidth,
+                background.height,false,false)
         }
         val gap = SkyRouteRules.gap(level,difficulty)
         // Resolve illustrated pillar textures once per rendered frame, not

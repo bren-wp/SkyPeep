@@ -4,6 +4,28 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SkyPeepBackgroundMotionTest {
+    @Test fun reusableGameplayCropMatchesPureReferenceAcrossManyFrames() {
+        val buffer=SkyPeepBackgroundMotion.MutableCrop()
+        for (width in listOf(1, 8, 128, 706, 864, 1024, 2048)) {
+            for (step in 0..260) {
+                val elapsed=step*.081f
+                val playing=step%17!=0
+                SkyPeepBackgroundMotion.cropInto(width,elapsed,playing,buffer)
+                assertEquals(SkyPeepBackgroundMotion.crop(width,elapsed,playing),
+                    SkyPeepBackgroundMotion.Crop(buffer.sourceX,buffer.sourceWidth))
+            }
+        }
+    }
+
+    @Test fun reusableCropResetsWhenReturningToIdleBackground() {
+        val buffer=SkyPeepBackgroundMotion.MutableCrop()
+        SkyPeepBackgroundMotion.cropInto(864,12f,true,buffer)
+        assertTrue(buffer.sourceWidth<864)
+        SkyPeepBackgroundMotion.cropInto(864,12f,false,buffer)
+        assertEquals(0,buffer.sourceX)
+        assertEquals(864,buffer.sourceWidth)
+    }
+
     @Test fun cropsNeverLeaveTheSourceTexture() {
         for (width in listOf(1, 8, 128, 706, 864, 1024, 2048)) {
             for (step in 0..400) {

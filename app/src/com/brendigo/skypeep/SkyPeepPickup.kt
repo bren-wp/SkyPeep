@@ -26,6 +26,16 @@ internal object SkyPeepPickup {
         val ry = body.ry.toDouble()
         val r = radius.toDouble()
 
+        // A disk of radius min(rx,ry) is fully inside the body ellipse;
+        // a disk of radius max(rx,ry) fully contains it. Comparing squared
+        // distances provides two exact broad-phase outcomes without running
+        // the 40-iteration nearest-point solver on routine close/far pickups.
+        val distanceSq = dx*dx + dy*dy
+        val innerReach = kotlin.math.min(rx,ry) + r
+        if (distanceSq <= innerReach*innerReach) return true
+        val outerReach = max(rx,ry) + r
+        if (distanceSq > outerReach*outerReach) return false
+
         // Fast exact rejection, and a point already inside the body ellipse.
         if (dx > rx + r || dy > ry + r) return false
         if ((dx / rx) * (dx / rx) + (dy / ry) * (dy / ry) <= 1.0) return true
