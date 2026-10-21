@@ -11,8 +11,12 @@ collect_diagnostics() {
 }
 trap collect_diagnostics EXIT
 
-apk="smoke-artifacts/apk/debug/app-debug.apk"
-test -s "$apk" || { echo "Missing APK: $apk"; find smoke-artifacts -type f; exit 1; }
+# The verified release artifact uses explicit version/channel filenames. Never
+# install the unsigned release APK by accident: only the debug-key APK boots.
+apk="$(find smoke-artifacts -type f -name 'SkyPeep-*-debug.apk' -print -quit)"
+test -n "$apk" && test -s "$apk" || {
+  echo "Missing signed DEBUG APK from release-packages"; find smoke-artifacts -type f; exit 1;
+}
 
 adb logcat -c
 adb install -r "$apk"
