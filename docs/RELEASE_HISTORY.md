@@ -14,7 +14,7 @@ SkyPeep preserves its original Brendigo artwork and locally saved data through 0
 
 ## Versioning and downloads
 
-Android `versionCode` increases monotonically (0.3.23 = 35; planned 0.3.24 = 36). Each successful trusted preview run attaches an installable debug APK and an **unsigned** release AAB. Signing keys are never stored in the repository. The AAB is not a Play Store deployment artifact until separately signed and validated.
+Android `versionCode` increases monotonically (0.3.23 = 35; planned 0.3.24 = 36). Every successfully validated release beginning with 0.3.24 attaches **three distinct binary artifacts**: testing-only debug APK, unsigned release APK for local signing, and an unsigned Play-upload AAB to sign using the existing upload key. It also includes SHA-256 checksums, F-Droid source-build metadata, license and signed-distribution instructions. No key is uploaded to GitHub. See [Android distribution and F-Droid preparation](ANDROID_DISTRIBUTION.md).
 
 Keep existing published GitHub Releases; do not overwrite or delete them while preparing later versions. Do not treat preview artwork as genuine app screenshots.
 

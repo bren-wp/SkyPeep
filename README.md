@@ -71,9 +71,9 @@ Dress the bird as **Default, Captain, Forest, Cosmic or Royal** and fly with **C
 
 ## Install an Android preview
 
-Visit **[SkyPeep GitHub Releases](https://github.com/bren-wp/SkyPeep/releases)** and choose the latest **successfully validated** preview. The attached `app-debug.apk` is the installable Android test build.
+Visit **[SkyPeep GitHub Releases](https://github.com/bren-wp/SkyPeep/releases)** and choose the latest **successfully validated** preview. The attached `SkyPeep-X.Y.Z-debug.apk` is the installable **testing-only** build. Each verified 0.3.24+ release also includes `SkyPeep-X.Y.Z-release-unsigned.apk` (sign locally for direct APK distribution), `SkyPeep-X.Y.Z-play-upload-unsigned.aab` (sign with the existing Google Play upload key), SHA-256 checksums, MIT license, F-Droid build metadata and signing instructions.
 
-> **Important:** The preview `app-release.aab` is **unsigned** and **not ready for Google Play**. The newest code on a development branch may be awaiting CI even when an older public preview is available.
+> **Important:** The release APK and Play AAB are deliberately **unsigned**, and F-Droid builds/signs its own APK from source. None of the unsigned files is installable as-is or immediately eligible for store upload. Follow the [signing and F-Droid guide](docs/ANDROID_DISTRIBUTION.md). The newest code on a development branch may be awaiting CI even when an older public preview is available.
 
 Minimum Android SDK is API 23. The application is local-only with no requested Internet, location or contacts permissions. Scores can be optionally shared using the Android chooser.
 
