@@ -46,7 +46,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // Rendered pillar assets occupy the full width, including their caps.
         private const val GATE_WIDTH = 275f
         private const val MAX_LEVEL = 6
-        private val LEVEL_TITLES = arrayOf("Sky Start","Cloud Pass","Crystal Drop",
+        private val LEVEL_TITLES = arrayOf("Sky Start","Cloud Drift","Crystal Drop",
             "Wind Gate","Moon Glow","Sun Peak")
         private val SCORE_STROKE_OFFSETS = floatArrayOf(-2.8f,0f,2.8f)
         private val SCORE_OUTLINE = Color.valueOf("10264B")
@@ -63,6 +63,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         private val SHOP_NAME_COLOR = Color.valueOf("5B3526")
         private val SHOP_PRICE_COLOR = Color.valueOf("734428")
         private val SETTINGS_NAMES = arrayOf("MUSIC","SOUND EFFECTS","VIBRATION","DIFFICULTY")
+        private val TEXT_ON_WOOD = Color.valueOf("38261B")
+        private val TEXT_ON_CREAM = Color.valueOf("593D28")
+        private val RESULT_VALUE_COLOR = Color.valueOf("673A22")
         private val BIRD_TINTS = arrayOf(Color.WHITE, Color(.83f,.98f,1f,1f),
             Color(.50f,1f,.55f,1f), Color(.65f,.55f,1f,1f),
             Color(1f,.91f,.76f,1f))
@@ -110,7 +113,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private var screen = Screen.SPLASH
     private var lastLoggedScreen: Screen? = null
     private var level = 1
-    private var unlocked = 1
+    private var unlocked = MAX_LEVEL
+    private val worldCoins = IntArray(MAX_LEVEL)
+    private var coinsSinceSave = 0
     private var resultWon = false
     private var score = 0
     private var best = 0
@@ -126,7 +131,6 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private val routeStars = Array(SkyDifficulty.entries.size) { IntArray(MAX_LEVEL) }
     private val routeBests = IntArray(SkyDifficulty.entries.size)
     private var precisionPasses = 0
-    private var precisionStreak = 0
     private var lives = SkyPeepLives.MAX
     private var shieldSeconds = 0f
     private var healingFeedback = 0f
@@ -162,8 +166,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         batch.projectionMatrix = camera.combined
         prefs = Gdx.app.getPreferences("SkyPeepSettingsAndProgress")
         best = prefs.getInteger("best", 0).coerceAtLeast(0)
-        unlocked = prefs.getInteger("unlocked", 1).coerceIn(1, MAX_LEVEL)
-        level = prefs.getInteger("level", 1).coerceIn(1, unlocked)
+        unlocked = MAX_LEVEL
+        level = prefs.getInteger("level", 1).coerceIn(1, MAX_LEVEL)
+        for (i in worldCoins.indices)
+            worldCoins[i] = SkyPeepCoinGoal.collected(
+                prefs.getInteger("collected_world_${i+1}", 0))
         coins = prefs.getInteger("coins", 1250).coerceAtLeast(0)
         gems = prefs.getInteger("gems", 75).coerceAtLeast(0)
         selectedSkin = prefs.getInteger("skin", 0).coerceIn(0, 4)
@@ -238,7 +245,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         if (qaMapUnlocked in 1..MAX_LEVEL) {
             // Debug-only screenshot fixture: a freshly unlocked world must
             // never be shown as completed before its first successful flight.
-            unlocked = qaMapUnlocked
+            unlocked = MAX_LEVEL
             level = qaMapUnlocked
             for (i in 0 until MAX_LEVEL) {
                 stars[i] = if (i < unlocked - 1) 3 else 0
@@ -261,7 +268,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 Gdx.app.log("SkyPeepHUD","debug_score=$score level=$level")
             }
             if (qaVictory) {
-                score = targetScore()
+                worldCoins[level-1] = SkyPeepCoinGoal.REQUIRED
                 finish(true)
                 Gdx.app.log("SkyPeepQA","victory level=" + level)
             } else if (qaLoss) {
@@ -559,11 +566,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             else -> {
                 val tapped=SkyPeepMapLayout.worldAt(x,y) ?: return
                 playSound("click")
-                if (tapped > unlocked) {
-                    Gdx.app.log("SkyPeepMap","world_locked=$tapped unlocked=$unlocked")
-                    toast("COMPLETE PREVIOUS LEVEL")
-                    return
-                }
+                // All six illustrated islands are immediately selectable.
                 level=tapped
                 save()
                 Gdx.app.log("SkyPeepMap","selected_world=$level")
@@ -731,14 +734,14 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     private fun begin(chosen: Int) {
-        level = chosen.coerceIn(1, unlocked)
+        level = chosen.coerceIn(1, MAX_LEVEL)
         loadLevelArt(level)
         screen = Screen.PLAY
         score=0
         earnedCoins=0
+        coinsSinceSave=0
         resultWon=false
         precisionPasses=0
-        precisionStreak=0
         earnedStars=0
         lives = SkyPeepLives.MAX
         shieldSeconds = 0f
@@ -862,9 +865,23 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 SkyPeepPickup.COIN_RADIUS
             )) {
                 gate.coinTaken=true
+                // One physically collected coin = one world-goal pickup.
+                // Spending wallet currency cannot reduce world progress.
                 coins = SkyPeepEconomy.credit(coins,5)
                 earnedCoins = SkyPeepEconomy.credit(earnedCoins,5)
+                val beforePickup=worldCoins[level-1]
+                worldCoins[level-1] = SkyPeepCoinGoal.increment(beforePickup)
+                coinsSinceSave++
                 playSound("coin")
+                if (SkyPeepCoinGoal.justCompleted(
+                    beforePickup,worldCoins[level-1])) {
+                    finish(true)
+                    return
+                }
+                if (coinsSinceSave >= 10) {
+                    coinsSinceSave = 0
+                    save()
+                }
             }
             // Gem centre and 41-unit radius exactly follow drawDiamond.
             if (gate.gem && !gate.gemTaken &&
@@ -901,21 +918,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 score++
                 best=max(best,score)
                 routeBests[difficulty.ordinal]=max(routeBests[difficulty.ordinal],score)
-                // Precision routes reward keeping SkyPeep on the centreline.
-                // This gives each world an optional skill challenge beyond
-                // merely passing the obstacles, without forcing microtransactions.
-                val precise=gate.precisionSampled && gate.preciseAtCrossing
-                if (precise) {
+                // Precision affects stars only, never bonus coins.
+                if (gate.precisionSampled && gate.preciseAtCrossing)
                     precisionPasses++
-                    precisionStreak++
-                    val reward=SkyRouteRules.precisionReward(precisionStreak)
-                    if(reward>0) {
-                        coins=SkyPeepEconomy.credit(coins,reward)
-                        earnedCoins=SkyPeepEconomy.credit(earnedCoins,reward)
-                        playSound("coin")
-                    }
-                } else precisionStreak=0
-                if (score >= targetScore()) { finish(true); return }
             }
             if (gate.x < SkyPeepScreenFrame.pillarDespawnX(visibleFrame))
                 iterator.remove()
@@ -940,21 +945,17 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         return false
     }
 
-    private fun targetScore() = SkyRouteRules.target(level,difficulty)
     private fun finish(won: Boolean) {
         resultWon = won
         screen = Screen.RESULT
         best=max(best,score)
         routeBests[difficulty.ordinal]=max(routeBests[difficulty.ordinal],score)
         if (won) {
-            val bonus = SkyRouteRules.completionBonus(level,difficulty)
-            coins = SkyPeepEconomy.credit(coins,bonus)
-            earnedCoins = SkyPeepEconomy.credit(earnedCoins,bonus)
             earnedStars=SkyRouteRules.starsOnCompletion(precisionPasses,score)
             routeStars[difficulty.ordinal][level-1]=max(
                 routeStars[difficulty.ordinal][level-1],earnedStars)
             stars[level-1]=max(stars[level-1],earnedStars)
-            unlocked=max(unlocked,min(MAX_LEVEL,level+1))
+            unlocked=MAX_LEVEL
             playSound("win")
         } else {
             playSound("fail")
@@ -1020,11 +1021,6 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         if (healingFeedback > 0f)
             fitted("+1 LIFE",(birdY+BIRD_H+52f).coerceAtMost(H-236f),
                 fontSmall,1.0f,202f,BIRD_X+BIRD_W*.5f)
-        if (precisionStreak >= 2) {
-            fitted("SKY ROUTE x$precisionStreak",
-                (birdY+BIRD_H+30f).coerceAtMost(H-235f),
-                fontSmall,.80f,245f,BIRD_X+BIRD_W*.5f)
-        }
         if (readyForFirstTap) {
             badge("dark",290f,355f,360f,88f)
             fitted("TAP TO FLY",412f,fontSmall,1.5f,331f)
@@ -1105,9 +1101,13 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // overlay pills that hide the original decorative cyan borders.
         fitted(hudText.coins(coins),top-50f,fontSmall,1.50f,104f,left+150f)
         fitted(hudText.gems(gems),top-49f,fontSmall,1.48f,64f,right+117f)
-        // Each original score face is cleared and reconstructed during build.
-        // Render changing points on its own themed face, with a crisp outline.
+        // Keep the original score face and button positions untouched.
         drawWingedScore()
+        // A single restrained goal pill replaces cluttered precision/bonus
+        // indicators. Never conflate spendable wallet coins and world pickups.
+        badge("dark",W/2f-137f,top-247f,274f,55f)
+        fitted(SkyPeepCoinGoal.label(worldCoins[level-1]),
+            top-211f,fontSmall,.86f,258f,W/2f)
     }
 
     private fun drawWingedScore() {
@@ -1143,34 +1143,30 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private fun drawMenuWallet() {
         // Cover only screenshot mockup's sample numeric labels, retaining the original visual buttons.
         // At the reference values preserve the screenshot pixels exactly.
-        if(coins!=1250) {
-            badge("dark",119f,H-103f,136f,65f)
-            fitted(coins.toString(),H-54f,fontSmall,1.9f,127f,186f)
-        }
-        if(gems!=75) {
-            badge("dark",743f,H-103f,76f,65f)
-            fitted(gems.toString(),H-54f,fontSmall,1.9f,69f,781f)
-        }
+        badge("dark",119f,H-103f,136f,65f)
+        fitted(SkyPeepHudNumbers.compact(coins),H-54f,fontSmall,1.70f,127f,186f)
+        badge("dark",743f,H-103f,76f,65f)
+        fitted(SkyPeepHudNumbers.compact(gems),H-54f,fontSmall,1.70f,69f,781f)
     }
 
     private fun drawMapProgress() {
         // A compact route tag fills the existing gap between BACK and PLAY;
         // the six island illustrations and their layout remain untouched.
         fitted("${difficulty.title} ROUTE",92f,fontSmall,.78f,295f,365f)
-        // Locked icons in the original supplied map stay intact. Open and
-        // completed islands use different statuses and earned real stars.
+        // All six island icons, including baked-in reference lock glyphs,
+        // are covered by live tappable status plates. Collected coin counts
+        // appear on compact matching parchment labels beneath each marker.
         for(world in 1..MAX_LEVEL) {
-            if (world > unlocked) continue
             val marker=SkyPeepMapLayout.marker(world)
-            if(world>1) {
-                val cleared=SkyPeepMapProgress.status(
-                    world,unlocked,routeStars[difficulty.ordinal][world-1]) ==
-                    MapWorldStatus.COMPLETED
-                badge(if(cleared)"green" else "blue",
-                    marker.x-58f,H-marker.y-35f,116f,70f)
-                fitted(if(cleared)"CLEAR" else "OPEN",H-marker.y+17f,
-                    fontSmall,1.03f,112f,marker.x)
-            }
+            val cleared=SkyPeepMapProgress.status(
+                world,worldCoins[world-1]) == MapWorldStatus.COMPLETED
+            badge(if(cleared)"green" else "blue",
+                marker.x-72f,H-marker.y-34f,144f,70f)
+            fitted(if(cleared)"DONE" else "OPEN",H-marker.y+17f,
+                fontSmall,1.03f,126f,marker.x)
+            badge("cream",marker.x-98f,H-marker.y-91f,196f,48f)
+            fitted(SkyPeepCoinGoal.label(worldCoins[world-1]),
+                H-marker.y-59f,fontSmall,.76f,184f,marker.x,TEXT_ON_CREAM)
             val earned=routeStars[difficulty.ordinal][world-1].coerceIn(0,3)
             if(earned>0) {
                 val starRow=SkyPeepMapLayout.starRow(world)
@@ -1216,8 +1212,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         fitted(score.toString(),781f,fontLarge,1.12f,272f,294f)
         fitted(routeBests[difficulty.ordinal].toString(),781f,fontLarge,1.12f,272f,648f)
         badge("wood",137f,508f,666f,156f)
-        fitted("COINS EARNED",643f,fontSmall,1.45f,608f)
-        fitted("+$earnedCoins",586f,fontLarge,1.1f,608f)
+        fitted("COINS COLLECTED",643f,fontSmall,1.28f,608f)
+        fitted(SkyPeepCoinGoal.label(worldCoins[level-1]),
+            586f,fontLarge,.96f,608f,W/2f,TEXT_ON_WOOD)
         // Touch zones match the illustrated arcade buttons, not the card.
         SkyPeepResultTouch.victoryButtons.forEach { button ->
             val surface = when (button.action) {
@@ -1238,13 +1235,14 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         badge("cream",201f,H-947f,153f,90f)
         badge("cream",402f,H-947f,160f,90f)
         badge("cream",665f,H-947f,122f,90f)
-        fitted(score.toString(),H-874f,fontLarge,1f,142f,277f,Color.valueOf("673A22"))
-        fitted(routeBests[difficulty.ordinal].toString(),H-874f,fontLarge,1f,148f,483f,Color.valueOf("673A22"))
-        fitted(earnedCoins.toString(),H-874f,fontLarge,1f,112f,726f,Color.valueOf("673A22"))
-        val progress = min(1f,score.toFloat()/targetScore())
+        fitted(score.toString(),H-874f,fontLarge,1f,142f,277f,RESULT_VALUE_COLOR)
+        fitted(routeBests[difficulty.ordinal].toString(),H-874f,fontLarge,1f,148f,483f,RESULT_VALUE_COLOR)
+        fitted(earnedCoins.toString(),H-874f,fontLarge,1f,112f,726f,RESULT_VALUE_COLOR)
+        val progress=SkyPeepCoinGoal.fraction(worldCoins[level-1])
         badge("dark",293f,H-1100f,463f,57f)
         if(progress>.02f) badge("blue",299f,H-1095f,450f*progress,47f)
-        fitted("$score / ${targetScore()}",H-1058f,fontSmall,1.6f,409f,526f)
+        fitted(SkyPeepCoinGoal.label(worldCoins[level-1]),
+            H-1058f,fontSmall,1.28f,409f,526f)
         if(resultWon) {
             badge("green",315f,H-1432f,316f,176f)
             fitted(if(level<MAX_LEVEL) "NEXT" else "REPLAY",H-1350f,fontSmall,1.65f,300f,475f)
@@ -1257,26 +1255,25 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     private fun drawSkins() {
-        if(coins!=1250) {
-            badge("wallet",120f,H-103f,164f,65f)
-            fitted(SkyPeepHudNumbers.compact(coins),H-35f,fontSmall,1.28f,153f,199f)
-        }
-        if(gems!=89) {
-            // Cover the source mockup's "89" with the correct brown wallet
-            // face. Smaller type and a higher baseline keep live digits INSIDE.
-            badge("wallet",733f,H-103f,111f,65f)
-            fitted(SkyPeepHudNumbers.compact(gems),H-35f,fontSmall,1.28f,104f,788f)
-        }
-        if (selectedSkin!=0) {
-            badge("cream",341f,H-821f,282f,68f)
-            fitted(skinName(selectedSkin).uppercase(Locale.ROOT),H-775f,fontSmall,1.3f,265f,W/2f,Color.valueOf("603F2B"))
-        }
+        // Dynamic saved values always replace the fixed reference mockup.
+        badge("wallet",120f,H-103f,164f,65f)
+        fitted(SkyPeepHudNumbers.compact(coins),H-35f,fontSmall,1.28f,153f,199f)
+        badge("wallet",733f,H-103f,111f,65f)
+        fitted(SkyPeepHudNumbers.compact(gems),H-35f,fontSmall,1.28f,104f,788f)
+        badge("cream",341f,H-821f,282f,68f)
+        fitted(skinName(selectedSkin).uppercase(Locale.ROOT),
+            H-775f,fontSmall,1.30f,265f,W/2f,TEXT_ON_CREAM)
         for (i in 1..4) {
-            if (ownedSkins[i]) {
-                val button=SkyPeepUiTouch.skinPurchaseRect(i)
-                badge("green",button.left,H-button.top-button.height,button.width,button.height)
-                fitted(if(selectedSkin==i) "EQUIPPED" else "EQUIP",H-1398f,fontSmall,1.1f,171f,button.left+button.width/2f)
-            }
+            // Draw every visible purchase/equip action inside EXACTLY the
+            // same illustrated rectangle that handles the corresponding tap.
+            val button=SkyPeepUiTouch.skinPurchaseRect(i)
+            val owned=ownedSkins[i]
+            badge(if(selectedSkin==i)"green" else if(owned)"blue" else "wood",
+                button.left,H-button.top-button.height,button.width,button.height)
+            fitted(if(selectedSkin==i)"EQUIPPED" else if(owned)"EQUIP" else "BUY",
+                H-button.top-button.height/2f+13f,fontSmall,1.14f,
+                button.width-12f,button.left+button.width/2f,
+                if(owned)Color.WHITE else TEXT_ON_WOOD)
         }
     }
 
@@ -1309,8 +1306,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         fitted("FLIGHT TRAILS",1444f,fontLarge,1.28f,657f)
         badge("dark",118f,1252f,338f,90f)
         badge("dark",483f,1252f,338f,90f)
-        fitted("COINS  $coins",1312f,fontSmall,1.38f,305f,288f)
-        fitted("GEMS  $gems",1312f,fontSmall,1.38f,305f,653f)
+        fitted("COINS  ${SkyPeepHudNumbers.compact(coins)}",1312f,fontSmall,1.38f,305f,288f)
+        fitted("GEMS  ${SkyPeepHudNumbers.compact(gems)}",1312f,fontSmall,1.38f,305f,653f)
         val tx=trailTexture
         for(offer in SkyPeepTrailCatalog.all) {
             val y=1060f-offer.id*195f
@@ -1332,7 +1329,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 ownedTrails[offer.id] -> "EQUIP"
                 else -> "BUY"
             }
-            fitted(caption,y+103f,fontSmall,1.18f,207f,706f)
+            fitted(caption,y+103f,fontSmall,1.18f,207f,706f,
+            if (ownedTrails[offer.id]) Color.WHITE else TEXT_ON_WOOD)
         }
         badge("green",279f,245f,384f,137f)
         fitted("BACK",337f,fontLarge,1.22f,340f)
@@ -1348,19 +1346,21 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         for(i in SETTINGS_NAMES.indices) {
             val yy=1010f-i*143f
             badge("wood",137f,yy,666f,119f)
-            label(SETTINGS_NAMES[i],162f,yy+77f,fontSmall)
+            fitted(SETTINGS_NAMES[i],yy+77f,fontSmall,1.12f,
+                362f,350f,TEXT_ON_WOOD)
             if(i<3) {
                 toggle(657f,yy+28f,when(i) {
                     0 -> musicEnabled
                     1 -> effectsEnabled
                     else -> vibrationEnabled
                 })
-            } else fitted(difficulty.title,yy+77f,fontSmall,.90f,214f,686f)
+            } else fitted(difficulty.title,yy+77f,fontSmall,.94f,
+                214f,686f,TEXT_ON_WOOD)
         }
         badge("blue",137f,421f,310f,116f)
         fitted("BEST " + routeBests[difficulty.ordinal],494f,fontSmall,1.1f,285f,292f)
         badge("green",492f,421f,313f,116f)
-        fitted("WORLDS " + unlocked + "/6",494f,fontSmall,1.3f,290f,649f)
+        fitted("WORLDS 6/6",494f,fontSmall,1.3f,290f,649f)
         badge("green",185f,243f,575f,129f)
         fitted("BACK",352f,fontLarge,1.30f,531f)
     }
@@ -1398,10 +1398,6 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         batch.color=Color.WHITE
     }
 
-    private fun label(text:String,x:Float,y:Float,font:BitmapFont) {
-        font.draw(batch,text,x,y)
-    }
-
     private fun toast(value:String) {
         message=value
         messageTimer=2.3f
@@ -1427,7 +1423,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 prefs.putInteger("route_stars_${mode.ordinal}_${i+1}",
                     routeStars[mode.ordinal][i])
         }
-        prefs.putInteger("unlocked",unlocked)
+        prefs.putInteger("unlocked",MAX_LEVEL)
+        for (i in worldCoins.indices)
+            prefs.putInteger("collected_world_${i+1}",SkyPeepCoinGoal.collected(worldCoins[i]))
         prefs.putInteger("level",level)
         prefs.putInteger("coins",coins)
         prefs.putInteger("gems",gems)

@@ -7,7 +7,7 @@ class SkyPeepEconomyTest {
     @Test fun normalCoinsAndGemsAreCreditedExactly() {
         assertEquals(1255,SkyPeepEconomy.credit(1250,5))
         assertEquals(76,SkyPeepEconomy.credit(75,1))
-        assertEquals(190,SkyPeepEconomy.credit(0,FlightRules.winBonus(6)))
+        assertEquals(0,SkyPeepEconomy.credit(0,0))
     }
 
     @Test fun limitsNeverOverflowToNegativeBalance() {

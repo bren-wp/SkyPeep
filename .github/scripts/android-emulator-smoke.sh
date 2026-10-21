@@ -208,8 +208,8 @@ for points in 0 147; do
   adb exec-out screencap -p > "smoke-results/dynamic-score-$points.png"
 done
 echo "PASS: both dynamic score values render on Android."
-# Verify actual progression state on the illustrated level map. World 3 is
-# OPEN but not falsely CLEAR, with earlier worlds already completed.
+# Each illustrated island must be immediately selectable, independent of
+# legacy unlock history. Fixture selects world 3 but does NOT lock world 4.
 adb logcat -c
 adb shell am force-stop com.brendigo.skypeep
 adb shell am start -W --ei sky_peep_qa_map_unlocked 3 \
@@ -218,14 +218,14 @@ sleep 4
 adb shell pidof com.brendigo.skypeep >/dev/null || {
   echo "FAIL: map progression fixture crashed"; exit 1;
 }
-adb logcat -d -s SkyPeepMap:I '*:S' | grep -q 'map_loaded unlocked=3 selected=3' || {
+adb logcat -d -s SkyPeepMap:I '*:S' | grep -q 'map_loaded unlocked=6 selected=3' || {
   echo "FAIL: debug map state not initialized"; exit 1;
 }
 capture map-progress MAP
 tap_ui 660 710
 sleep 1
-adb logcat -d -s SkyPeepMap:I '*:S' | grep -q 'world_locked=4 unlocked=3' || {
-  echo "FAIL: locked island accepted or event not logged"; exit 1;
+adb logcat -d -s SkyPeepMap:I '*:S' | grep -q 'selected_world=4' || {
+  echo "FAIL: world 4 must be available without unlocking"; exit 1;
 }
 tap_ui 730 1140
 sleep 1
@@ -234,7 +234,7 @@ adb logcat -d -s SkyPeepMap:I '*:S' | grep -q 'selected_world=2' || {
 }
 tap_ui 760 1580
 capture map-play PLAY
-echo "PASS: map unlock, selection and Play navigation."
+echo "PASS: all illustrated world selections, progress map and Play navigation."
 
 
 # The win state uses a DIFFERENT screen composition from the lose-only

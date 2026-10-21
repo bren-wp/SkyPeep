@@ -1,7 +1,6 @@
 package com.brendigo.skypeep
 
 import kotlin.math.abs
-import kotlin.math.ceil
 import kotlin.math.sin
 
 /**
@@ -15,13 +14,11 @@ internal enum class SkyDifficulty(
     val speedFactor: Float,
     val gravityFactor: Float,
     val spawnFactor: Float,
-    val targetFactor: Float,
-    val rewardFactor: Float,
     val windFactor: Float
 ) {
-    BREEZE("BREEZE", 1.15f, .86f, .85f, 1.14f, .80f, .85f, .65f),
-    EXPLORER("EXPLORER", 1f, 1f, 1f, 1f, 1f, 1f, 1f),
-    TEMPEST("TEMPEST", .87f, 1.17f, 1.13f, .86f, 1.22f, 1.45f, 1.35f);
+    BREEZE("BREEZE", 1.15f, .86f, .85f, 1.14f, .65f),
+    EXPLORER("EXPLORER", 1f, 1f, 1f, 1f, 1f),
+    TEMPEST("TEMPEST", .87f, 1.17f, 1.13f, .86f, 1.35f);
 
     fun next(): SkyDifficulty = entries[(ordinal + 1) % entries.size]
 
@@ -50,15 +47,7 @@ internal object SkyRouteRules {
         (2.25f - (world.coerceIn(1, 6) - 1) * .11f)
             .coerceAtLeast(1.38f) * difficulty.spawnFactor
 
-    fun target(world: Int, difficulty: SkyDifficulty): Int =
-        ceil(FlightRules.targetScore(world) * difficulty.targetFactor.toDouble())
-            .toInt().coerceIn(5, 50)
-
-    fun completionBonus(world: Int, difficulty: SkyDifficulty): Int =
-        (FlightRules.winBonus(world) * difficulty.rewardFactor).toInt()
-            .coerceAtLeast(0)
-
-    /** Gentle updrafts start in CLOUD PASS; WIND GATE has the strongest gusts. */
+    /** Gentle updrafts start in CLOUD DRIFT; WIND GATE has the strongest gusts. */
     fun windAcceleration(world: Int, difficulty: SkyDifficulty, seconds: Float): Float {
         if (!seconds.isFinite()) return 0f
         val strength = when (world.coerceIn(1, 6)) {
@@ -78,9 +67,6 @@ internal object SkyRouteRules {
 
     fun isPrecisionPass(birdCenterY: Float, gateCenterY: Float, gap: Float): Boolean =
         gap > 0f && abs(birdCenterY - gateCenterY) <= gap * .17f
-
-    fun precisionReward(streak: Int): Int =
-        if (streak > 0 && streak % 3 == 0) 12 else 0
 
     /** Earned stars reward flying the centre line, not only finishing. */
     fun starsOnCompletion(precisePasses: Int, totalPasses: Int): Int {
