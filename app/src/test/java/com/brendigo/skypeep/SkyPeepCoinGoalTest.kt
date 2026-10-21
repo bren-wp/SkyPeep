@@ -32,6 +32,19 @@ class SkyPeepCoinGoalTest {
         assertEquals("502 / 10001",SkyPeepCoinGoal.label(collected))
     }
 
+    @Test fun exactlyOneVictoryOccursOnFirstCrossingAndReplaysStillWork() {
+        assertFalse(SkyPeepCoinGoal.justCompleted(0,1))
+        assertFalse(SkyPeepCoinGoal.justCompleted(9_999,10_000))
+        assertTrue(SkyPeepCoinGoal.justCompleted(10_000,10_001))
+        assertFalse(SkyPeepCoinGoal.justCompleted(10_001,10_001))
+        assertFalse(SkyPeepCoinGoal.justCompleted(Int.MAX_VALUE,Int.MAX_VALUE))
+        // A replay still awards spendable currency for physical pickups, but
+        // the capped world counter must not trigger a second instant win.
+        val afterReplayCoin=SkyPeepCoinGoal.increment(10_001)
+        assertEquals(10_001,afterReplayCoin)
+        assertFalse(SkyPeepCoinGoal.justCompleted(10_001,afterReplayCoin))
+    }
+
     @Test fun completionIsPerWorldNotSharedAcrossOtherWorldsOrModes() {
         val collected=IntArray(6)
         collected[1]=10_001
