@@ -101,7 +101,10 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private var music: Music? = null
     private val sounds = mutableMapOf<String, Sound>()
     private val tmp = GlyphLayout()
+    private val fontColorScratch = Color()
+    private val hudText = SkyPeepHudTextCache()
     private val touch = Vector2()
+    private var lastContinuousRendering: Boolean? = null
 
     private var screen = Screen.SPLASH
     private var lastLoggedScreen: Screen? = null
@@ -208,9 +211,13 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         pixel.setColor(Color.WHITE)
         pixel.fill()
         solid = SkyPeepManagedTexture.fromPixmap(pixel)
-        prepareChrome()
+        for ((name, texture) in SkyPeepUiArtwork.createChrome()) {
+            chromeTextures[name] = texture
+            chrome[name] = com.badlogic.gdx.graphics.g2d.NinePatch(
+                texture, 32, 32, 32, 32)
+        }
         costumes = SkyPeepBirdCostumes.prepare()
-        victoryStar = createVictoryStar()
+        victoryStar = SkyPeepUiArtwork.createVictoryStar()
         trailTexture = SkyPeepTrailArtwork.create()
         heartTexture = SkyPeepHeartArt.create()
         Gdx.app.log("SkyPeepLifecycle",
@@ -382,6 +389,20 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             fitted(message,1437f,fontSmall,1.4f,W-290f)
         }
         batch.end()
+        updateRenderingPolicy()
+    }
+
+    /**
+     * Toggle continuous GL rendering only when changing between animated
+     * flight/temporary messages and otherwise static illustrated screens.
+     * Touch input and Android lifecycle events still request a fresh frame.
+     */
+    private fun updateRenderingPolicy() {
+        val required = SkyPeepRenderPolicy.continuous(screen.name,messageTimer)
+        if (required != lastContinuousRendering) {
+            Gdx.graphics.setContinuousRendering(required)
+            lastContinuousRendering = required
+        }
     }
 
     /**
@@ -958,9 +979,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 crop.sourceX,0,crop.sourceWidth,background.height,false,false)
         }
         val gap = SkyRouteRules.gap(level,difficulty)
+        // Resolve illustrated pillar textures once per rendered frame, not
+        // once for every active gate. The full asset set was checked at load.
+        val top = pictures["pillar_${level}_top"] ?: return
+        val bottom = pictures["pillar_${level}_bottom"] ?: return
         for (gate in gates) {
-            val top = pictures["pillar_${level}_top"]!!
-            val bottom = pictures["pillar_${level}_bottom"]!!
             val topY = gate.centerY+gap*.5f
             val bottomY = gate.centerY-gap*.5f
             val pillarWidth=GATE_WIDTH
@@ -973,8 +996,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 visibleFrame.top)
             drawStoneStem(stemX,stemW,visibleFrame.bottom,
                 PillarGeometry.bottomTailHeight(bottomY,bottom.height.toFloat()))
-            image("pillar_${level}_top",gate.x,topY,pillarWidth,top.height.toFloat())
-            image("pillar_${level}_bottom",gate.x,bottomY-bottom.height,
+            batch.draw(top,gate.x,topY,pillarWidth,top.height.toFloat())
+            batch.draw(bottom,gate.x,bottomY-bottom.height,
                 pillarWidth,bottom.height.toFloat())
             if (!gate.coinTaken) {
                 drawCoin(gate.x+118f,gate.centerY+9f,SkyPeepPickup.COIN_RADIUS)
@@ -1075,15 +1098,15 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // The original six wallet plates are now cleaned at build time.
         // Keep illustrated gemstone, coin and edge strokes 1:1; no generic
         // overlay pills that hide the original decorative cyan borders.
-        fitted(SkyPeepHudNumbers.compact(coins),top-50f,fontSmall,1.50f,104f,left+150f)
-        fitted(SkyPeepHudNumbers.compact(gems),top-49f,fontSmall,1.48f,64f,right+117f)
+        fitted(hudText.coins(coins),top-50f,fontSmall,1.50f,104f,left+150f)
+        fitted(hudText.gems(gems),top-49f,fontSmall,1.48f,64f,right+117f)
         // Each original score face is cleared and reconstructed during build.
         // Render changing points on its own themed face, with a crisp outline.
         drawWingedScore()
     }
 
     private fun drawWingedScore() {
-        val text=score.coerceAtLeast(0).toString()
+        val text=hudText.score(score)
         // The score is part of the bright illustrated winged HUD, not a
         // separate dark overlay. Keep the large reference-style outlined
         // numerals centred and automatically fit three-plus digit results.
@@ -1338,89 +1361,6 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     /** Rounded, antialiased-like gradient chrome rendered once, reused on each screen. */
-    private fun createVictoryStar(): Texture {
-        // Render an antialiased-looking five-point star as one reusable texture.
-        val side=128
-        val pix=Pixmap(side,side,Pixmap.Format.RGBA8888)
-        pix.setColor(0f,0f,0f,0f)
-        pix.fill()
-        fun star(cx:Int,cy:Int,outer:Int,inner:Int,tint:Color) {
-            val xx=IntArray(10)
-            val yy=IntArray(10)
-            for(i in 0..9) {
-                val angle=-Math.PI/2+i*Math.PI/5
-                val r=if(i%2==0)outer else inner
-                xx[i]=cx+(kotlin.math.cos(angle)*r).toInt()
-                yy[i]=cy+(kotlin.math.sin(angle)*r).toInt()
-            }
-            pix.setColor(tint)
-            for(i in 0..9) {
-                val next=(i+1)%10
-                pix.fillTriangle(cx,cy,xx[i],yy[i],xx[next],yy[next])
-            }
-        }
-        star(64,67,59,29,Color.valueOf("49220F"))
-        star(64,61,56,27,Color.valueOf("FFB52D"))
-        star(60,56,47,22,Color.valueOf("FFE34D"))
-        val tx=SkyPeepManagedTexture.fromPixmap(pix)
-        tx.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear)
-        return tx
-    }
-
-    private fun prepareChrome() {
-        val palette=mapOf(
-            "dark" to Color.valueOf("103963"),
-            "green" to Color.valueOf("48C62D"),
-            "cream" to Color.valueOf("F6E4C4"),
-            "wood" to Color.valueOf("92552F"),
-            "wallet" to Color.valueOf("573729"),
-            "blue" to Color.valueOf("169CE8"),
-            "red" to Color.valueOf("C83A40")
-        )
-        for ((name,base) in palette) {
-            val pix=Pixmap(192,80,Pixmap.Format.RGBA8888)
-            pix.setColor(0f,0f,0f,0f)
-            pix.fill()
-            // Render the same premium illustration treatment used by
-            // reference PLAY/PAUSE buttons: thick chocolate silhouette,
-            // coloured inset bevel, broad glossy shoulder and shaded base.
-            // The border is antialiased and the patch remains 9-slice safe.
-            for(y in 0 until 80) for(x in 0 until 192) {
-                val dx=max(0f,kotlin.math.abs(x-95.5f)-64.5f)
-                val dy=max(0f,kotlin.math.abs(y-39.5f)-9.5f)
-                val d=kotlin.math.sqrt(dx*dx+dy*dy)
-                if(d>30f) continue
-                val edgeAlpha=((30f-d)/1.65f).coerceIn(0f,1f)
-                val vertical=y/79f
-                val c=when {
-                    d>=25f -> Color(.17f,.075f,.055f,edgeAlpha)
-                    d>=22f -> Color(.39f,.20f,.12f,edgeAlpha)
-                    d>=19f -> Color(
-                        (base.r*.66f).coerceIn(0f,1f),
-                        (base.g*.61f).coerceIn(0f,1f),
-                        (base.b*.57f).coerceIn(0f,1f),edgeAlpha)
-                    else -> {
-                        var brightness=1.19f-.29f*vertical
-                        if(y<=17) brightness+=.07f
-                        if(y>=66) brightness-=.12f
-                        if(y in 13..17 && x in 28..154)
-                            brightness+=.085f
-                        if(d>=15f) brightness-=.045f
-                        Color((base.r*brightness).coerceIn(0f,1f),
-                              (base.g*brightness).coerceIn(0f,1f),
-                              (base.b*brightness).coerceIn(0f,1f),edgeAlpha)
-                    }
-                }
-                pix.drawPixel(x,y,Color.rgba8888(c))
-            }
-            val image=SkyPeepManagedTexture.fromPixmap(pix).also {
-                it.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear)
-            }
-            chromeTextures[name]=image
-            chrome[name]=com.badlogic.gdx.graphics.g2d.NinePatch(image,32,32,32,32)
-        }
-    }
-
     private fun badge(name:String,x:Float,y:Float,width:Float,height:Float) {
         if(width<=0f || height<=0f) return
         if(width>=64f && height>=64f) chrome[name]?.draw(batch,x,y,width,height)
@@ -1435,14 +1375,14 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private fun fitted(value:String,baseline:Float,font:BitmapFont,size:Float,
                        available:Float,centerX:Float=W/2f,tint:Color=Color.WHITE) {
         val savedScale=font.data.scaleX
-        val savedColor=Color(font.color)
+        fontColorScratch.set(font.color)
         font.data.setScale(size)
         tmp.setText(font,value)
         if(tmp.width>available) font.data.setScale(size*available/tmp.width)
         tmp.setText(font,value)
         font.color=tint
         font.draw(batch,value,centerX-tmp.width/2f,baseline)
-        font.color=savedColor
+        font.color=fontColorScratch
         font.data.setScale(savedScale)
     }
 
@@ -1512,8 +1452,10 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         heartTexture?.isManaged == true
 
     override fun resume() {
-        // libGDX reloads managed textures when Android restores the GL context.
-        // A normal UI pause must not reset progress or recreate menu textures.
+        // Ensure one fresh frame after Android recreates the surface. Static
+        // menu/PAUSE scenes remain event-driven instead of running the GPU
+        // continuously after a Home/Resume round trip.
+        Gdx.graphics.requestRendering()
         Gdx.app.log("SkyPeepLifecycle",
             "resume generatedManaged=" + generatedTexturesManaged())
         if (musicEnabled) updateMusicPlayback(true)

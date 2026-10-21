@@ -65,8 +65,8 @@ jobs:
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+36" app/build.gradle
-          grep -Fq "versionName '0.3.24'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+37" app/build.gradle
+          grep -Fq "versionName '0.3.25'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/apk/release/app-release-unsigned.apk
           test -s app/build/outputs/bundle/release/app-release.aab
@@ -182,7 +182,7 @@ jobs:
   release:
     name: Publish verified preview
     needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.24-lives-hud-transitions'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.25-battery-render-refactor'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -204,7 +204,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.24-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.25-preview.${GITHUB_RUN_NUMBER}"
           for pattern in '*-debug.apk' '*-release-unsigned.apk' '*-play-upload-unsigned.aab' 'SHA256SUMS.txt' '*-fdroid-metadata.yml'; do
             test -n "$(find release-artifacts -type f -name "$pattern" -print -quit)" || {
               echo "Required release asset missing: $pattern"; exit 1;
@@ -219,7 +219,7 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "SkyPeep $VERSION" \
             --draft --prerelease \
-            --notes '0.3.24: three lives, recoverable heart pickups, compact HUD, and safer image swaps. Distribution assets: debug APK (test-installable), UNSIGNED release APK (sign locally for direct distribution), UNSIGNED AAB (sign with YOUR Play upload key), F-Droid source-build metadata, MIT license, checksums and signing instructions. F-Droid inclusion is NOT automatic and requires independent source/dependency/artwork review. No signing keys are published.'
+            --notes '0.3.25: battery-aware on-demand rendering for static screens while keeping smooth realtime flight and toast animation; disable unused Android accelerometer/compass, extract GPU-generated chrome and star art from the main gameplay class, reuse pixel colors during setup, reuse font/HUD counters and cache pillar textures per frame. JVM regressions and full emulator UI/physics QA. Preserves original Brendigo art, difficulty balance, six worlds, local saves, costumes and life/heart system. Assets include debug APK, unsigned release APK, UNSIGNED Play-upload AAB, source-pinned F-Droid metadata, checksums and signing guidance. These unsigned files are NOT Play-ready; F-Droid inclusion is not automatic.'
           # A stale draft is never published; delete it and its temporary tag.
           publish_head="$(gh api "repos/$GH_REPO/git/ref/heads/$GITHUB_REF_NAME" --jq '.object.sha')"
           if [[ "$publish_head" != "$GITHUB_SHA" ]]; then
