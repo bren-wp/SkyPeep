@@ -65,8 +65,8 @@ jobs:
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+39" app/build.gradle
-          grep -Fq "versionName '0.3.27'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+40" app/build.gradle
+          grep -Fq "versionName '0.3.28'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/apk/release/app-release-unsigned.apk
           test -s app/build/outputs/bundle/release/app-release.aab
@@ -182,7 +182,7 @@ jobs:
   release:
     name: Publish verified preview
     needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/skypeep-v0.3.27-screen-parity-10001-coins'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.28-illustrated-ui-qa'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -204,7 +204,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.27-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.28-preview.${GITHUB_RUN_NUMBER}"
           for pattern in '*-debug.apk' '*-release-unsigned.apk' '*-play-upload-unsigned.aab' 'SHA256SUMS.txt' '*-fdroid-metadata.yml'; do
             test -n "$(find release-artifacts -type f -name "$pattern" -print -quit)" || {
               echo "Required release asset missing: $pattern"; exit 1;
@@ -219,7 +219,7 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "SkyPeep $VERSION" \
             --draft --prerelease \
-            --notes '0.3.27: restore source-illustration style across menu, settings, skins, shop, map, HUD and result screens; all six worlds selectable; each needs 10,001 physical coin pickups accumulated across flights to complete; remove completion/precision coin bonuses and keep purchase/equip labels synced to real touch targets. Physics balance, three lives and original art untouched. Debug APK, unsigned release APK, unsigned Play AAB, exact-commit F-Droid metadata, SHA-256 and signing guide provided. Independent visual 1:1 verification, Play signing and F-Droid acceptance remain open.'
+            --notes '0.3.28: screenshot-reviewed map layout now preserves illustrated island labels and stars while showing selected-world coin goals in a lower toolbar, green readable skin and shop action buttons, original DEFAULT name no longer duplicated, higher contrast settings controls and world-2 Cloud Drift map inscription. Three lives, six open worlds, 10001 real collected coins per world and flight physics unchanged. Art source preserved. Debug APK, unsigned release APK, unsigned Play AAB, F-Droid metadata and SHA-256 attached; private Play signing and F-Droid acceptance remain separate.'
           # A stale draft is never published; delete it and its temporary tag.
           publish_head="$(gh api "repos/$GH_REPO/git/ref/heads/$GITHUB_REF_NAME" --jq '.object.sha')"
           if [[ "$publish_head" != "$GITHUB_SHA" ]]; then
