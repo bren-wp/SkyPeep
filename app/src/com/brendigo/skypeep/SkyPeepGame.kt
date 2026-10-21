@@ -869,10 +869,12 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 // Spending wallet currency cannot reduce world progress.
                 coins = SkyPeepEconomy.credit(coins,5)
                 earnedCoins = SkyPeepEconomy.credit(earnedCoins,5)
-                worldCoins[level-1] = SkyPeepCoinGoal.increment(worldCoins[level-1])
+                val beforePickup=worldCoins[level-1]
+                worldCoins[level-1] = SkyPeepCoinGoal.increment(beforePickup)
                 coinsSinceSave++
                 playSound("coin")
-                if (SkyPeepCoinGoal.isComplete(worldCoins[level-1])) {
+                if (SkyPeepCoinGoal.justCompleted(
+                    beforePickup,worldCoins[level-1])) {
                     finish(true)
                     return
                 }
