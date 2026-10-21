@@ -23,13 +23,13 @@ Guide a brave little aviator through floating islands, glittering crystals, moon
 |---|---|
 | ❤️ **Three chances per flight** | Keep flying after a collision; collect occasional hearts to recover one missing life, up to three |
 | 🪽 **One-tap flight** | Flap to rise, time your descent and navigate evolving openings |
-| 🏔️ **Six worlds** | Sky Start, Cloud Pass, Crystal Drop, Wind Gate, Moon Glow and Sun Peak |
+| 🏔️ **Six open worlds** | Sky Start, Cloud Drift, Crystal Drop, Wind Gate, Moon Glow and Sun Peak — all immediately playable |
 | 🌬️ **Three challenges** | Breeze, Explorer and Tempest, with independent best scores and precision stars |
-| 💎 **Earn and customize** | Find coins and gems, equip aviator costumes and unlock illustrated flight trails |
+| 💎 **Collect and customize** | Gather 10,001 physical coin pickups per world across flights; buy and equip bird outfits and flight trails |
 | 📱 **Android-first presentation** | Responsive fullscreen gameplay, pause and tappable menus without scrolling |
 | 🔋 **Battery-conscious** | Static illustrated screens redraw only when needed; flight remains responsive, with no motion-sensor polling |
 
-**Game balance:** Precision is assessed at the midpoint of each stone passage; a score is granted when the actual bird body fully clears it. Consecutive openings are constrained to achievable changes. On a sky-edge rebound, collisions are immediately recalculated from the corrected bird position. A short recovery shield prevents one obstacle from consuming several lives. Hearts do not require payment and appear only if the bird has been hurt.
+**Game balance:** Precision is assessed at the midpoint of each stone passage; a score is granted when the actual bird body fully clears it. Clearing pillars alone does not complete a world: each needs 10,001 actual coin pickups, saved across attempts. Consecutive openings are constrained to achievable changes. On a sky-edge rebound, collisions are immediately recalculated from the corrected bird position. A short recovery shield prevents one obstacle from consuming several lives. Hearts do not require payment and appear only if the bird has been hurt.
 
 ## See the original artwork
 
@@ -46,7 +46,7 @@ These are **design-reference images**, not captured gameplay screenshots. Run-ti
 | Chapter | Atmosphere |
 |---|---|
 | ☁️ **01 · Sky Start** | Bright blue skies, drifting islands and waterfalls |
-| 🏔️ **02 · Cloud Pass** | Airy peaks, clouds and sweeping elevation |
+| 🏔️ **02 · Cloud Drift** | Airy peaks, clouds and sweeping elevation |
 | 💠 **03 · Crystal Drop** | Ancient structures and luminous crystal formations |
 | 🌪️ **04 · Wind Gate** | Windswept routes and dramatic stone obstacles |
 | 🌙 **05 · Moon Glow** | Moonlit landscapes with luminous details |
@@ -59,10 +59,10 @@ Every world features its own original reconstructed background, themed stone pil
 1. **Tap to flap.** Release to descend under gravity and changing air currents.
 2. **Fly through the middle of the gap.** Avoid stone and the edges of the visible sky.
 3. **Gather coins, gems and hearts.** Hearts appear periodically while injured; each restores one missing life.
-4. **Complete the route.** Earn up to three stars based on precision and unlock the next world.
+4. **Complete each world.** All six are already open. Collect 10,001 actual coins per world over as many attempts as needed; precision determines earned stars.
 5. **Choose your flight license.** Breeze is gentler, Explorer is the classic balance and Tempest is more demanding.
 
-Your virtual currency, best results, stars, outfits, trails and settings are saved locally. Hearts and the three flight lives **reset at the beginning of each new run**.
+Bonus coins from streaks or completing a world have been removed. Six separate pickup totals, wallet currency, results, stars, outfits, trails and settings are saved locally. Hearts and the three flight lives **reset at the beginning of each new run**.
 
 ## Style your aviator
 

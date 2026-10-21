@@ -6,15 +6,12 @@ internal data class MapRect(val left:Float,val top:Float,val right:Float,val bot
     fun contains(x:Float,y:Float):Boolean =
         x>=left && x<=right && y>=top && y<=bottom
 }
-internal enum class MapWorldStatus { LOCKED, OPEN, COMPLETED }
+internal enum class MapWorldStatus { OPEN, COMPLETED }
 internal object SkyPeepMapProgress {
-    fun status(world:Int,unlocked:Int,stars:Int):MapWorldStatus {
-        require(world in 1..6)
-        return when {
-            world>unlocked.coerceIn(1,6) -> MapWorldStatus.LOCKED
-            stars.coerceIn(0,3)>0 -> MapWorldStatus.COMPLETED
-            else -> MapWorldStatus.OPEN
-        }
+    fun status(world:Int,physicalCoins:Int):MapWorldStatus {
+        require(world in 1..SkyPeepCoinGoal.WORLDS)
+        return if (SkyPeepCoinGoal.isComplete(physicalCoins))
+            MapWorldStatus.COMPLETED else MapWorldStatus.OPEN
     }
 }
 internal object SkyPeepMapLayout {

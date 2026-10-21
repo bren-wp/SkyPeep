@@ -11,13 +11,6 @@ class SkyPeepPrecisionRoutesTest {
         assertFalse(SkyRouteRules.isPrecisionPass(750f, 750f, 0f))
     }
 
-    @Test fun streakBonusesCannotPayEveryGate() {
-        for (streak in 0..12) {
-            val expected = if (streak > 0 && streak % 3 == 0) 12 else 0
-            assertEquals(expected, SkyRouteRules.precisionReward(streak))
-        }
-    }
-
     @Test fun starsDependOnRouteAccuracy() {
         assertEquals(1, SkyRouteRules.starsOnCompletion(0, 20))
         assertEquals(1, SkyRouteRules.starsOnCompletion(4, 20))

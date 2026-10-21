@@ -46,7 +46,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // Rendered pillar assets occupy the full width, including their caps.
         private const val GATE_WIDTH = 275f
         private const val MAX_LEVEL = 6
-        private val LEVEL_TITLES = arrayOf("Sky Start","Cloud Pass","Crystal Drop",
+        private val LEVEL_TITLES = arrayOf("Sky Start","Cloud Drift","Crystal Drop",
             "Wind Gate","Moon Glow","Sun Peak")
         private val SCORE_STROKE_OFFSETS = floatArrayOf(-2.8f,0f,2.8f)
         private val SCORE_OUTLINE = Color.valueOf("10264B")
@@ -110,7 +110,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private var screen = Screen.SPLASH
     private var lastLoggedScreen: Screen? = null
     private var level = 1
-    private var unlocked = 1
+    private var unlocked = MAX_LEVEL
+    private val worldCoins = IntArray(MAX_LEVEL)
+    private var coinsSinceSave = 0
     private var resultWon = false
     private var score = 0
     private var best = 0
@@ -126,7 +128,6 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private val routeStars = Array(SkyDifficulty.entries.size) { IntArray(MAX_LEVEL) }
     private val routeBests = IntArray(SkyDifficulty.entries.size)
     private var precisionPasses = 0
-    private var precisionStreak = 0
     private var lives = SkyPeepLives.MAX
     private var shieldSeconds = 0f
     private var healingFeedback = 0f
@@ -162,8 +163,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         batch.projectionMatrix = camera.combined
         prefs = Gdx.app.getPreferences("SkyPeepSettingsAndProgress")
         best = prefs.getInteger("best", 0).coerceAtLeast(0)
-        unlocked = prefs.getInteger("unlocked", 1).coerceIn(1, MAX_LEVEL)
-        level = prefs.getInteger("level", 1).coerceIn(1, unlocked)
+        unlocked = MAX_LEVEL
+        level = prefs.getInteger("level", 1).coerceIn(1, MAX_LEVEL)
+        for (i in worldCoins.indices)
+            worldCoins[i] = SkyPeepCoinGoal.collected(
+                prefs.getInteger("collected_world_${i+1}", 0))
         coins = prefs.getInteger("coins", 1250).coerceAtLeast(0)
         gems = prefs.getInteger("gems", 75).coerceAtLeast(0)
         selectedSkin = prefs.getInteger("skin", 0).coerceIn(0, 4)
@@ -238,7 +242,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         if (qaMapUnlocked in 1..MAX_LEVEL) {
             // Debug-only screenshot fixture: a freshly unlocked world must
             // never be shown as completed before its first successful flight.
-            unlocked = qaMapUnlocked
+            unlocked = MAX_LEVEL
             level = qaMapUnlocked
             for (i in 0 until MAX_LEVEL) {
                 stars[i] = if (i < unlocked - 1) 3 else 0
@@ -261,7 +265,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 Gdx.app.log("SkyPeepHUD","debug_score=$score level=$level")
             }
             if (qaVictory) {
-                score = targetScore()
+                worldCoins[level-1] = SkyPeepCoinGoal.REQUIRED
                 finish(true)
                 Gdx.app.log("SkyPeepQA","victory level=" + level)
             } else if (qaLoss) {
@@ -559,11 +563,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             else -> {
                 val tapped=SkyPeepMapLayout.worldAt(x,y) ?: return
                 playSound("click")
-                if (tapped > unlocked) {
-                    Gdx.app.log("SkyPeepMap","world_locked=$tapped unlocked=$unlocked")
-                    toast("COMPLETE PREVIOUS LEVEL")
-                    return
-                }
+                // All six illustrated islands are immediately selectable.
                 level=tapped
                 save()
                 Gdx.app.log("SkyPeepMap","selected_world=$level")
@@ -731,14 +731,14 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     private fun begin(chosen: Int) {
-        level = chosen.coerceIn(1, unlocked)
+        level = chosen.coerceIn(1, MAX_LEVEL)
         loadLevelArt(level)
         screen = Screen.PLAY
         score=0
         earnedCoins=0
+        coinsSinceSave=0
         resultWon=false
         precisionPasses=0
-        precisionStreak=0
         earnedStars=0
         lives = SkyPeepLives.MAX
         shieldSeconds = 0f
@@ -862,9 +862,21 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 SkyPeepPickup.COIN_RADIUS
             )) {
                 gate.coinTaken=true
+                // One physically collected coin = one world-goal pickup.
+                // Spending wallet currency cannot reduce world progress.
                 coins = SkyPeepEconomy.credit(coins,5)
                 earnedCoins = SkyPeepEconomy.credit(earnedCoins,5)
+                worldCoins[level-1] = SkyPeepCoinGoal.increment(worldCoins[level-1])
+                coinsSinceSave++
                 playSound("coin")
+                if (SkyPeepCoinGoal.isComplete(worldCoins[level-1])) {
+                    finish(true)
+                    return
+                }
+                if (coinsSinceSave >= 10) {
+                    coinsSinceSave = 0
+                    save()
+                }
             }
             // Gem centre and 41-unit radius exactly follow drawDiamond.
             if (gate.gem && !gate.gemTaken &&
@@ -901,21 +913,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 score++
                 best=max(best,score)
                 routeBests[difficulty.ordinal]=max(routeBests[difficulty.ordinal],score)
-                // Precision routes reward keeping SkyPeep on the centreline.
-                // This gives each world an optional skill challenge beyond
-                // merely passing the obstacles, without forcing microtransactions.
-                val precise=gate.precisionSampled && gate.preciseAtCrossing
-                if (precise) {
+                // Precision affects stars only, never bonus coins.
+                if (gate.precisionSampled && gate.preciseAtCrossing)
                     precisionPasses++
-                    precisionStreak++
-                    val reward=SkyRouteRules.precisionReward(precisionStreak)
-                    if(reward>0) {
-                        coins=SkyPeepEconomy.credit(coins,reward)
-                        earnedCoins=SkyPeepEconomy.credit(earnedCoins,reward)
-                        playSound("coin")
-                    }
-                } else precisionStreak=0
-                if (score >= targetScore()) { finish(true); return }
             }
             if (gate.x < SkyPeepScreenFrame.pillarDespawnX(visibleFrame))
                 iterator.remove()
@@ -940,21 +940,17 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         return false
     }
 
-    private fun targetScore() = SkyRouteRules.target(level,difficulty)
     private fun finish(won: Boolean) {
         resultWon = won
         screen = Screen.RESULT
         best=max(best,score)
         routeBests[difficulty.ordinal]=max(routeBests[difficulty.ordinal],score)
         if (won) {
-            val bonus = SkyRouteRules.completionBonus(level,difficulty)
-            coins = SkyPeepEconomy.credit(coins,bonus)
-            earnedCoins = SkyPeepEconomy.credit(earnedCoins,bonus)
             earnedStars=SkyRouteRules.starsOnCompletion(precisionPasses,score)
             routeStars[difficulty.ordinal][level-1]=max(
                 routeStars[difficulty.ordinal][level-1],earnedStars)
             stars[level-1]=max(stars[level-1],earnedStars)
-            unlocked=max(unlocked,min(MAX_LEVEL,level+1))
+            unlocked=MAX_LEVEL
             playSound("win")
         } else {
             playSound("fail")
@@ -1020,11 +1016,6 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         if (healingFeedback > 0f)
             fitted("+1 LIFE",(birdY+BIRD_H+52f).coerceAtMost(H-236f),
                 fontSmall,1.0f,202f,BIRD_X+BIRD_W*.5f)
-        if (precisionStreak >= 2) {
-            fitted("SKY ROUTE x$precisionStreak",
-                (birdY+BIRD_H+30f).coerceAtMost(H-235f),
-                fontSmall,.80f,245f,BIRD_X+BIRD_W*.5f)
-        }
         if (readyForFirstTap) {
             badge("dark",290f,355f,360f,88f)
             fitted("TAP TO FLY",412f,fontSmall,1.5f,331f)
@@ -1427,7 +1418,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 prefs.putInteger("route_stars_${mode.ordinal}_${i+1}",
                     routeStars[mode.ordinal][i])
         }
-        prefs.putInteger("unlocked",unlocked)
+        prefs.putInteger("unlocked",MAX_LEVEL)
+        for (i in worldCoins.indices)
+            prefs.putInteger("collected_world_${i+1}",SkyPeepCoinGoal.collected(worldCoins[i]))
         prefs.putInteger("level",level)
         prefs.putInteger("coins",coins)
         prefs.putInteger("gems",gems)
