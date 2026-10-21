@@ -1,0 +1,1 @@
+Three lives per flight, collectible recovery hearts, smaller score HUD, improved stone pillars and smoother scene resource changes. Offline Android release packages and F-Droid metadata preparation.

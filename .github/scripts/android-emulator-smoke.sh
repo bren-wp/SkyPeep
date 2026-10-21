@@ -11,8 +11,12 @@ collect_diagnostics() {
 }
 trap collect_diagnostics EXIT
 
-apk="smoke-artifacts/apk/debug/app-debug.apk"
-test -s "$apk" || { echo "Missing APK: $apk"; find smoke-artifacts -type f; exit 1; }
+# The verified release artifact uses explicit version/channel filenames. Never
+# install the unsigned release APK by accident: only the debug-key APK boots.
+apk="$(find smoke-artifacts -type f -name 'SkyPeep-*-debug.apk' -print -quit)"
+test -n "$apk" && test -s "$apk" || {
+  echo "Missing signed DEBUG APK from release-packages"; find smoke-artifacts -type f; exit 1;
+}
 
 adb logcat -c
 adb install -r "$apk"
@@ -109,6 +113,9 @@ tap_ui 465 1380
 capture settings-back MENU
 tap_ui 470 1000
 capture gameplay PLAY
+adb logcat -d -s SkyPeepLives:I '*:S' | grep -q 'run_start lives=3' || {
+  echo "FAIL: new flights do not initialize three lives"; exit 1;
+}
 tap_ui 868 65
 capture pause PAUSE
 tap_ui 460 1040

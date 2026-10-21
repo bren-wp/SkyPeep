@@ -1,0 +1,10 @@
+SkyPeep is a hand-illustrated offline arcade adventure from Brendigo.
+
+Fly through six themed worlds with easy one-tap controls. Keep your aviator between the illustrated stone gates, collect coins and gems, and earn precision stars. Choose Breeze, Explorer or Tempest, each with separate score records.
+
+Each flight provides three lives. Collisions cost a life, and occasional heart pickups help you recover. Unlock bird outfits and cosmetic flight trails using currency earned entirely by playing.
+
+No account, ads, trackers, network permissions or real-money purchases.
+Artwork and music are bundled for offline play.
+
+The optional share action uses Android's built-in sharing chooser.
