@@ -266,17 +266,32 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private fun loadLevelArt(newLevel: Int) {
         require(newLevel in 1..MAX_LEVEL)
         if (loadedLevelArt == newLevel) return
-        if (loadedLevelArt != 0) {
-            for (asset in levelArtNames(loadedLevelArt)) {
-                pictures.remove(asset)?.dispose()
+        // Stage ALL incoming world textures before retiring old ones. If
+        // decoding fails, the previous world remains renderable: no blank
+        // scene, partial pillar set or half-replaced HUD is exposed.
+        val staged = mutableMapOf<String, Texture>()
+        var newStem: Texture? = null
+        try {
+            for (name in levelArtNames(newLevel)) {
+                staged[name] = makeTexture(
+                    name, if (name.startsWith("bg_")) "jpg" else "png")
             }
+            newStem = SkyPeepPillarStem.create(newLevel)
+        } catch (e: Exception) {
+            staged.values.forEach { it.dispose() }
+            newStem?.dispose()
+            throw e
         }
-        for (asset in levelArtNames(newLevel)) {
-            load(asset, if (asset.startsWith("bg_")) "jpg" else "png")
-        }
-        pillarStem?.dispose()
-        pillarStem = SkyPeepPillarStem.create(newLevel)
+        val priorWorld = loadedLevelArt
+        val previousStem = pillarStem
+        pictures.putAll(staged)
+        pillarStem = newStem
         loadedLevelArt = newLevel
+        if (priorWorld != 0) {
+            for (name in levelArtNames(priorWorld))
+                pictures.remove(name)?.dispose()
+        }
+        previousStem?.dispose()
     }
 
     private fun levelArtNames(world: Int): List<String> =
@@ -290,15 +305,23 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         val required = if (screen == Screen.RESULT && resultWon) null
                        else SkyPeepAssets.screenFor(screen.name)
         if (required == loadedScreenArt) return
-        loadedScreenArt?.let { pictures.remove(it)?.dispose() }
-        if (required != null) load(required, "jpg")
+        // Commit the incoming menu art first. Switching screens must not
+        // briefly leave the texture map empty while an old JPG is disposed.
+        if (required != null && !pictures.containsKey(required))
+            pictures[required] = makeTexture(required, "jpg")
+        val previous = loadedScreenArt
         loadedScreenArt = required
+        if (previous != null && previous != required)
+            pictures.remove(previous)?.dispose()
     }
 
+    private fun makeTexture(name: String, suffix: String): Texture =
+        Texture(Gdx.files.internal("$name.$suffix")).also {
+            it.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear)
+        }
+
     private fun load(name: String, suffix: String = "png") {
-        val texture = Texture(Gdx.files.internal("$name.$suffix"))
-        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-        pictures[name] = texture
+        pictures[name] = makeTexture(name,suffix)
     }
 
     private fun image(name: String, x: Float, y: Float, width: Float, height: Float) {
@@ -711,6 +734,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         lastBackgroundLogSecond=-1
         lastPhysicsLogSample=-1
         readyForFirstTap=true
+        Gdx.app.log("SkyPeepLives","run_start lives=$lives")
         save()
     }
 
@@ -942,8 +966,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             val pillarWidth=GATE_WIDTH
             // The pole stems are rendered behind the photographed caps as scalable 2D shapes.
             // Continuous, textured shafts sit behind the original illustrated caps.
-            val stemX = gate.x + 53f
-            val stemW = pillarWidth - 105f
+            val stemX = gate.x + PillarGeometry.STEM_INSET
+            val stemW = PillarGeometry.STEM_WIDTH
             drawStoneStem(stemX,stemW,
                 PillarGeometry.topTailStart(topY,top.height.toFloat()),
                 visibleFrame.top)
