@@ -402,6 +402,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         if (required != lastContinuousRendering) {
             Gdx.graphics.setContinuousRendering(required)
             lastContinuousRendering = required
+            Gdx.app.log("SkyPeepPower",
+                "screen=${screen.name} continuous=$required")
         }
     }
 
