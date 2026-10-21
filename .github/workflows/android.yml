@@ -65,8 +65,8 @@ jobs:
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+33" app/build.gradle
-          grep -Fq "versionName '0.3.21'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+34" app/build.gradle
+          grep -Fq "versionName '0.3.22'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/bundle/release/app-release.aab
           unzip -t app/build/outputs/apk/debug/app-debug.apk > /dev/null
@@ -179,7 +179,7 @@ jobs:
   release:
     name: Publish verified preview
     needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.21-flight-polish-audit'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.22-physics-map-ui'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -201,7 +201,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.21-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.22-preview.${GITHUB_RUN_NUMBER}"
           APK="$(find release-artifacts -type f -name 'app-debug.apk' -print -quit)"
           AAB="$(find release-artifacts -type f -name 'app-release.aab' -print -quit)"
           test -s "$APK" && test -s "$AAB"
@@ -212,7 +212,7 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "SkyPeep $VERSION" \
             --draft --prerelease \
-            --notes '0.3.21: accurate precision scoring at obstacle mid-crossing; frame-rate-consistent gate intervals; reduced HUD draw allocations and corrected inert-menu tap audio; hardened optional music lifecycle; remove superseded legacy collision helpers and strengthen dead-code auditing. Maintains original six worlds, game modes, currency, sprites and player progress. Verified preview includes debug APK and UNSIGNED / NOT PLAY READY AAB. Pixel-exact 1:1 art parity and physical-device crash reproduction are still pending.'
+            --notes '0.3.22: simulation-clock-based midpoint sampling of themed wind for consistent physics across refresh rates; overlap-aware world map selection with nearest illustrated markers; less GPU UI draw-path garbage by caching static palette colours and settings titles. Adds 18-world/difficulty wind integration cases and world-map overlap regressions, with offline permission, asset and native ABI checks. Original graphics, save keys and cosmetics preserved. Debug APK is installable; AAB remains UNSIGNED / NOT GOOGLE PLAY READY. Pixel-level 1:1 and physical-device crash verification still pending.'
           # A stale draft is never published; delete it and its temporary tag.
           publish_head="$(gh api "repos/$GH_REPO/git/ref/heads/$GITHUB_REF_NAME" --jq '.object.sha')"
           if [[ "$publish_head" != "$GITHUB_SHA" ]]; then

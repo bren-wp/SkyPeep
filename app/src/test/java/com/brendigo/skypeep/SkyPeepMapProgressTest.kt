@@ -20,6 +20,20 @@ class SkyPeepMapProgressTest {
         assertTrue(SkyPeepMapLayout.play.contains(760f,1580f))
         assertTrue(SkyPeepMapLayout.back.contains(100f,1540f))
     }
+    @Test fun overlappingIslandHitRegionsSelectTheNearestPaintedMarker() {
+        // World 1/2 reference hit areas overlap in a 10 px vertical band.
+        assertEquals(1,SkyPeepMapLayout.worldAt(600f,1265f))
+        assertEquals(2,SkyPeepMapLayout.worldAt(649f,1260f))
+        // World 4/5 cards also overlap in their edges.
+        assertEquals(5,SkyPeepMapLayout.worldAt(490f,585f))
+        assertEquals(4,SkyPeepMapLayout.worldAt(500f,600f))
+    }
+
+    @Test fun invalidAndOutsideMapTouchesCannotSelectAWorld() {
+        assertNull(SkyPeepMapLayout.worldAt(Float.NaN,1200f))
+        assertNull(SkyPeepMapLayout.worldAt(1200f,Float.POSITIVE_INFINITY))
+        assertNull(SkyPeepMapLayout.worldAt(-1f,-1f))
+    }
     @Test fun individualWorldHitsMatchPaintedIslands() {
         assertEquals(2,SkyPeepMapLayout.worldAt(730f,1140f))
         assertEquals(3,SkyPeepMapLayout.worldAt(350f,900f))
