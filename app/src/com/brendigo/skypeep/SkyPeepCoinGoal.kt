@@ -13,6 +13,11 @@ internal object SkyPeepCoinGoal {
     fun increment(current: Int): Int =
         (collected(current) + if (collected(current) < REQUIRED) 1 else 0)
     fun isComplete(value: Int): Boolean = value >= REQUIRED
+
+    /** A finished world may be replayed without a new instant victory. */
+    fun justCompleted(before: Int, after: Int): Boolean =
+        !isComplete(before) && isComplete(after)
+
     fun fraction(value: Int): Float = collected(value).toFloat() / REQUIRED
     fun label(value: Int): String = "${collected(value)} / ${REQUIRED}"
     fun compact(value: Int): String = "${collected(value)} / 10001"
