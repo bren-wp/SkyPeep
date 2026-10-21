@@ -60,6 +60,7 @@ internal object SkyRouteRules {
 
     /** Gentle updrafts start in CLOUD PASS; WIND GATE has the strongest gusts. */
     fun windAcceleration(world: Int, difficulty: SkyDifficulty, seconds: Float): Float {
+        if (!seconds.isFinite()) return 0f
         val strength = when (world.coerceIn(1, 6)) {
             1 -> 0f
             2 -> 65f
