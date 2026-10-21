@@ -91,6 +91,15 @@ class CompareSkyPeepScreens {
                 "%s | MAE=%.2f/255 | screenshot=%dx%d | reference=%dx%d%n",
                 scene[0], error, screenshot.getWidth(), screenshot.getHeight(),
                 reference.getWidth(), reference.getHeight()));
+            // Automated reference deviation budget for unchanged illustrated
+            // screens. This is an early regression alarm, NOT a claim of 1:1.
+            // Live gameplay poses/collectibles intentionally differ.
+            double maxMae = "menu".equals(scene[0]) ? 9.5
+                : "levels".equals(scene[0]) ? 15.0
+                : "skins".equals(scene[0]) ? 12.5 : Double.POSITIVE_INFINITY;
+            if(error > maxMae) throw new IOException(
+                scene[0]+" illustration regressed: MAE="+error+
+                ", permitted="+maxMae);
             if("world-1".equals(scene[0])){
                 double islandError=regionMAE(adjusted,reference,.33,.23,.45,.35);
                 report.append(String.format(java.util.Locale.ROOT,

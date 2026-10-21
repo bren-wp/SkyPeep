@@ -29,6 +29,8 @@ Guide a brave little aviator through floating islands, glittering crystals, moon
 | 📱 **Android-first presentation** | Responsive fullscreen gameplay, pause and tappable menus without scrolling |
 | 🔋 **Battery-conscious** | Static illustrated screens redraw only when needed; flight remains responsive, with no motion-sensor polling |
 
+**Illustrated controls:** The Levels map keeps the original world banners, stars and backgrounds unobstructed: a single status chip shows OPEN, SELECTED or DONE on each island, while the cumulative coin count appears only for the selected world in the lower toolbar. The SKINS and SHOP BUY/EQUIP buttons use bright green illustrated surfaces and large readable captions.
+
 **Game balance:** Precision is assessed at the midpoint of each stone passage; a score is granted when the actual bird body fully clears it. Clearing pillars alone does not complete a world: each needs 10,001 actual coin pickups, saved across attempts. Consecutive openings are constrained to achievable changes. On a sky-edge rebound, collisions are immediately recalculated from the corrected bird position. A short recovery shield prevents one obstacle from consuming several lives. Hearts do not require payment and appear only if the bird has been hurt.
 
 ## See the original artwork
