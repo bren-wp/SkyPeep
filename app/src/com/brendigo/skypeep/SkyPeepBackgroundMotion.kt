@@ -18,7 +18,8 @@ internal object SkyPeepBackgroundMotion {
         if (!playing || maximumMargin == 0) return Crop(0, textureWidth)
 
         // Startup and pause/resume must not jump or stretch the illustrated sky.
-        val elapsed = elapsedSeconds.coerceAtLeast(0f)
+        val elapsed = if (elapsedSeconds.isFinite())
+            elapsedSeconds.coerceIn(0f, 1_000_000f) else 0f
         val eased = (elapsed / 1.4f).coerceIn(0f, 1f)
         val margin = (maximumMargin * eased).roundToInt()
         if (margin == 0) return Crop(0, textureWidth)

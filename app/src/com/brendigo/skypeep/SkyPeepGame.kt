@@ -805,7 +805,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 gate.preciseAtCrossing=SkyRouteRules.isPrecisionPass(
                     birdBody.cy,gate.centerY,gap)
             }
-            if (!gate.scored && gate.x+gateWidth < BIRD_X+40f) {
+            if (!gate.scored && SkyPeepGatePass.hasClearedBody(
+                gate.x, gateWidth, birdBody.left, SkyPeepContact.CONTACT_GRACE)) {
                 gate.scored=true
                 score++
                 best=max(best,score)
@@ -1369,7 +1370,12 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
     private fun save() {
         // QA launch extras are synthetic fixtures, not genuine progress.
-        if (!SkyPeepQaSession.shouldPersist(qaWorld, qaMapUnlocked)) return
+        if (!SkyPeepQaSession.shouldPersist(
+                world = qaWorld, mapUnlocked = qaMapUnlocked,
+                skin = qaSkin, victory = qaVictory, pillars = qaPillars,
+                score = qaScore, loss = qaLoss,
+                backgroundMotion = qaBackgroundMotion,
+                difficulty = qaDifficulty)) return
         prefs.putInteger("best",best)
         prefs.putInteger("difficulty",difficulty.ordinal)
         for (mode in SkyDifficulty.entries) {

@@ -20,6 +20,15 @@ class SkyPeepWindCurrentsTest {
         }
     }
 
+    @Test fun invalidWindClockDoesNotInjectNaNIntoPhysics() {
+        for (mode in SkyDifficulty.entries) for (world in 1..6)
+            for (invalid in listOf(Float.NaN,Float.POSITIVE_INFINITY,
+                    Float.NEGATIVE_INFINITY)) {
+                assertEquals(0f,SkyRouteRules.windAcceleration(
+                    world,mode,invalid),0f)
+            }
+    }
+
     @Test fun savedDifficultyDefaultsToExplorerAndCyclesPredictably() {
         assertEquals(SkyDifficulty.EXPLORER, SkyDifficulty.fromStored(-1))
         assertEquals(SkyDifficulty.EXPLORER, SkyDifficulty.fromStored(99))

@@ -11,6 +11,20 @@ class SkyPeepGatePassTest {
         assertFalse(SkyPeepGatePass.reachedBirdCentre(0f, 0f, 300f))
     }
 
+    @Test fun scoreArrivesWhenRealBodyClearsTrailingPillarCap() {
+        val bodyLeft = 301f
+        val grace = 5f
+        val gateWidth = 275f
+        assertFalse(SkyPeepGatePass.hasClearedBody(31f,gateWidth,bodyLeft,grace))
+        assertTrue(SkyPeepGatePass.hasClearedBody(30f,gateWidth,bodyLeft,grace))
+        // Old fixed BIRD_X+40 threshold waited almost another hundred units.
+        assertTrue(30f + gateWidth > 212f)
+        assertFalse(SkyPeepGatePass.hasClearedBody(
+            Float.NaN,gateWidth,bodyLeft,grace))
+        assertFalse(SkyPeepGatePass.hasClearedBody(
+            0f,gateWidth,bodyLeft,Float.NEGATIVE_INFINITY))
+    }
+
     @Test fun spawnTimingsRetainFractionalFrameOverrun() {
         assertEquals(1.995f, SkyPeepGatePass.nextSpawnCountdown(-.005f, 2f), .0001f)
         assertEquals(2f, SkyPeepGatePass.nextSpawnCountdown(0f, 2f), .0001f)

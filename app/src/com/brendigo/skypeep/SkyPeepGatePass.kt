@@ -11,6 +11,17 @@ internal object SkyPeepGatePass {
         gateWidth > 0f && gateX + gateWidth * .5f <= birdCentreX
 
     /**
+     * Credit a pass once the trailing illustrated stone is behind the actual
+     * solid torso, using the same contact grace as hazard collision checks.
+     */
+    fun hasClearedBody(
+        gateX: Float, gateWidth: Float, bodyLeft: Float, contactGrace: Float
+    ): Boolean = gateX.isFinite() && gateWidth.isFinite() &&
+        bodyLeft.isFinite() && contactGrace.isFinite() &&
+        gateWidth > 0f && contactGrace >= 0f &&
+        gateX + gateWidth < bodyLeft + contactGrace
+
+    /**
      * Carry short physics-step overrun forward to the next spawn. Discarding
      * this remainder introduces device-FPS-dependent obstacle spacing.
      * A normal game substep is far shorter than the minimum spawn interval.

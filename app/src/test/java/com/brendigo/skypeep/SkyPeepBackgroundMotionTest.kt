@@ -40,6 +40,19 @@ class SkyPeepBackgroundMotionTest {
         assertTrue(first.sourceWidth >= (width * .96).toInt())
     }
 
+    @Test fun nonFiniteElapsedTimesCannotCrashBackgroundCrop() {
+        val width = 706
+        for (invalid in listOf(Float.NaN,Float.POSITIVE_INFINITY,
+                Float.NEGATIVE_INFINITY)) {
+            assertEquals(SkyPeepBackgroundMotion.Crop(0,width),
+                SkyPeepBackgroundMotion.crop(width,invalid,true))
+        }
+        val huge = SkyPeepBackgroundMotion.crop(width,Float.MAX_VALUE,true)
+        assertTrue(huge.sourceX >= 0)
+        assertTrue(huge.sourceWidth in 1..width)
+        assertTrue(huge.sourceX+huge.sourceWidth <= width)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun rejectsInvalidTextures() {
         SkyPeepBackgroundMotion.crop(0, 1f, true)
