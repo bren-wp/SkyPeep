@@ -1212,7 +1212,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         badge("wood",137f,508f,666f,156f)
         fitted("COINS COLLECTED",643f,fontSmall,1.28f,608f)
         fitted(SkyPeepCoinGoal.label(worldCoins[level-1]),
-            586f,fontLarge,.96f,608f,TEXT_ON_WOOD)
+            586f,fontLarge,.96f,608f,W/2f,TEXT_ON_WOOD)
         // Touch zones match the illustrated arcade buttons, not the card.
         SkyPeepResultTouch.victoryButtons.forEach { button ->
             val surface = when (button.action) {
