@@ -30,8 +30,8 @@ jobs:
           gradle-version: '8.14.3'
       - name: Audit unused Kotlin/Java code
         run: python3 tools/dead_code_audit.py
-      - name: Build APK and unsigned AAB
-        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:bundleRelease --stacktrace
+      - name: Build debug APK, unsigned release APK and unsigned AAB
+        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:bundleRelease --stacktrace
       - name: Verify offline and local-only Android manifest
         run: |
           grep -q 'android:allowBackup="false"' app/AndroidManifest.xml
@@ -68,6 +68,7 @@ jobs:
           grep -Eq "versionCode[[:space:]]+36" app/build.gradle
           grep -Fq "versionName '0.3.24'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
+          test -s app/build/outputs/apk/release/app-release-unsigned.apk
           test -s app/build/outputs/bundle/release/app-release.aab
           unzip -t app/build/outputs/apk/debug/app-debug.apk > /dev/null
           unzip -Z -1 app/build/outputs/apk/debug/app-debug.apk > "$RUNNER_TEMP/skypeep-apk-files.txt"
@@ -97,7 +98,11 @@ jobs:
             grep -Fxq "lib/$abi/libgdx.so" "$RUNNER_TEMP/skypeep-apk-files.txt" \
               || { echo "FATAL: missing libgdx.so for $abi"; exit 1; }
           done
+          unzip -t app/build/outputs/apk/release/app-release-unsigned.apk > /dev/null
           unzip -t app/build/outputs/bundle/release/app-release.aab > /dev/null
+      - name: Prepare separately labeled Play/F-Droid release files and checksums
+        shell: bash
+        run: bash tools/package-android-release.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -107,9 +112,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: SkyPeep-Android-${{ github.run_number }}
-          path: |
-            app/build/outputs/apk/debug/app-debug.apk
-            app/build/outputs/bundle/release/app-release.aab
+          path: release-packages/
           if-no-files-found: error
   emulator-smoke:
     name: Boot and launch Android app
@@ -202,17 +205,21 @@ jobs:
             exit 0
           fi
           VERSION="v0.3.24-preview.${GITHUB_RUN_NUMBER}"
-          APK="$(find release-artifacts -type f -name 'app-debug.apk' -print -quit)"
-          AAB="$(find release-artifacts -type f -name 'app-release.aab' -print -quit)"
-          test -s "$APK" && test -s "$AAB"
+          for pattern in '*-debug.apk' '*-release-unsigned.apk' '*-play-upload-unsigned.aab' 'SHA256SUMS.txt' '*-fdroid-metadata.yml'; do
+            test -n "$(find release-artifacts -type f -name "$pattern" -print -quit)" || {
+              echo "Required release asset missing: $pattern"; exit 1;
+            }
+          done
           # Keep the release PRIVATE while uploading files; a later push
           # could supersede this run even after the first head check.
+          mapfile -d '' -t release_files < <(find release-artifacts -type f -print0)
+          test "${#release_files[@]}" -ge 7
           gh release create "$VERSION" \
-            "$APK" "$AAB" \
+            "${release_files[@]}" \
             --target "$GITHUB_SHA" \
             --title "SkyPeep $VERSION" \
             --draft --prerelease \
-            --notes '0.3.24: three recoverable hearts/lives per flight, single-hit shield protection, periodic in-world heart pickups, smaller and less intrusive score/wallet HUD, cleaner painted pillar shafts, staged world/menu texture transitions and fresh product README with source design illustrations. Preserves original Brendigo art, all six worlds, saved progress, virtual coins/gems and cosmetic prices. Installable debug APK; AAB remains UNSIGNED / NOT GOOGLE PLAY READY. Exact full-screen 1:1 parity and physical-device crash reproduction are not certified.'
+            --notes '0.3.24: three lives, recoverable heart pickups, compact HUD, and safer image swaps. Distribution assets: debug APK (test-installable), UNSIGNED release APK (sign locally for direct distribution), UNSIGNED AAB (sign with YOUR Play upload key), F-Droid source-build metadata, MIT license, checksums and signing instructions. F-Droid inclusion is NOT automatic and requires independent source/dependency/artwork review. No signing keys are published.'
           # A stale draft is never published; delete it and its temporary tag.
           publish_head="$(gh api "repos/$GH_REPO/git/ref/heads/$GITHUB_REF_NAME" --jq '.object.sha')"
           if [[ "$publish_head" != "$GITHUB_SHA" ]]; then
