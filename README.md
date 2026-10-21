@@ -27,6 +27,7 @@ Guide a brave little aviator through floating islands, glittering crystals, moon
 | 🌬️ **Three challenges** | Breeze, Explorer and Tempest, with independent best scores and precision stars |
 | 💎 **Earn and customize** | Find coins and gems, equip aviator costumes and unlock illustrated flight trails |
 | 📱 **Android-first presentation** | Responsive fullscreen gameplay, pause and tappable menus without scrolling |
+| 🔋 **Battery-conscious** | Static illustrated screens redraw only when needed; flight remains responsive, with no motion-sensor polling |
 
 **Game balance:** Precision is assessed at the midpoint of each stone passage; a score is granted when the actual bird body fully clears it. Consecutive openings are constrained to achievable changes. A short recovery shield prevents one obstacle from consuming several lives. Hearts do not require payment and appear only if the bird has been hurt.
 
@@ -93,7 +94,7 @@ gradle :app:testDebugUnitTest :app:assembleDebug :app:bundleRelease
 
 The audit and tests are meaningful checks, **not a guarantee of zero bugs, complete pixel-for-pixel parity or physical-device GPU stability**.
 
-[Version history and release status](docs/RELEASE_HISTORY.md) · [Visual parity audit](docs/VISUAL_PARITY_AUDIT.md) · [Contact and responsive QA](docs/CONTACT_AND_RESPONSIVE_QA.md) · [Dead-code audit](docs/DEAD_CODE_AUDIT.md)
+[Version history and release status](docs/RELEASE_HISTORY.md) · [Performance audit](docs/qa/PERFORMANCE_0.3.25.md) · [Visual parity audit](docs/VISUAL_PARITY_AUDIT.md) · [Contact and responsive QA](docs/CONTACT_AND_RESPONSIVE_QA.md) · [Dead-code audit](docs/DEAD_CODE_AUDIT.md)
 
 ---
 

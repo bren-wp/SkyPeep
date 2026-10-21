@@ -11,7 +11,15 @@ import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration
 class MainActivity : AndroidApplication() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val config = AndroidApplicationConfiguration().apply { useImmersiveMode = true }
+        val config = AndroidApplicationConfiguration().apply {
+            useImmersiveMode = true
+            // SkyPeep is a one-tap arcade game, not a motion-controlled app.
+            // LibGDX enables accelerometer/compass by default on Android:
+            // unregistering those unused sensors reduces idle battery use.
+            useAccelerometer = false
+            useCompass = false
+            useGyroscope = false
+        }
         // QA worlds are addressable ONLY in debuggable APKs. Production
         // releases cannot bypass level progression through an Intent.
         val debuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0

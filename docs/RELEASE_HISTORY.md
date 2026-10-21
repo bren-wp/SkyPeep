@@ -10,11 +10,12 @@ SkyPeep preserves its original Brendigo artwork and locally saved data through 0
 | [0.3.21](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.21-preview.462) | Midpoint precision, stable spawn timing, UI memory and dead-code audit | Published preview |
 | [0.3.22](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.22-preview.465) | Physics-clock wind sampling and overlap-aware illustrated map touches | Published preview |
 | [0.3.23](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.23-preview.470) | Torso-clearance scoring, numerical input guards and isolated debug QA saves | Published preview |
-| **0.3.24** | Three per-flight lives, timed recovery hearts, compact HUD, resource-transition and documentation polish | **In development — not published until all CI checks pass** |
+| [0.3.24](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.24-preview.485) | Three per-flight lives, timed recovery hearts, compact HUD, resource-transition and multi-store distribution files | Published preview |
+| **0.3.25** | Static-screen GPU idle rendering, sensor power savings, HUD/text allocation reduction and UI artwork extraction | **In development — preview only after full CI passes** |
 
 ## Versioning and downloads
 
-Android `versionCode` increases monotonically (0.3.23 = 35; planned 0.3.24 = 36). Every successfully validated release beginning with 0.3.24 attaches **three distinct binary artifacts**: testing-only debug APK, unsigned release APK for local signing, and an unsigned Play-upload AAB to sign using the existing upload key. It also includes SHA-256 checksums, F-Droid source-build metadata, license and signed-distribution instructions. No key is uploaded to GitHub. See [Android distribution and F-Droid preparation](ANDROID_DISTRIBUTION.md).
+Android `versionCode` increases monotonically (0.3.24 = 36; planned 0.3.25 = 37). Every successfully validated release beginning with 0.3.24 attaches **three distinct binary artifacts**: testing-only debug APK, unsigned release APK for local signing, and an unsigned Play-upload AAB to sign using the existing upload key. It also includes SHA-256 checksums, F-Droid source-build metadata, license and signed-distribution instructions. No key is uploaded to GitHub. See [Android distribution and F-Droid preparation](ANDROID_DISTRIBUTION.md).
 
 Keep existing published GitHub Releases; do not overwrite or delete them while preparing later versions. Do not treat preview artwork as genuine app screenshots.
 
