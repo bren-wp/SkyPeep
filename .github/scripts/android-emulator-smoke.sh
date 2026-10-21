@@ -218,7 +218,7 @@ sleep 4
 adb shell pidof com.brendigo.skypeep >/dev/null || {
   echo "FAIL: map progression fixture crashed"; exit 1;
 }
-adb logcat -d -s SkyPeepMap:I '*:S' | grep -q 'map_loaded unlocked=3 selected=3' || {
+adb logcat -d -s SkyPeepMap:I '*:S' | grep -q 'map_loaded unlocked=6 selected=3' || {
   echo "FAIL: debug map state not initialized"; exit 1;
 }
 capture map-progress MAP
