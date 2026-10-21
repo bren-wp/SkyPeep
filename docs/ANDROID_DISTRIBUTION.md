@@ -65,11 +65,14 @@ but is not what an official F-Droid repository should distribute as-is.
 
 The upstream F-Droid metadata file is `.fdroid.yml`, and localized descriptions
 are stored under `fastlane/metadata/android/en-US/` and `hr-HR/`.
-The recipe currently references the last fully validated published source
-(0.3.23; versionCode 35). Do not replace its pinned full commit SHA with
-a mutable development branch. After v0.3.24 is verified and tagged, add
-a new `Builds` entry for versionCode 36 with the **immutable final commit SHA**,
-and update `CurrentVersion` and `CurrentVersionCode`.
+The repository's upstream `.fdroid.yml` currently keeps the last fully
+validated published source (0.3.23; versionCode 35). **At packaging time** the
+release asset `SkyPeep-X.Y.Z-fdroid-metadata.yml` is automatically expanded
+to contain a `Builds` entry pinned to that release's **exact 40-character Git
+commit**, `versionName` and `versionCode`. This gives F-Droid reviewers a
+version-correct, immutable source recipe rather than a development branch.
+After validation, sync the new entry back into upstream metadata and perform
+an independent F-Droid build/scan before submitting.
 
 To submit to the main F-Droid catalog, propose the metadata file in the
 fdroiddata GitLab repository; verify the dependency scanner and actual

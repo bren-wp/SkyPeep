@@ -42,6 +42,34 @@ cp "$debug" "$out/${base}-debug.apk"
 cp "$release" "$out/${base}-release-unsigned.apk"
 cp "$bundle" "$out/${base}-play-upload-unsigned.aab"
 cp .fdroid.yml "$out/${base}-fdroid-metadata.yml"
+# Generate distribution metadata pinned to the exact immutable release commit.
+python3 - "$out/${base}-fdroid-metadata.yml" "$version" "$version_code" "$(git rev-parse HEAD)" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+path, version, code, commit = sys.argv[1:]
+assert re.fullmatch(r'[0-9a-f]{40}', commit)
+assert re.fullmatch(r'[0-9]+', code)
+metadata = Path(path)
+contents = metadata.read_text(encoding='utf-8')
+anchor = 'AutoUpdateMode: None'
+assert contents.count(anchor) == 1
+if not re.search(r'(?m)^    versionCode: ' + re.escape(code) + r'$', contents):
+    build = (
+        "  - versionName: '" + version + "'\n"
+        + "    versionCode: " + code + "\n"
+        + "    commit: " + commit + "\n"
+        + "    gradle:\n"
+        + "      - 'yes'\n"
+    )
+    contents = contents.replace(anchor, build + anchor)
+contents = re.sub(r'(?m)^CurrentVersion:.*$', "CurrentVersion: '" + version + "'", contents)
+contents = re.sub(r'(?m)^CurrentVersionCode:.*$', 'CurrentVersionCode: ' + code, contents)
+assert ('    commit: ' + commit) in contents
+assert ('CurrentVersionCode: ' + code) in contents
+metadata.write_text(contents, encoding='utf-8')
+PY
 cp LICENSE "$out/LICENSE-MIT.txt"
 cp docs/ANDROID_DISTRIBUTION.md "$out/${base}-SIGNING-AND-FDROID.md"
 {
