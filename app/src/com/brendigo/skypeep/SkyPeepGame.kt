@@ -63,6 +63,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         private val SHOP_NAME_COLOR = Color.valueOf("5B3526")
         private val SHOP_PRICE_COLOR = Color.valueOf("734428")
         private val SETTINGS_NAMES = arrayOf("MUSIC","SOUND EFFECTS","VIBRATION","DIFFICULTY")
+        private val BIRD_TINTS = arrayOf(Color.WHITE, Color(.83f,.98f,1f,1f),
+            Color(.50f,1f,.55f,1f), Color(.65f,.55f,1f,1f),
+            Color(1f,.91f,.76f,1f))
+        private val SHIELD_TINT = Color(.85f,.95f,1f,.85f)
+        private val EMPTY_HEART_TINT = Color(.30f,.36f,.48f,.38f)
     }
 
     private enum class Screen { SPLASH, MENU, MAP, PLAY, PAUSE, RESULT, SKINS, SHOP, SETTINGS }
@@ -70,7 +75,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                             var coinTaken: Boolean = false, var gemTaken: Boolean = false,
                             val gem: Boolean = false,
                             var precisionSampled: Boolean = false,
-                            var preciseAtCrossing: Boolean = false)
+                            var preciseAtCrossing: Boolean = false,
+                            val heart: Boolean = false, var heartTaken: Boolean = false)
 
     private lateinit var batch: SpriteBatch
     private lateinit var camera: OrthographicCamera
@@ -89,6 +95,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private var victoryStar: Texture? = null
     private var pillarStem: Texture? = null
     private var trailTexture: Texture? = null
+    private var heartTexture: Texture? = null
     private var selectedTrail = 0
     private val ownedTrails = BooleanArray(4)
     private var music: Music? = null
@@ -116,6 +123,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private val routeBests = IntArray(SkyDifficulty.entries.size)
     private var precisionPasses = 0
     private var precisionStreak = 0
+    private var lives = SkyPeepLives.MAX
+    private var shieldSeconds = 0f
+    private var healingFeedback = 0f
+    private var spawnedGateCount = 0
+    private var lastHeartSpawnTime = -SkyPeepLives.HEART_INTERVAL_SECONDS
     private var earnedStars = 0
     private var musicEnabled = true
     private var effectsEnabled = true
@@ -200,6 +212,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         costumes = SkyPeepBirdCostumes.prepare()
         victoryStar = createVictoryStar()
         trailTexture = SkyPeepTrailArtwork.create()
+        heartTexture = SkyPeepHeartArt.create()
         Gdx.app.log("SkyPeepLifecycle",
             "generatedManaged=" + generatedTexturesManaged())
         for (kind in arrayOf("flap", "coin", "win", "fail", "click")) {
@@ -680,6 +693,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         precisionPasses=0
         precisionStreak=0
         earnedStars=0
+        lives = SkyPeepLives.MAX
+        shieldSeconds = 0f
+        healingFeedback = 0f
+        spawnedGateCount = 0
+        lastHeartSpawnTime = -SkyPeepLives.HEART_INTERVAL_SECONDS
         nextGate=2.0f
         gates.clear()
         lastGateCenter = if (qaPillars) 1050f else null
@@ -724,6 +742,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // collisions/gravity terminating the run during emulator capture.
         if (qaBackgroundMotion && qaWorld in 1..MAX_LEVEL) return
         if (readyForFirstTap) return
+        shieldSeconds = SkyPeepLives.tickShield(shieldSeconds,dt)
+        healingFeedback = max(0f,healingFeedback-dt)
         flapTimer = max(0f,flapTimer-dt)
         val gravity=SkyRouteRules.gravity(difficulty)
         val skyCurrent=SkyPeepWindClock.windAtStepMidpoint(
@@ -749,8 +769,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         val birdBody=SkyPeepContact.body(BIRD_X,birdY,BIRD_W,BIRD_H)
         if (SkyPeepContact.hitsWorldEdge(birdBody,
                 visibleFrame.bottom,visibleFrame.top)) {
-            finish(false)
-            return
+            // Reflect gently from the real visible boundary, without changing
+            // worlds, reloading backgrounds or teleporting to a new scene.
+            val yMin = visibleFrame.bottom + SkyPeepContact.BODY_RADIUS_Y +
+                12f - BIRD_H * SkyPeepContact.BODY_CENTRE_Y
+            val yMax = visibleFrame.top - SkyPeepContact.BODY_RADIUS_Y -
+                12f - BIRD_H * SkyPeepContact.BODY_CENTRE_Y
+            val hitFloor = birdY < yMin
+            birdY = birdY.coerceIn(yMin,yMax)
+            verticalSpeed = if (hitFloor) 235f else -235f
+            if (takeDamage()) return
         }
         val gap = SkyRouteRules.gap(level,difficulty)
         val moveSpeed = SkyRouteRules.speed(level,difficulty)
@@ -761,8 +789,13 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             val center = SkyPeepGatePlacement.next(
                 lastGateCenter, level, difficulty, MathUtils.random())
             lastGateCenter = center
+            spawnedGateCount++
+            val withHeart = SkyPeepLives.spawnHeart(
+                lives,flightPhysicsTime,lastHeartSpawnTime,spawnedGateCount)
+            if (withHeart) lastHeartSpawnTime = flightPhysicsTime
             gates.add(Gate(SkyPeepScreenFrame.pillarSpawnX(visibleFrame),
-                center,gem=(score>0 && MathUtils.random(0,9)==0)))
+                center,gem=(score>0 && !withHeart && MathUtils.random(0,9)==0),
+                heart=withHeart))
         }
         val iterator=gates.iterator()
         while (iterator.hasNext()) {
@@ -771,10 +804,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             val gateWidth=GATE_WIDTH
             val topLimit=gate.centerY+gap*.5f
             val bottomLimit=gate.centerY-gap*.5f
-            if (SkyPeepContact.hitsGate(
+            if (shieldSeconds <= 0f && SkyPeepContact.hitsGate(
                     birdBody,gate.x,gateWidth,bottomLimit,topLimit)) {
-                finish(false)
-                return
+                if (takeDamage()) return
             }
             // Same centre and 37-unit radius as drawCoin below. Only actual
             // torso/pickup overlap earns a coin, never a broad invisible halo.
@@ -795,6 +827,17 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 gate.gemTaken=true
                 gems = SkyPeepEconomy.credit(gems,1)
                 playSound("coin")
+            }
+            if (gate.heart && !gate.heartTaken && SkyPeepPickup.overlaps(
+                    birdBody,gate.x+118f,gate.centerY-100f,
+                    SkyPeepLives.HEART_RADIUS)) {
+                gate.heartTaken = true
+                val restored = SkyPeepLives.heal(lives)
+                if (restored > lives) {
+                    lives = restored
+                    healingFeedback = 1.4f
+                    playSound("win")
+                }
             }
             // Precision belongs to the moment the gate MIDPOINT crosses the
             // bird. Sampling on the score screen's later trailing-edge pass
@@ -830,6 +873,24 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             if (gate.x < SkyPeepScreenFrame.pillarDespawnX(visibleFrame))
                 iterator.remove()
         }
+    }
+
+    /**
+     * One hit costs ONE life; a shield covers the full length of a pipe so a
+     * single obstacle cannot repeatedly consume lives at low frame rates.
+     */
+    private fun takeDamage(): Boolean {
+        val damage = SkyPeepLives.hit(lives,shieldSeconds)
+        if (!damage.tookDamage) return false
+        lives = damage.remaining
+        if (lives == 0) {
+            finish(false)
+            return true
+        }
+        shieldSeconds = SkyPeepLives.SHIELD_SECONDS
+        playSound("fail")
+        if (vibrationEnabled) try { Gdx.input.vibrate(30) } catch (_:Exception) { }
+        return false
     }
 
     private fun targetScore() = SkyRouteRules.target(level,difficulty)
@@ -897,10 +958,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             if (gate.gem && !gate.gemTaken) {
                 drawDiamond(gate.x+113f,gate.centerY+93f,SkyPeepPickup.GEM_RADIUS)
             }
+            if (gate.heart && !gate.heartTaken) {
+                drawHeart(gate.x+118f,gate.centerY-100f,SkyPeepLives.HEART_RADIUS)
+            }
         }
         drawFlightTrail()
         drawBird()
         drawHUD()
+        if (healingFeedback > 0f)
+            fitted("+1 LIFE",(birdY+BIRD_H+52f).coerceAtMost(H-236f),
+                fontSmall,1.0f,202f,BIRD_X+BIRD_W*.5f)
         if (precisionStreak >= 2) {
             fitted("SKY ROUTE x$precisionStreak",
                 (birdY+BIRD_H+30f).coerceAtMost(H-235f),
@@ -942,12 +1009,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                  else if ((animationTime*8f).toInt()%3==2) "down" else "idle"
         // Preserve the exact original 2D source pixels; slight angular bob through vertical physics.
         val tx=pictures["bird_$pose"] ?: return
-        val alt=if (selectedSkin==0) Color.WHITE else when (selectedSkin) {
-            1 -> Color(.83f,.98f,1f,1f)
-            2 -> Color(.50f,1f,.55f,1f)
-            3 -> Color(.65f,.55f,1f,1f)
-            else -> Color(1f,.91f,.76f,1f)
-        }
+        val alt=if (shieldSeconds>0f) SHIELD_TINT
+                else BIRD_TINTS[selectedSkin.coerceIn(0,BIRD_TINTS.lastIndex)]
         batch.color=alt
         // Each bird pose is cropped differently in the source sprites.
         // Use its own natural aspect ratio without shifting SkyPeep's centre.
@@ -974,15 +1037,22 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         val left = SkyPeepHudLayout.coinX(visibleFrame)
         val right = SkyPeepHudLayout.gemX(visibleFrame)
         val pause = SkyPeepHudLayout.pauseX(visibleFrame)
-        image("hud_left_$level", left, top-123f, 269f, 113f)
-        image("hud_right_$level", right, top-124f, 191f, 115f)
+        // Reduced visual weight of numeric badges (the pause target stays
+        // full-size and accessible); hearts sit in the freed left-hand space.
+        image("hud_left_$level", left, top-106f, 235f, 96f)
+        image("hud_right_$level", right, top-108f, 170f, 99f)
         image("hud_pause_$level", pause, top-129f, 125f, 122f)
-        image("hud_score_$level", 286f, top-218f, 367f, 210f)
+        image("hud_score_$level", 313f, top-182f, 315f, 174f)
+        for (i in 0 until SkyPeepLives.MAX) {
+            if (i >= lives) batch.color = EMPTY_HEART_TINT
+            drawHeart(visibleFrame.left+48f+i*57f,top-165f,25f)
+            batch.color = Color.WHITE
+        }
         // The original six wallet plates are now cleaned at build time.
         // Keep illustrated gemstone, coin and edge strokes 1:1; no generic
         // overlay pills that hide the original decorative cyan borders.
-        fitted(SkyPeepHudNumbers.compact(coins),top-55f,fontSmall,1.78f,115f,left+177f)
-        fitted(SkyPeepHudNumbers.compact(gems),top-53f,fontSmall,1.75f,63f,right+131f)
+        fitted(SkyPeepHudNumbers.compact(coins),top-50f,fontSmall,1.50f,104f,left+150f)
+        fitted(SkyPeepHudNumbers.compact(gems),top-49f,fontSmall,1.48f,64f,right+117f)
         // Each original score face is cleared and reconstructed during build.
         // Render changing points on its own themed face, with a crisp outline.
         drawWingedScore()
@@ -993,9 +1063,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // The score is part of the bright illustrated winged HUD, not a
         // separate dark overlay. Keep the large reference-style outlined
         // numerals centred and automatically fit three-plus digit results.
-        val baseline=visibleFrame.top-65f
-        val size=1.30f
-        val available=171f
+        val baseline=visibleFrame.top-54f
+        val size=1.08f
+        val available=154f
         val center=W/2f
         val outline=if(level==6) SCORE_OUTLINE_GOLD else SCORE_OUTLINE
         val ink=SCORE_INK[(level-1).coerceIn(0,SCORE_INK.lastIndex)]
@@ -1012,6 +1082,10 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
 
     private fun drawDiamond(x:Float,y:Float,r:Float) {
         image("gem_asset",x-r,y-r,r*2f,r*2f)
+    }
+
+    private fun drawHeart(x:Float,y:Float,r:Float) {
+        heartTexture?.let { batch.draw(it,x-r,y-r,r*2f,r*2f) }
     }
 
     private fun drawMenuWallet() {
@@ -1410,7 +1484,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         costumes.isNotEmpty() && costumes.values.all { it.isManaged } &&
         victoryStar?.isManaged == true &&
         pillarStem?.isManaged == true &&
-        trailTexture?.isManaged == true
+        trailTexture?.isManaged == true &&
+        heartTexture?.isManaged == true
 
     override fun resume() {
         // libGDX reloads managed textures when Android restores the GL context.
@@ -1432,6 +1507,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         victoryStar?.dispose()
         pillarStem?.dispose()
         trailTexture?.dispose()
+        heartTexture?.dispose()
         if (::batch.isInitialized)batch.dispose()
     }
 }

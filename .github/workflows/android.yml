@@ -65,8 +65,8 @@ jobs:
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+35" app/build.gradle
-          grep -Fq "versionName '0.3.23'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+36" app/build.gradle
+          grep -Fq "versionName '0.3.24'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/bundle/release/app-release.aab
           unzip -t app/build/outputs/apk/debug/app-debug.apk > /dev/null
@@ -179,7 +179,7 @@ jobs:
   release:
     name: Publish verified preview
     needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.23-scoring-qa-hardening'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.24-lives-hud-transitions'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -201,7 +201,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.23-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.24-preview.${GITHUB_RUN_NUMBER}"
           APK="$(find release-artifacts -type f -name 'app-debug.apk' -print -quit)"
           AAB="$(find release-artifacts -type f -name 'app-release.aab' -print -quit)"
           test -s "$APK" && test -s "$AAB"
@@ -212,7 +212,7 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "SkyPeep $VERSION" \
             --draft --prerelease \
-            --notes '0.3.23: torso-aligned obstacle score credit without late reward, all debug QA fixtures isolated from real progress and preferences, finite animation crop and gust timestamps with JVM regressions. All six worlds, original assets, skins, trails, wallet and difficulty balance retained. Debug APK is installable; AAB remains UNSIGNED / NOT GOOGLE PLAY READY. Physical-device crash stack trace and full 1:1 pixel parity remain unverified.'
+            --notes '0.3.24: three recoverable hearts/lives per flight, single-hit shield protection, periodic in-world heart pickups, smaller and less intrusive score/wallet HUD, cleaner painted pillar shafts, staged world/menu texture transitions and fresh product README with source design illustrations. Preserves original Brendigo art, all six worlds, saved progress, virtual coins/gems and cosmetic prices. Installable debug APK; AAB remains UNSIGNED / NOT GOOGLE PLAY READY. Exact full-screen 1:1 parity and physical-device crash reproduction are not certified.'
           # A stale draft is never published; delete it and its temporary tag.
           publish_head="$(gh api "repos/$GH_REPO/git/ref/heads/$GITHUB_REF_NAME" --jq '.object.sha')"
           if [[ "$publish_head" != "$GITHUB_SHA" ]]; then

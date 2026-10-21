@@ -8,6 +8,8 @@ import kotlin.math.max
 /** The illustrated pillars must visually connect to the screen boundaries. */
 internal object PillarGeometry {
     private const val TILE_HEIGHT = 144
+    const val STEM_INSET = 46f
+    const val STEM_WIDTH = 183f
 
     fun bottomTailHeight(bottomY: Float, spriteHeight: Float): Float =
         max(0f,bottomY-spriteHeight+24f)

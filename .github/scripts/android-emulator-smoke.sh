@@ -109,6 +109,9 @@ tap_ui 465 1380
 capture settings-back MENU
 tap_ui 470 1000
 capture gameplay PLAY
+adb logcat -d -s SkyPeepLives:I '*:S' | grep -q 'run_start lives=3' || {
+  echo "FAIL: new flights do not initialize three lives"; exit 1;
+}
 tap_ui 868 65
 capture pause PAUSE
 tap_ui 460 1040
