@@ -117,13 +117,13 @@ class RebuildWorlds {
       // temple. Historical world-6 masks erased nearly the entire middle
       // scene: x=-20..618,y=418..774, including scenery well away from
       // the baked character and pillar silhouettes.
-      {new Area(0,0,706,185),
+      {new Area(-100,-100,806,205),
        // Right-side fixed top column and ornamental lower cap.
-       new Area(405,145,559,383),new Oval(481,399,108,100),
-       // The baked bird and leftward flight trails, NOT the whole sunset.
-       new Oval(251,634,145,117),new Oval(84,650,124,49),
+       new Area(385,130,581,383),new Oval(481,399,130,115),
+       // The baked bird and flight streaks. Keep the landscape outside them.
+       new Oval(251,634,151,130),new Oval(85,663,200,78),
        // Lower fixed cap and the remainder of the right pillar shaft.
-       new Oval(484,841,126,92),new Area(409,876,561,1280)}
+       new Oval(484,841,130,96),new Area(382,868,581,1280)}
     };
     private static final Area[][] COINS = {
       {}, {}, {}, {},
@@ -435,7 +435,8 @@ class RebuildWorlds {
                 // Keep v0.3.13 masks byte-for-byte consistent for worlds 1-2.
                 // Only the newly reconstructed worlds 3-4 use 32px fades.
                 double feather=world<=2?(mask==0?72:27):
-                               world<=4?(mask==0?72:32):92;
+                               world<=4?(mask==0?72:32):
+                               world==6?(mask==0?40:36):92;
                 amount=Math.max(amount,shape.alpha(x,y,feather));
             }
             for(Area a:COINS[world-1])
