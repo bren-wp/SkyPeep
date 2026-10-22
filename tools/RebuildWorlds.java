@@ -380,8 +380,9 @@ class RebuildWorlds {
             };
             for(int[] point:protectedLandmarks){
                 double amount=0;
-                for(Region area:MASKS[5])
-                    amount=Math.max(amount,area.alpha(point[0],point[1],92));
+                for(int mask=0;mask<MASKS[5].length;mask++)
+                    amount=Math.max(amount,MASKS[5][mask].alpha(
+                        point[0],point[1],mask==0?40:36));
                 if(amount>0.001)throw new IOException(
                     "Sun Peak illustrated landmark in mask: "+
                     point[0]+","+point[1]+", alpha="+amount);
@@ -396,8 +397,9 @@ class RebuildWorlds {
             };
             for(int[] point:bakedObjects){
                 double amount=0;
-                for(Region area:MASKS[5])
-                    amount=Math.max(amount,area.alpha(point[0],point[1],92));
+                for(int mask=0;mask<MASKS[5].length;mask++)
+                    amount=Math.max(amount,MASKS[5][mask].alpha(
+                        point[0],point[1],mask==0?40:36));
                 if(amount<.98)throw new IOException(
                     "Sun Peak stationary obstacle/bird survives reconstruction: "+
                     point[0]+","+point[1]+", alpha="+amount);
