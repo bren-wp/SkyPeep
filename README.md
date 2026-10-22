@@ -33,6 +33,8 @@ Guide a brave little aviator through floating islands, glittering crystals, moon
 
 **Illustrated panels:** Shop and Settings now display the existing world scenery rather than the Main Menu's logo and buttons behind their themed UI. The four supplied visual references remain unmodified. Reconstructed live world backgrounds still need separate visual cleanup before claiming 1:1.
 
+**Reference fidelity:** Unchanged wallet amounts retain their exact painted Menu/Skins reference pixels; dynamic overlays appear only when coins or gems actually differ from the corresponding source artwork.
+
 **Durable progress:** Each collected coin and gem is flushed to offline local storage as it is picked up, so the latest real collection does not wait for a tenth coin.
 
 **Menu and purchase safety:** Menu tap targets no longer overlap across adjacent illustrated rows; skin buying uses a tested wallet transaction and never charges an already-owned costume. On the map, a selected completed world shows DONE. Gems come from real in-flight pickups, not an automatic level-completion grant.

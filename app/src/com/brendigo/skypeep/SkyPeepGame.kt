@@ -1138,10 +1138,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private fun drawMenuWallet() {
         // Cover only screenshot mockup's sample numeric labels, retaining the original visual buttons.
         // At the reference values preserve the screenshot pixels exactly.
-        badge("dark",119f,H-103f,136f,65f)
-        fitted(SkyPeepHudNumbers.compact(coins),H-54f,fontSmall,1.70f,127f,186f)
-        badge("dark",743f,H-103f,76f,65f)
-        fitted(SkyPeepHudNumbers.compact(gems),H-54f,fontSmall,1.70f,69f,781f)
+        // Reference artwork already paints 1,250 coins and 75 gems.
+        // Preserve those exact pixels until genuine saved balances differ.
+        if (SkyPeepReferenceWallet.menuNeedsCoinOverlay(coins)) {
+            badge("dark",119f,H-103f,136f,65f)
+            fitted(SkyPeepHudNumbers.compact(coins),H-54f,fontSmall,1.70f,127f,186f)
+        }
+        if (SkyPeepReferenceWallet.menuNeedsGemOverlay(gems)) {
+            badge("dark",743f,H-103f,76f,65f)
+            fitted(SkyPeepHudNumbers.compact(gems),H-54f,fontSmall,1.70f,69f,781f)
+        }
     }
 
     private fun drawMapProgress() {
@@ -1257,10 +1263,17 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
 
     private fun drawSkins() {
         // Dynamic saved values always replace the fixed reference mockup.
-        badge("wallet",120f,H-103f,164f,65f)
-        fitted(SkyPeepHudNumbers.compact(coins),H-35f,fontSmall,1.28f,153f,199f)
-        badge("wallet",733f,H-103f,111f,65f)
-        fitted(SkyPeepHudNumbers.compact(gems),H-35f,fontSmall,1.28f,104f,788f)
+        // The SKINS source plate paints 1,250 coins and 89 gems, whereas
+        // Main Menu source paints 1,250 coins and 75 gems. Repaint only
+        // when actual saved data differs from the corresponding illustration.
+        if (SkyPeepReferenceWallet.skinsNeedsCoinOverlay(coins)) {
+            badge("wallet",120f,H-103f,164f,65f)
+            fitted(SkyPeepHudNumbers.compact(coins),H-35f,fontSmall,1.28f,153f,199f)
+        }
+        if (SkyPeepReferenceWallet.skinsNeedsGemOverlay(gems)) {
+            badge("wallet",733f,H-103f,111f,65f)
+            fitted(SkyPeepHudNumbers.compact(gems),H-35f,fontSmall,1.28f,104f,788f)
+        }
         // DEFAULT is already printed in the supplied SKINS artwork.
         // Only replace that static plaque if a different costume is worn.
         if (selectedSkin!=0) {
