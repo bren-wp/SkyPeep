@@ -163,31 +163,31 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         resize(Gdx.graphics.width, Gdx.graphics.height)
         batch.projectionMatrix = camera.combined
         prefs = Gdx.app.getPreferences("SkyPeepSettingsAndProgress")
-        best = prefs.getInteger("best", 0).coerceAtLeast(0)
+        best = readInt("best", 0).coerceAtLeast(0)
         unlocked = MAX_LEVEL
-        level = prefs.getInteger("level", 1).coerceIn(1, MAX_LEVEL)
+        level = readInt("level", 1).coerceIn(1, MAX_LEVEL)
         for (i in worldCoins.indices)
             worldCoins[i] = SkyPeepCoinGoal.collected(
-                prefs.getInteger("collected_world_${i+1}", 0))
-        coins = prefs.getInteger("coins", 1250).coerceAtLeast(0)
-        gems = prefs.getInteger("gems", 75).coerceAtLeast(0)
-        selectedSkin = prefs.getInteger("skin", 0).coerceIn(0, 4)
-        musicEnabled = prefs.getBoolean("music", true)
-        effectsEnabled = prefs.getBoolean("effects", true)
-        vibrationEnabled = prefs.getBoolean("vibration", false)
+                readInt("collected_world_${i+1}", 0))
+        coins = readInt("coins", 1250).coerceAtLeast(0)
+        gems = readInt("gems", 75).coerceAtLeast(0)
+        selectedSkin = readInt("skin", 0).coerceIn(0, 4)
+        musicEnabled = readBool("music", true)
+        effectsEnabled = readBool("effects", true)
+        vibrationEnabled = readBool("vibration", false)
         ownedSkins[0] = true
-        for (i in 1..4) ownedSkins[i] = prefs.getBoolean("owned_$i", false)
+        for (i in 1..4) ownedSkins[i] = readBool("owned_$i", false)
         if (!ownedSkins[selectedSkin]) selectedSkin = 0
-        for (i in 0 until MAX_LEVEL) stars[i] = prefs.getInteger("stars_${i+1}", 0).coerceIn(0, 3)
+        for (i in 0 until MAX_LEVEL) stars[i] = readInt("stars_${i+1}", 0).coerceIn(0, 3)
         difficulty = SkyDifficulty.fromStored(
-            prefs.getInteger("difficulty", SkyDifficulty.EXPLORER.ordinal))
+            readInt("difficulty", SkyDifficulty.EXPLORER.ordinal))
         for (mode in SkyDifficulty.entries) {
-            routeBests[mode.ordinal] = prefs.getInteger(
+            routeBests[mode.ordinal] = readInt(
                 "route_best_${mode.ordinal}",
                 if (mode == SkyDifficulty.EXPLORER) best else 0).coerceAtLeast(0)
             for (i in 0 until MAX_LEVEL) {
                 val fallback = if (mode == SkyDifficulty.EXPLORER) stars[i] else 0
-                routeStars[mode.ordinal][i] = prefs.getInteger(
+                routeStars[mode.ordinal][i] = readInt(
                     "route_stars_${mode.ordinal}_${i+1}", fallback).coerceIn(0, 3)
             }
         }
@@ -196,8 +196,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             difficulty = SkyDifficulty.fromStored(qaDifficulty)
         Gdx.app.log("SkyPeepDifficulty", "loaded=${difficulty.title}")
         ownedTrails[0] = true
-        for (i in 1..3) ownedTrails[i] = prefs.getBoolean("trail_owned_$i",false)
-        selectedTrail = prefs.getInteger("trail_selected",0).coerceIn(0,3)
+        for (i in 1..3) ownedTrails[i] = readBool("trail_owned_$i",false)
+        selectedTrail = readInt("trail_selected",0).coerceIn(0,3)
         if (!ownedTrails[selectedTrail]) selectedTrail = 0
         Gdx.app.log("SkyPeepShop",
             "loaded=${SkyPeepTrailCatalog.all[selectedTrail].name}")
@@ -275,6 +275,17 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             }
         }
     }
+
+    /** A malformed saved entry should not crash startup or hide other valid data. */
+    private fun readInt(key: String, fallback: Int): Int =
+        SkyPeepPreferenceRead.integer(key, fallback,
+            { name, default -> prefs.getInteger(name, default) },
+            { name, cause -> Gdx.app.error("SkyPeepStorage", "Invalid integer preference: $name", cause) })
+
+    private fun readBool(key: String, fallback: Boolean): Boolean =
+        SkyPeepPreferenceRead.boolean(key, fallback,
+            { name, default -> prefs.getBoolean(name, default) },
+            { name, cause -> Gdx.app.error("SkyPeepStorage", "Invalid boolean preference: $name", cause) })
 
     private fun loadLevelArt(newLevel: Int) {
         require(newLevel in 1..MAX_LEVEL)
@@ -919,9 +930,15 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             if (!gate.scored && SkyPeepGatePass.hasClearedBody(
                 gate.x, gateWidth, birdBody.left, SkyPeepContact.CONTACT_GRACE)) {
                 gate.scored=true
-                score++
+                if (score < Int.MAX_VALUE) score++
+                val oldBest = best
+                val oldRouteBest = routeBests[difficulty.ordinal]
                 best=max(best,score)
-                routeBests[difficulty.ordinal]=max(routeBests[difficulty.ordinal],score)
+                routeBests[difficulty.ordinal]=max(oldRouteBest,score)
+                // Preserve new records even when Android stops the ongoing
+                // flight before an ordinary pause/result full-save.
+                if (best != oldBest || routeBests[difficulty.ordinal] != oldRouteBest)
+                    saveRecord()
                 // Precision affects stars only, never bonus coins.
                 if (gate.precisionSampled && gate.preciseAtCrossing)
                     precisionPasses++
@@ -1436,6 +1453,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private fun playSound(kind:String) {
         if (effectsEnabled) try { sounds[kind]?.play(.45f) } catch (_:Exception) { }
     }
+    /** Records are durable as soon as the illustrated pillar is passed. */
+    private fun saveRecord() {
+        persist {
+            SkyPeepRecordSave.write(difficulty.ordinal, best,
+                routeBests[difficulty.ordinal]) { key, value ->
+                prefs.putInteger(key, value)
+            }
+        }
+    }
+
     /** A real pickup changes only these three saved values. */
     private fun savePickup() {
         persist {

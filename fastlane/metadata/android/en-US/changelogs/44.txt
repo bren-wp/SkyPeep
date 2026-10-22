@@ -1,0 +1,1 @@
+Safer startup when one saved setting is malformed; valid progress still loads. New high scores are saved immediately when achieved. Android sharing errors no longer close the game. Original art and physics unchanged.

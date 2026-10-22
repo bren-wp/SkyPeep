@@ -47,6 +47,11 @@ class MainActivity : AndroidApplication() {
                     startActivity(Intent.createChooser(shareIntent, "Share SkyPeep score"))
                 } catch (_: ActivityNotFoundException) {
                     Toast.makeText(this, "No sharing app available", Toast.LENGTH_SHORT).show()
+                } catch (_: SecurityException) {
+                    // Restrictive managed devices may block outgoing shares.
+                    Toast.makeText(this, "Sharing is restricted on this device", Toast.LENGTH_SHORT).show()
+                } catch (_: IllegalArgumentException) {
+                    Toast.makeText(this, "Unable to share score", Toast.LENGTH_SHORT).show()
                 }
             }
         }, qaWorld = qaWorld, qaSkin = qaSkin,

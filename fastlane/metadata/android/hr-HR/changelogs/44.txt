@@ -1,0 +1,1 @@
+Sigurnije pokretanje ako je neki zapis oštećen, uz učitavanje ostalog napretka. Novi rekordi spremaju se čim nastanu. Poboljšana je obrada pogrešaka pri dijeljenju rezultata. Fizika i ilustracije nisu mijenjane.
