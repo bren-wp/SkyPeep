@@ -271,8 +271,8 @@ class RebuildWorlds {
      * Sample only blue sky outside every mask, use the channel-wise MEDIAN
      * to reject islands/stone/crystals, then smooth it vertically.
      *
-     * This is only used inside already-masked regions of worlds 3 and 4;
-     * all untouched original illustrated pixels remain byte-identical.
+     * Worlds 3/4 use source blue sky, while world 6 uses the original
+     * orange sunset hues. Other illustrated pixels remain untouched.
      */
     private static int[] sourceMatchedSky(
             BufferedImage source,int world) {
@@ -285,14 +285,22 @@ class RebuildWorlds {
             int count=0;
             for(int x=0;x<w;x+=4){
                 double mask=0;
-                for(Region shape:MASKS[world-1])
-                    mask=Math.max(mask,shape.alpha(x,y,32));
+                for(int shape=0;shape<MASKS[world-1].length;shape++)
+                    mask=Math.max(mask,MASKS[world-1][shape].alpha(
+                        x,y,world==6?(shape==0?40:36):32));
                 if(mask>=.04)continue;
                 int rgb=source.getRGB(x,y);
                 int red=(rgb>>>16)&255,green=(rgb>>>8)&255,blue=rgb&255;
-                // Source sky, not land, crystals, red flags or clouds.
-                if(blue<=red+16 || green<=red+12 ||
-                   blue<green-24 || green<=105)continue;
+                // Sample only sky hues, excluding most terrain and clouds.
+                if(world==6) {
+                    // Real warm sunset pixels; reject white clouds, flags
+                    // and low-luminance cliff faces in the supplied artwork.
+                    if(red<180 || green<130 || blue<50 ||
+                       red-green<=7 || green-blue<=19)continue;
+                } else {
+                    if(blue<=red+16 || green<=red+12 ||
+                       blue<green-24 || green<=105)continue;
+                }
                 r[count]=red;g[count]=green;b[count]=blue;
                 count++;
             }
@@ -406,9 +414,10 @@ class RebuildWorlds {
             }
         }
         BufferedImage air=sky(w,h,world);
-        // The world 3/4 replacement corridor follows the real scene's local
-        // sky colours instead of a synthetic blue procedural mountain fill.
-        int[] matchedSky=(world==3||world==4)?sourceMatchedSky(original,world):null;
+        // Sample local painted colours, including the source Sun Peak
+        // sunset, instead of introducing unrelated procedural sky bands.
+        int[] matchedSky=(world==3||world==4||world==6)?
+            sourceMatchedSky(original,world):null;
         if(matchedSky!=null)for(int y=1;y<h;y++){
             // Reject a hard horizontal colour seam in the reconstructed sky.
             // Original floating islands/clouds remain untouched outside masks.

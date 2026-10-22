@@ -23,3 +23,7 @@ User's source `menu.jpg` paints 1250 coins / 75 gems; `skins.jpg` paints 1250 co
 ## Sun Peak mask regression
 
 The user's `gameplay(1).jpg` shows a sun, right-side temple and floating landscape behind the bird and stone pillars. The previous build's world-6 mask `Area(-20,418,618,774)` hid most of those landmarks, repainting them with synthetic sky. This revision narrows world-6 masks to the photographed right stone columns, their caps, the bird silhouette and leftward streaks. Source-pixel-coordinate invariants prevent selected sun/island/temple/waterfall pixels being erased while also confirming each known static object is covered. The exact post-reconstruction appearance is to be checked in the next emulator capture before claiming 1:1; world-5 and other remaining reconstructed areas are outside this specific fix.
+
+## Source-matched sunset sampling
+
+The actual packaged `bg_6.jpg` from CI #537 preserves the illustrated sun and temple, but shows yellow horizontal colour shifts due to generic artificial sky replacement. A local prototype sampled only warm orange/yellow sky pixels from the user-supplied gameplay image, using per-row medians and a 181-row triangular smoothing kernel. The Java world-6 reconstruction now uses that same deterministic source-matched field and keeps the original image outside the masks. World 3/4 blue sky behaviour remains unchanged. Final emulator evidence is still required.
