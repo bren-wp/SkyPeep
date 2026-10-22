@@ -24,8 +24,9 @@ class SkyPeepRecordSaveTest {
 
     @Test fun corruptedNegativeRecordsCannotBePersisted() {
         val values = mutableMapOf<String, Int>()
-        SkyPeepRecordSave.write(SkyDifficulty.EXPLORER.ordinal, -5, -2)
-            { key, value -> values[key] = value })
+        SkyPeepRecordSave.write(
+            SkyDifficulty.EXPLORER.ordinal, -5, -2
+        ) { key, value -> values[key] = value }
         assertEquals(0, values["best"])
         assertEquals(0, values["route_best_1"])
     }
