@@ -328,8 +328,29 @@ class RebuildWorlds {
         }
         return smooth;
     }
-    private static void rebuild(Path file,int world) throws Exception {
-        BufferedImage original=ImageIO.read(file.toFile());
+    private static void rebuild(
+            Path file,int world,Path sunPeakReference) throws Exception {
+        BufferedImage original;
+        if(world==6) {
+            // Use the user's unmodified Sun Peak painting instead of the
+            // already banded/inpainted former bg_6 source. All graphics
+            // are local and tracked in Git; no network/AI asset generation.
+            BufferedImage reference=ImageIO.read(sunPeakReference.toFile());
+            if(reference==null || reference.getWidth()!=520 ||
+               reference.getHeight()!=924)
+                throw new IOException("Unexpected original Sun Peak reference: "+
+                    sunPeakReference);
+            original=new BufferedImage(706,1254,BufferedImage.TYPE_INT_RGB);
+            Graphics2D g=original.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g.setRenderingHint(RenderingHints.KEY_RENDERING,
+                RenderingHints.VALUE_RENDER_QUALITY);
+            g.drawImage(reference,0,0,706,1254,null);
+            g.dispose();
+        } else {
+            original=ImageIO.read(file.toFile());
+        }
         if(original==null)throw new IOException("Unreadable SkyPeep artwork: "+file);
         int w=original.getWidth(),h=original.getHeight();
         if(w!=706||h!=1254)throw new IOException("Unexpected art size: "+w+"x"+h);
@@ -731,11 +752,11 @@ class RebuildWorlds {
     }
 
     public static void main(String[] args) throws Exception {
-        if(args.length!=1) throw new IllegalArgumentException(
-            "Usage: java -Djava.awt.headless=true tools/RebuildWorlds.java <assets-directory>");
+        if(args.length!=2) throw new IllegalArgumentException(
+            "Usage: java -Djava.awt.headless=true tools/RebuildWorlds.java <assets-directory> <sun-peak-original-reference.jpg>");
         for(int level=1;level<=6;level++){
             Path path=Path.of(args[0],"bg_"+level+".jpg");
-            rebuild(path,level);
+            rebuild(path,level,Path.of(args[1]));
             removePillarHeader(Path.of(args[0]),level);
             cleanHudCounters(Path.of(args[0]),level);
             cleanScoreHeader(Path.of(args[0]),level);

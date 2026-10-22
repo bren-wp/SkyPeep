@@ -1,1 +1,1 @@
-Trgovina i postavke koriste ilustriranu pozadinu bez preklapanja izbornika. Svaki novčić/dragulj odmah se sprema, uz očuvanje izvornih prikaza valuta kada su točni. Maske svijeta Sun Peak sužene su radi očuvanja sunca, otoka i građevina.
+Trgovina i postavke koriste ilustriranu pozadinu, svaki novčić i dragulj odmah se sprema, a izvorni izgled valuta ostaje očuvan. Sun Peak sada se rekonstruira iz originalne korisnikove ilustracije kako bi se sačuvali sunce, otoci i građevine. Fizika ostaje ista.

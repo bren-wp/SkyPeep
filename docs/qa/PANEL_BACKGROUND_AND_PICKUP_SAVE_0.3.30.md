@@ -27,3 +27,7 @@ The user's `gameplay(1).jpg` shows a sun, right-side temple and floating landsca
 ## Source-matched sunset sampling
 
 The actual packaged `bg_6.jpg` from CI #537 preserves the illustrated sun and temple, but shows yellow horizontal colour shifts due to generic artificial sky replacement. A local prototype sampled only warm orange/yellow sky pixels from the user-supplied gameplay image, using per-row medians and a 181-row triangular smoothing kernel. The Java world-6 reconstruction now uses that same deterministic source-matched field and keeps the original image outside the masks. World 3/4 blue sky behaviour remains unchanged. Final emulator evidence is still required.
+
+## Canonical Sun Peak reference instead of pre-banded source
+
+The APK from CI #539 still included horizontal stripe remnants after replacing colours: the old `bg_6` in the packed source was itself already partially repainted. The exact original Sun Peak gameplay illustration supplied by the user is available at `assets/previews/gameplay.jpg` (520×924). The deterministic JDK-only Gradle generator now takes this as a second tracked input, bicubic-upscales it to the required 706×1254 world canvas and removes its photographed static HUD, bird, streaks and pillars with the tuned masks and source-matched sky. The original reference JPEG is never overwritten or included as a duplicate app asset. This change directly protects 1:1 original scenery rather than repeatedly repairing the old corrupted image. Exact runtime parity still depends on emulator captures and dynamic overlay verification.
