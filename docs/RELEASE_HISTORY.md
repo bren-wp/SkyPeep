@@ -16,7 +16,7 @@ SkyPeep preserves its original Brendigo artwork and locally saved data through 0
 | [0.3.27](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.27-preview.508) | Six open worlds and 10,001 actual coin pickups each, without completion or streak currency bonuses | Published preview |
 | [0.3.28](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.28-preview.511) | Screenshot-reviewed map, readable skin/shop buttons, Cloud Drift and Settings | Published preview; PR #42 merged; CI #513 succeeded |
 | [0.3.29](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.29-preview.523) | Menu touch precision, DONE status, wallet transaction checks, victory contrast | Published preview; PR #43 merged; CI #523/#524 passed |
-| **0.3.30** | Independent illustrated Shop/Settings backgrounds and saving every coin/gem pickup | In development, awaiting CI/emulator |
+| **0.3.30** | Independent illustrated Shop/Settings backgrounds, exact matching wallet plates and saving every coin/gem pickup | In development, awaiting CI/emulator |
 
 ## Versioning and downloads
 

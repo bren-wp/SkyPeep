@@ -219,7 +219,7 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "SkyPeep $VERSION" \
             --draft --prerelease \
-            --notes '0.3.30: replace main-menu ghost buttons behind Shop and Settings with existing illustrated world backgrounds, and persist each real coin/gem pickup immediately. Preserves source artwork, six open worlds, 10001 pickup goals, three lives, purchase safety and unchanged flight physics. Includes verified debug APK, unsigned release APK/AAB, SHA256 and F-Droid build metadata. Pixel-perfect live world art, Play signing and F-Droid acceptance remain separate.'
+            --notes '0.3.30: replace main-menu ghost buttons behind Shop and Settings with existing illustrated world backgrounds, persist every real coin/gem pickup immediately, and preserve baked-in reference wallet pixels when saved amounts match. Preserves source artwork, six open worlds, 10001 pickup goals, three lives, purchase safety and unchanged flight physics. Includes verified debug APK, unsigned release APK/AAB, SHA256 and F-Droid build metadata. Pixel-perfect live world art, Play signing and F-Droid acceptance remain separate.'
           # A stale draft is never published; delete it and its temporary tag.
           publish_head="$(gh api "repos/$GH_REPO/git/ref/heads/$GITHUB_REF_NAME" --jq '.object.sha')"
           if [[ "$publish_head" != "$GITHUB_SHA" ]]; then

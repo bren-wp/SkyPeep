@@ -1,1 +1,1 @@
-Shop and Settings now use illustrated world scenery without ghosted menu buttons. Every collected coin and gem is immediately saved. All six worlds, cosmetics and flight physics remain unchanged.
+Shop and Settings now use illustrated world scenery without ghosted menu buttons. Every coin and gem pickup is immediately saved. Original wallet pixels remain untouched when balances match the reference art. Flight physics unchanged.
