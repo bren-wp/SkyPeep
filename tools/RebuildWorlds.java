@@ -113,7 +113,17 @@ class RebuildWorlds {
        new Capsule(456,960,432,1160,99),
        new Area(281,1140,501,1280)},
       {new Area(0,0,706,207),new Area(233,103,580,528),new Area(-20,418,618,774),new Area(219,695,591,1280)},
-      {new Area(0,0,706,210),new Area(277,106,574,534),new Area(-20,418,618,774),new Area(251,700,586,1280)}
+      // Sun Peak: retain the illustrated sunrise, floating waterfalls and
+      // temple. Historical world-6 masks erased nearly the entire middle
+      // scene: x=-20..618,y=418..774, including scenery well away from
+      // the baked character and pillar silhouettes.
+      {new Area(0,0,706,185),
+       // Right-side fixed top column and ornamental lower cap.
+       new Area(405,145,559,383),new Oval(481,399,108,100),
+       // The baked bird and leftward flight trails, NOT the whole sunset.
+       new Oval(251,634,145,117),new Oval(84,650,124,49),
+       // Lower fixed cap and the remainder of the right pillar shaft.
+       new Oval(484,841,126,92),new Area(409,876,561,1280)}
     };
     private static final Area[][] COINS = {
       {}, {}, {}, {},
@@ -355,6 +365,43 @@ class RebuildWorlds {
             for(CoinCircle coin:photographedCoins(world))
                 if(coin.alpha(coin.centerX,coin.centerY,17)<.99)
                     throw new IOException("A fixed reference coin remained in world "+world);
+        }
+        if(world==6){
+            // Test artwork integrity BEFORE JPEG compression. These are real
+            // landscape landmarks on the original 706x1254 Sun Peak source,
+            // and none is part of a moving bird, pillar or HUD element.
+            // Prior broad replacement areas erased their original colours.
+            final int[][] protectedLandmarks={
+                {319,311}, // illustrated sun centre
+                {80,385},  // left landscape/island
+                {635,534}, // distant sunlit temple / waterfall skyline
+                {645,385}, // right floating islands
+                {95,1000}  // lower-left waterfall/scenery
+            };
+            for(int[] point:protectedLandmarks){
+                double amount=0;
+                for(Region area:MASKS[5])
+                    amount=Math.max(amount,area.alpha(point[0],point[1],92));
+                if(amount>0.001)throw new IOException(
+                    "Sun Peak illustrated landmark in mask: "+
+                    point[0]+","+point[1]+", alpha="+amount);
+            }
+            final int[][] bakedObjects={
+                {475,300}, // upper fixed stone pillar
+                {481,399}, // upper cap
+                {251,634}, // photographed original bird
+                {85,650},  // baked flight streak
+                {484,841}, // lower fixed pillar cap
+                {483,1075} // lower shaft
+            };
+            for(int[] point:bakedObjects){
+                double amount=0;
+                for(Region area:MASKS[5])
+                    amount=Math.max(amount,area.alpha(point[0],point[1],92));
+                if(amount<.98)throw new IOException(
+                    "Sun Peak stationary obstacle/bird survives reconstruction: "+
+                    point[0]+","+point[1]+", alpha="+amount);
+            }
         }
         BufferedImage air=sky(w,h,world);
         // The world 3/4 replacement corridor follows the real scene's local

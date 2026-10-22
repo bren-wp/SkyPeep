@@ -1,1 +1,1 @@
-Trgovina i postavke imaju ilustriranu pozadinu bez preslikanih gumba. Svaki novčić i dragulj odmah se sprema. Izvorne oznake valuta ostaju netaknute kada se podaci podudaraju s ilustracijom. Fizika leta nije mijenjana.
+Trgovina i postavke koriste ilustriranu pozadinu bez preklapanja izbornika. Svaki novčić/dragulj odmah se sprema, uz očuvanje izvornih prikaza valuta kada su točni. Maske svijeta Sun Peak sužene su radi očuvanja sunca, otoka i građevina.

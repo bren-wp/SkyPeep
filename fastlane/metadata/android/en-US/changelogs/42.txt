@@ -1,1 +1,1 @@
-Shop and Settings now use illustrated world scenery without ghosted menu buttons. Every coin and gem pickup is immediately saved. Original wallet pixels remain untouched when balances match the reference art. Flight physics unchanged.
+Shop and Settings now show illustrated world scenery without menu ghosts. Each coin/gem pickup is saved immediately. Exact reference wallet pixels are preserved when correct. Sun Peak reconstruction masks now retain painted sun, islands and temple outside real objects. Physics unchanged.

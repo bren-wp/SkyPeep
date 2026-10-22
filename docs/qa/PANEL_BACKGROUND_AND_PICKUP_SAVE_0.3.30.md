@@ -19,3 +19,7 @@ Verify Gradle/JVM/dead-code checks, reconstructed art SHA-256, offline merged ma
 ## Reference-exact wallet plates
 
 User's source `menu.jpg` paints 1250 coins / 75 gems; `skins.jpg` paints 1250 coins / 89 gems. Android previously painted a replacement badge over these numbers unconditionally, causing avoidable pixel drift. `SkyPeepReferenceWallet` now skips a specific overlay if the respective saved value equals the illustration, while still updating other amounts independently. JVM tests cover reference values, changed values and the difference between Menu versus Skins sample gem totals. No static placeholder is used to represent a changed wallet.
+
+## Sun Peak mask regression
+
+The user's `gameplay(1).jpg` shows a sun, right-side temple and floating landscape behind the bird and stone pillars. The previous build's world-6 mask `Area(-20,418,618,774)` hid most of those landmarks, repainting them with synthetic sky. This revision narrows world-6 masks to the photographed right stone columns, their caps, the bird silhouette and leftward streaks. Source-pixel-coordinate invariants prevent selected sun/island/temple/waterfall pixels being erased while also confirming each known static object is covered. The exact post-reconstruction appearance is to be checked in the next emulator capture before claiming 1:1; world-5 and other remaining reconstructed areas are outside this specific fix.
