@@ -1,0 +1,1 @@
+Improved gameplay responsiveness by writing only changed pickup progress and wallet amounts, keeping each pickup durable. Storage errors and failed world transitions no longer terminate the current play session. Existing art and flight physics remain unchanged.

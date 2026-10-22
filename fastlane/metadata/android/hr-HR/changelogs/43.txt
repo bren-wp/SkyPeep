@@ -1,0 +1,1 @@
+Poboljšano spremanje prikupljenih novčića i dragulja bez nepotrebnog zapisivanja svih postavki. Pogreške pohrane i učitavanja svijeta više ne prekidaju igranje. Izvorne ilustracije i fizika leta nisu mijenjane.

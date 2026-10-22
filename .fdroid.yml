@@ -1,5 +1,5 @@
 # Upstream F-Droid build metadata. Copy to fdroiddata/metadata/com.brendigo.skypeep.yml.
-# Latest published and CI-verified preview is 0.3.29. Next source build is gated.
+# Latest published and CI-verified preview is 0.3.30; 0.3.31 awaits QA.
 Categories:
   - Games
 License: MIT
@@ -47,7 +47,12 @@ Builds:
     commit: 291e7986288de954c337fe32d3a3b54af4a3dda6
     gradle:
       - 'yes'
+  - versionName: '0.3.30'
+    versionCode: 42
+    commit: f0d20f06bca10e2bcfd3e4961eb5b48b4119eb4b
+    gradle:
+      - 'yes'
 AutoUpdateMode: None
 UpdateCheckMode: None
-CurrentVersion: '0.3.29'
-CurrentVersionCode: 41
+CurrentVersion: '0.3.30'
+CurrentVersionCode: 42

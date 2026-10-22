@@ -30,6 +30,8 @@ jobs:
           gradle-version: '8.14.3'
       - name: Audit unused Kotlin/Java code
         run: python3 tools/dead_code_audit.py
+      - name: Validate release job Bash syntax
+        run: python3 tools/check_release_shell.py .github/workflows/android.yml
       - name: Build debug APK, unsigned release APK and unsigned AAB
         run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:bundleRelease --stacktrace
       - name: Verify offline and local-only Android manifest
@@ -65,8 +67,8 @@ jobs:
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+42" app/build.gradle
-          grep -Fq "versionName '0.3.30'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+43" app/build.gradle
+          grep -Fq "versionName '0.3.31'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/apk/release/app-release-unsigned.apk
           test -s app/build/outputs/bundle/release/app-release.aab
@@ -182,7 +184,7 @@ jobs:
   release:
     name: Publish verified preview
     needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.30-illustrated-panels-progress-qa'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.31-progress-io-resilience'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -204,7 +206,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.30-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.31-preview.${GITHUB_RUN_NUMBER}"
           for pattern in '*-debug.apk' '*-release-unsigned.apk' '*-play-upload-unsigned.aab' 'SHA256SUMS.txt' '*-fdroid-metadata.yml'; do
             test -n "$(find release-artifacts -type f -name "$pattern" -print -quit)" || {
               echo "Required release asset missing: $pattern"; exit 1;
@@ -217,7 +219,7 @@ jobs:
           # A quoted heredoc treats release notes as literal text: apostrophes
           # and other punctuation cannot accidentally break Bash parsing.
           cat > "$RUNNER_TEMP/skypeep-release-notes.md" <<'SKYPEEP_NOTES'
-          0.3.30: replace main-menu ghost buttons behind Shop and Settings with existing illustrated world backgrounds, persist every real coin/gem pickup immediately, preserve reference wallet pixels when amounts match, and reconstruct Sun Peak from the user's original Gameplay illustration, preserving its sunset, islands and temple. Preserves source artwork, six open worlds, 10001 pickup goals, three lives, purchase safety and unchanged flight physics. Includes verified debug APK, unsigned release APK/AAB, SHA256 and F-Droid build metadata. Pixel-perfect live world art, Play signing and F-Droid acceptance remain separate.
+          0.3.31: smaller durable pickup saves write only active-world progress and coin/gem balances instead of all settings and achievements. Local storage errors no longer crash the flight or Android lifecycle; world switching keeps the previous screen and selection if incoming assets cannot be loaded. Kotlin regressions, code audit and CI release shell syntax validation included. Six worlds, original artwork, 10001 collectible requirement, three lives and flight physics remain unchanged. Includes debug APK, unsigned APK/AAB, SHA256 and F-Droid source metadata. Store signing and real-device QA remain separate.
           SKYPEEP_NOTES
           gh release create "$VERSION" \
             "${release_files[@]}" \

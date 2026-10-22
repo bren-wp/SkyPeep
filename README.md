@@ -35,6 +35,8 @@ Guide a brave little aviator through floating islands, glittering crystals, moon
 
 **Reference fidelity:** Unchanged wallet amounts retain their exact painted Menu/Skins reference pixels; dynamic overlays appear only when coins or gems actually differ from the corresponding source artwork.
 
+**Performance and recovery:** Real coin/gem pickups now flush only the current world progress and wallet counters, not every saved setting and unlock; full saves remain for purchases, route results and settings. Storage errors and unavailable incoming world art are handled without terminating the current game.
+
 **Durable progress:** Each collected coin and gem is flushed to offline local storage as it is picked up, so the latest real collection does not wait for a tenth coin.
 
 **Menu and purchase safety:** Menu tap targets no longer overlap across adjacent illustrated rows; skin buying uses a tested wallet transaction and never charges an already-owned costume. On the map, a selected completed world shows DONE. Gems come from real in-flight pickups, not an automatic level-completion grant.
