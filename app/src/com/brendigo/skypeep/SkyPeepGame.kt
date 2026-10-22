@@ -1450,7 +1450,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
      * save remains mandatory for settings, scores, stars and shop ownership.
      * On I/O failure, the in-memory state is retained for the next retry.
      */
-    private inline fun persist(write: () -> Unit) {
+    private fun persist(write: () -> Unit) {
         if (!::prefs.isInitialized || !SkyPeepQaSession.shouldPersist(
                 world = qaWorld, mapUnlocked = qaMapUnlocked,
                 skin = qaSkin, victory = qaVictory, pillars = qaPillars,
@@ -1491,9 +1491,10 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             prefs.putBoolean("effects",effectsEnabled)
             prefs.putBoolean("vibration",vibrationEnabled)
             for (i in 0..4) prefs.putBoolean("owned_$i",ownedSkins[i])
-        for (i in 0 until MAX_LEVEL) prefs.putInteger("stars_${i+1}",stars[i])
+            for (i in 0 until MAX_LEVEL) prefs.putInteger("stars_${i+1}",stars[i])
         }
     }
+
     override fun pause() {
         // App backgrounding must never leave a live run progressing behind a system UI.
         if (screen == Screen.PLAY) screen = Screen.PAUSE
