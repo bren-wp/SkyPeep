@@ -8,8 +8,8 @@ internal object SkyPeepMapUi {
     fun status(world: Int, selectedWorld: Int, collected: Int): String {
         require(world in 1..SkyPeepCoinGoal.WORLDS)
         return when {
-            world == selectedWorld -> "SELECTED"
             SkyPeepCoinGoal.isComplete(collected) -> "DONE"
+            world == selectedWorld -> "SELECTED"
             else -> "OPEN"
         }
     }

@@ -542,14 +542,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         x >= l && x <= l+w && y >= t && y <= t+h
 
     private fun clickMenu(x: Float, y: Float) {
-        when {
-            hit(x,y,170f,895f,590f,248f) -> { playSound("click"); begin(level) }
-            hit(x,y,95f,1155f,364f,169f) -> { playSound("click"); screen = Screen.MAP }
-            hit(x,y,471f,1155f,370f,169f) -> { playSound("click"); screen = Screen.SKINS }
-            hit(x,y,95f,1318f,364f,173f) -> { playSound("click"); screen = Screen.SHOP }
-            hit(x,y,471f,1318f,370f,173f) -> { playSound("click"); screen = Screen.SETTINGS }
-            hit(x,y,243f,0f,100f,130f) -> { playSound("click"); toast("EARN COINS IN FLIGHT") }
-            hit(x,y,815f,0f,110f,130f) -> { playSound("click"); toast("COMPLETE WORLDS FOR GEMS") }
+        // Shared artwork hitboxes avoid the former six-pixel menu row overlap.
+        when (SkyPeepMenuTouch.actionAt(x, y)) {
+            SkyPeepMenuTouch.Action.PLAY -> { playSound("click"); begin(level) }
+            SkyPeepMenuTouch.Action.LEVELS -> { playSound("click"); screen = Screen.MAP }
+            SkyPeepMenuTouch.Action.SKINS -> { playSound("click"); screen = Screen.SKINS }
+            SkyPeepMenuTouch.Action.SHOP -> { playSound("click"); screen = Screen.SHOP }
+            SkyPeepMenuTouch.Action.SETTINGS -> { playSound("click"); screen = Screen.SETTINGS }
+            SkyPeepMenuTouch.Action.COINS -> { playSound("click"); toast("COLLECT COINS IN FLIGHT") }
+            SkyPeepMenuTouch.Action.GEMS -> { playSound("click"); toast("COLLECT GEMS IN FLIGHT") }
+            null -> Unit
         }
     }
 
@@ -624,7 +626,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         }
         if (y < 140f && x in 825f..935f) {
             playSound("click")
-            toast("COMPLETE WORLDS FOR GEMS")
+            toast("COLLECT GEMS IN FLIGHT")
             return
         }
         if (SkyPeepUiTouch.skinsBack(x,y)) {
@@ -642,26 +644,22 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // Card art and prices are informational, only the BUY/EQUIP control is actionable.
         val skin = SkyPeepUiTouch.skinPurchaseAt(x,y) ?: return
         playSound("click")
-        if (ownedSkins[skin]) {
-            selectedSkin = skin
-            save()
-            toast("${skinName(skin)} EQUIPPED")
+        // Single-charge wallet operation, including repeated EQUIP taps.
+        val choice = SkyPeepSkinCatalog.get(skin)
+        val purchase = SkyPeepSkinCatalog.purchase(skin, ownedSkins[skin], coins, gems)
+        if (!purchase.success) {
+            toast("NOT ENOUGH ${if (choice.currency == SkinCurrency.GEMS) "GEMS" else "COINS"}")
+            playSound("fail")
             return
         }
-        val choice = SkyPeepSkinCatalog.get(skin)
-        val useGem = choice.currency == SkinCurrency.GEMS
-        val price = choice.price
-        if (!choice.affordable(coins,gems)) {
-            toast("NOT ENOUGH ${if (useGem) "GEMS" else "COINS"}")
-            playSound("fail")
-        } else {
-            if (useGem) gems -= price else coins -= price
-            ownedSkins[skin]=true
-            selectedSkin=skin
-            save()
-            toast("${skinName(skin)} UNLOCKED")
-            playSound("win")
-        }
+        coins = purchase.coins
+        gems = purchase.gems
+        ownedSkins[skin] = true
+        selectedSkin = skin
+        save()
+        toast(if (purchase.alreadyOwned) "${skinName(skin)} EQUIPPED"
+              else "${skinName(skin)} UNLOCKED")
+        if (!purchase.alreadyOwned) playSound("win")
     }
 
     private fun clickShop(x:Float,yTop:Float) {
