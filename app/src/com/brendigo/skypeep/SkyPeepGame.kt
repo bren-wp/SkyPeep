@@ -730,8 +730,18 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     private fun begin(chosen: Int) {
-        level = chosen.coerceIn(1, MAX_LEVEL)
-        loadLevelArt(level)
+        val targetLevel = chosen.coerceIn(1, MAX_LEVEL)
+        // A corrupt/missing world texture must not terminate the app or
+        // mutate selected progress. loadLevelArt stages incoming textures
+        // before retiring the previous world.
+        try {
+            loadLevelArt(targetLevel)
+        } catch (e: Exception) {
+            Gdx.app.error("SkyPeepAssets", "Failed loading world $targetLevel", e)
+            toast("WORLD COULD NOT BE LOADED")
+            return
+        }
+        level = targetLevel
         screen = Screen.PLAY
         score=0
         earnedCoins=0
@@ -872,10 +882,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                     finish(true)
                     return
                 }
-                // Real coin pickups occur only at gate contact, not each
-                // frame. Save every physical coin so an app crash cannot
-                // lose up to nine world-goal pickups and wallet rewards.
-                save()
+                // Persist only the wallet and this world's collection;
+                // rewriting all route stats/skins on every pickup stalls GL.
+                savePickup()
             }
             // Gem centre and 41-unit radius exactly follow drawDiamond.
             if (gate.gem && !gate.gemTaken &&
@@ -885,7 +894,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 gate.gemTaken=true
                 gems = SkyPeepEconomy.credit(gems,1)
                 playSound("coin")
-                save() // Flush real gem pickup before an unexpected process exit.
+                savePickup() // Durably commit the actual gem pickup.
             }
             if (gate.heart && !gate.heartTaken && SkyPeepPickup.overlaps(
                     birdBody,gate.x+118f,gate.centerY-100f,
@@ -1427,14 +1436,41 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private fun playSound(kind:String) {
         if (effectsEnabled) try { sounds[kind]?.play(.45f) } catch (_:Exception) { }
     }
-    private fun save() {
-        // QA launch extras are synthetic fixtures, not genuine progress.
-        if (!SkyPeepQaSession.shouldPersist(
+    /** A real pickup changes only these three saved values. */
+    private fun savePickup() {
+        persist {
+            prefs.putInteger(SkyPeepPickupSave.worldKey(level),
+                SkyPeepPickupSave.collected(worldCoins[level-1]))
+            prefs.putInteger("coins", SkyPeepPickupSave.currency(coins))
+            prefs.putInteger("gems", SkyPeepPickupSave.currency(gems))
+        }
+    }
+
+    /**
+     * Keep synchronous durability while isolating write failures. A full
+     * save remains mandatory for settings, scores, stars and shop ownership.
+     * On I/O failure, the in-memory state is retained for the next retry.
+     */
+    private inline fun persist(write: () -> Unit) {
+        if (!::prefs.isInitialized || !SkyPeepQaSession.shouldPersist(
                 world = qaWorld, mapUnlocked = qaMapUnlocked,
                 skin = qaSkin, victory = qaVictory, pillars = qaPillars,
                 score = qaScore, loss = qaLoss,
                 backgroundMotion = qaBackgroundMotion,
                 difficulty = qaDifficulty)) return
+        try {
+            write()
+            prefs.flush()
+        } catch (e: RuntimeException) {
+            // A full-storage/permission fault should not crash Android
+            // during a flight, onPause or dispose. Do not claim it saved.
+            Gdx.app.error("SkyPeepStorage", "Unable to save local progress", e)
+            if (screen != Screen.PLAY) toast("SAVE FAILED - CHECK STORAGE")
+        }
+    }
+
+    private fun save() {
+        persist {
         prefs.putInteger("best",best)
         prefs.putInteger("difficulty",difficulty.ordinal)
         for (mode in SkyDifficulty.entries) {
@@ -1457,7 +1493,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         prefs.putBoolean("vibration",vibrationEnabled)
         for (i in 0..4) prefs.putBoolean("owned_$i",ownedSkins[i])
         for (i in 0 until MAX_LEVEL) prefs.putInteger("stars_${i+1}",stars[i])
-        prefs.flush()
+        }
     }
     override fun pause() {
         // App backgrounding must never leave a live run progressing behind a system UI.
