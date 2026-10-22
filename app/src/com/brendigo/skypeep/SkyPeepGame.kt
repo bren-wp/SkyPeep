@@ -1157,13 +1157,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             val marker=SkyPeepMapLayout.marker(world)
             val selected=world==level
             val done=SkyPeepCoinGoal.isComplete(worldCoins[world-1])
-            // These chips cover the reference's obsolete padlocks, while
-            // leaving the original numbered island banners and stars visible.
-            badge(if (selected || done) "green" else "blue",
-                marker.x-72f,H-marker.y-62f,144f,99f)
-            fitted(SkyPeepMapUi.status(world,level,worldCoins[world-1]),
-                H-marker.y+11f,fontSmall,if(selected) .85f else .99f,
-                131f,marker.x)
+            // Each small status face covers only a reference-painted LOCK,
+            // never the numbered island badge, world name or star row.
+            // World 1 has no painted lock and needs no extra overlay.
+            SkyPeepMapUi.lockChip(world)?.let { chip ->
+                badge(if (selected || done) "green" else "blue",
+                    chip.left, H-chip.top-chip.height, chip.width, chip.height)
+                fitted(SkyPeepMapUi.status(world,level,worldCoins[world-1]),
+                    H-chip.top-chip.height/2f+12f, fontSmall, .90f,
+                    chip.width-8f, chip.left+chip.width/2f)
+            }
             if(world==2) {
                 // The supplied illustrated map has CLOUD PASS printed
                 // directly into the parchment plaque. Cover *only* those

@@ -12,14 +12,14 @@ internal object SkyPeepMenuTouch {
             x >= left && x <= left + width && y >= top && y <= top + height
     }
     private val targets = listOf(
-        Target(Action.PLAY, 170f, 895f, 590f, 248f),
-        // The old LEVELS/SKINS row overlapped SHOP/SETTINGS by six pixels.
-        Target(Action.LEVELS, 95f, 1155f, 364f, 162f),
-        Target(Action.SKINS, 471f, 1155f, 370f, 162f),
-        Target(Action.SHOP, 95f, 1318f, 364f, 173f),
-        Target(Action.SETTINGS, 471f, 1318f, 370f, 173f),
-        Target(Action.COINS, 243f, 0f, 100f, 130f),
-        Target(Action.GEMS, 815f, 0f, 110f, 130f)
+        // Reference artwork actual button frames; empty space is not tappable.
+        Target(Action.PLAY, 150f, 914f, 647f, 235f),
+        Target(Action.LEVELS, 95f, 1177f, 366f, 150f),
+        Target(Action.SKINS, 483f, 1177f, 365f, 153f),
+        Target(Action.SHOP, 95f, 1348f, 367f, 151f),
+        Target(Action.SETTINGS, 483f, 1348f, 365f, 153f),
+        Target(Action.COINS, 261f, 27f, 78f, 78f),
+        Target(Action.GEMS, 846f, 27f, 74f, 78f)
     )
     fun actionAt(x: Float, yTop: Float): Action? {
         if (!x.isFinite() || !yTop.isFinite()) return null

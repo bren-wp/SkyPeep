@@ -7,8 +7,8 @@
 
 ## Source-verified defects and fixes
 
-1. Menu LEVELS and SKINS used top 1155 + height 169 = bottom 1324 while SHOP and SETTINGS began at 1318. Their six-pixel collision stole taps from lower-row buttons. All menu actions now share a testable target resolver without row overlap.
-2. Map selected-world status won over collected-world completion, hiding DONE from a selected completed world. DONE now takes precedence, while WORLD N and 10001 progress identify selection in the footer.
+1. Menu LEVELS and SKINS used top 1155 + height 169 = bottom 1324 while SHOP and SETTINGS began at 1318. Their six-pixel collision stole taps from lower-row buttons. All menu actions now share a testable target resolver with hit areas aligned to visible button frames and blank gutters.
+2. Map selected-world status won over collected-world completion, hiding DONE from a selected completed world. DONE now takes precedence; PLAY indicates a selected incomplete island. Replaced oversized badges with 84–88px small labels that cover only the five baked lock symbols, leaving six island number circles, title plaques and stars untouched. The first island has no lock and receives no overlay; WORLD N footer identifies selection.
 3. UI previously told players COMPLETE WORLDS FOR GEMS; no such reward exists in `finish(true)`. Corrected to COLLECT GEMS IN FLIGHT, matching actual gem pickups.
 4. Bird skin purchases now validate stock id and balances and return immutable transaction results; owned skins can be equipped without a second deduction.
 5. Updated Android `versionName`/`versionCode`, release branch gating, F-Droid published baseline, English/Croatian changelog and README.

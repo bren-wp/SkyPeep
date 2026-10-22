@@ -29,7 +29,7 @@ Guide a brave little aviator through floating islands, glittering crystals, moon
 | 📱 **Android-first presentation** | Responsive fullscreen gameplay, pause and tappable menus without scrolling |
 | 🔋 **Battery-conscious** | Static illustrated screens redraw only when needed; flight remains responsive, with no motion-sensor polling |
 
-**Illustrated controls:** The Levels map keeps the original world banners, stars and backgrounds unobstructed: a single status chip shows OPEN, SELECTED or DONE on each island, while the cumulative coin count appears only for the selected world in the lower toolbar. The SKINS and SHOP BUY/EQUIP buttons use bright green illustrated surfaces and large readable captions.
+**Illustrated controls:** The Levels map keeps the original world banners, stars and backgrounds unobstructed: small OPEN/PLAY/DONE chips replace only the five illustrated lock icons without covering island numbers; the first island has no lock. The selected world and cumulative pickup count appear in the lower toolbar. The SKINS and SHOP BUY/EQUIP buttons use bright green illustrated surfaces and large readable captions.
 
 **Menu and purchase safety:** Menu tap targets no longer overlap across adjacent illustrated rows; skin buying uses a tested wallet transaction and never charges an already-owned costume. On the map, a selected completed world shows DONE. Gems come from real in-flight pickups, not an automatic level-completion grant.
 
