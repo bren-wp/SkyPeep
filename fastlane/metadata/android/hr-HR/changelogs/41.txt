@@ -1,0 +1,1 @@
+Ispravljena preklapanja gumba na izborniku, oznaka DONE za završene svjetove i upute za dragulje. Kupnja kostima koristi sigurnu transakciju bez dvostrukog naplaćivanja. Fizika i ciljevi ostaju isti.

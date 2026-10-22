@@ -31,6 +31,8 @@ Guide a brave little aviator through floating islands, glittering crystals, moon
 
 **Illustrated controls:** The Levels map keeps the original world banners, stars and backgrounds unobstructed: a single status chip shows OPEN, SELECTED or DONE on each island, while the cumulative coin count appears only for the selected world in the lower toolbar. The SKINS and SHOP BUY/EQUIP buttons use bright green illustrated surfaces and large readable captions.
 
+**Menu and purchase safety:** Menu tap targets no longer overlap across adjacent illustrated rows; skin buying uses a tested wallet transaction and never charges an already-owned costume. On the map, a selected completed world shows DONE. Gems come from real in-flight pickups, not an automatic level-completion grant.
+
 **Game balance:** Precision is assessed at the midpoint of each stone passage; a score is granted when the actual bird body fully clears it. Clearing pillars alone does not complete a world: each needs 10,001 actual coin pickups, saved across attempts. Consecutive openings are constrained to achievable changes. On a sky-edge rebound, collisions are immediately recalculated from the corrected bird position. A short recovery shield prevents one obstacle from consuming several lives. Hearts do not require payment and appear only if the bird has been hurt.
 
 ## See the original artwork
@@ -69,8 +71,6 @@ Bonus coins from streaks or completing a world have been removed. Six separate p
 ## Style your aviator
 
 Dress the bird as **Default, Captain, Forest, Cosmic or Royal** and fly with **Classic, Cyan Dash, Golden Spark or Moonlight** trails. Everything is earned through play with in-game currency, never real money.
-
-**Future character concepts:** A squirrel companion collecting acorns could make a separate, themed mode once suitable original animation frames, silhouette-aligned collisions and world art exist. It is *not* advertised as an implemented character in the current build.
 
 ## Install an Android preview
 
