@@ -7,11 +7,11 @@ class SkyPeepAssetsTest {
     @Test fun usesOnlyOneScreenTextureAtATime() {
         assertEquals("screen_splash", SkyPeepAssets.screenFor("SPLASH"))
         assertEquals("screen_menu", SkyPeepAssets.screenFor("MENU"))
-        assertEquals("screen_menu", SkyPeepAssets.screenFor("SETTINGS"))
+        assertNull(SkyPeepAssets.screenFor("SETTINGS"))
         assertEquals("screen_map", SkyPeepAssets.screenFor("MAP"))
         assertEquals("screen_pause", SkyPeepAssets.screenFor("PAUSE"))
         assertEquals("screen_over", SkyPeepAssets.screenFor("RESULT"))
-        assertEquals("screen_menu", SkyPeepAssets.screenFor("SHOP"))
+        assertNull(SkyPeepAssets.screenFor("SHOP"))
         assertEquals("screen_skins", SkyPeepAssets.screenFor("SKINS"))
         assertNull(SkyPeepAssets.screenFor("PLAY"))
         assertNull(SkyPeepAssets.screenFor("UNKNOWN"))

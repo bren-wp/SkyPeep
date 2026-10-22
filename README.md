@@ -31,6 +31,10 @@ Guide a brave little aviator through floating islands, glittering crystals, moon
 
 **Illustrated controls:** The Levels map keeps the original world banners, stars and backgrounds unobstructed: small OPEN/PLAY/DONE chips replace only the five illustrated lock icons without covering island numbers; the first island has no lock. The selected world and cumulative pickup count appear in the lower toolbar. The SKINS and SHOP BUY/EQUIP buttons use bright green illustrated surfaces and large readable captions.
 
+**Illustrated panels:** Shop and Settings now display the existing world scenery rather than the Main Menu's logo and buttons behind their themed UI. The four supplied visual references remain unmodified. Reconstructed live world backgrounds still need separate visual cleanup before claiming 1:1.
+
+**Durable progress:** Each collected coin and gem is flushed to offline local storage as it is picked up, so the latest real collection does not wait for a tenth coin.
+
 **Menu and purchase safety:** Menu tap targets no longer overlap across adjacent illustrated rows; skin buying uses a tested wallet transaction and never charges an already-owned costume. On the map, a selected completed world shows DONE. Gems come from real in-flight pickups, not an automatic level-completion grant.
 
 **Game balance:** Precision is assessed at the midpoint of each stone passage; a score is granted when the actual bird body fully clears it. Clearing pillars alone does not complete a world: each needs 10,001 actual coin pickups, saved across attempts. Consecutive openings are constrained to achievable changes. On a sky-edge rebound, collisions are immediately recalculated from the corrected bird position. A short recovery shield prevents one obstacle from consuming several lives. Hearts do not require payment and appear only if the bird has been hurt.

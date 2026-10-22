@@ -65,8 +65,8 @@ jobs:
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+41" app/build.gradle
-          grep -Fq "versionName '0.3.29'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+42" app/build.gradle
+          grep -Fq "versionName '0.3.30'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/apk/release/app-release-unsigned.apk
           test -s app/build/outputs/bundle/release/app-release.aab
@@ -182,7 +182,7 @@ jobs:
   release:
     name: Publish verified preview
     needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.29-menu-map-skin-qa'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.30-illustrated-panels-progress-qa'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -204,7 +204,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.29-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.30-preview.${GITHUB_RUN_NUMBER}"
           for pattern in '*-debug.apk' '*-release-unsigned.apk' '*-play-upload-unsigned.aab' 'SHA256SUMS.txt' '*-fdroid-metadata.yml'; do
             test -n "$(find release-artifacts -type f -name "$pattern" -print -quit)" || {
               echo "Required release asset missing: $pattern"; exit 1;
@@ -219,7 +219,7 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "SkyPeep $VERSION" \
             --draft --prerelease \
-            --notes '0.3.29: removed overlapping main-menu button hitboxes, completed selected worlds show DONE, corrected gem-collection guidance, tested single-charge bird costume purchases with validated wallets and new JVM regressions. All six worlds, 10001 actual pickup goals, three lives and physics remain unchanged. Debug APK, unsigned APK/AAB, F-Droid metadata and SHA-256 attached. Store signing, pixel-accurate manual review and official F-Droid acceptance are separate.'
+            --notes '0.3.30: replace main-menu ghost buttons behind Shop and Settings with existing illustrated world backgrounds, and persist each real coin/gem pickup immediately. Preserves source artwork, six open worlds, 10001 pickup goals, three lives, purchase safety and unchanged flight physics. Includes verified debug APK, unsigned release APK/AAB, SHA256 and F-Droid build metadata. Pixel-perfect live world art, Play signing and F-Droid acceptance remain separate.'
           # A stale draft is never published; delete it and its temporary tag.
           publish_head="$(gh api "repos/$GH_REPO/git/ref/heads/$GITHUB_REF_NAME" --jq '.object.sha')"
           if [[ "$publish_head" != "$GITHUB_SHA" ]]; then

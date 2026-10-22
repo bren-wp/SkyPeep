@@ -7,12 +7,12 @@ package com.brendigo.skypeep
 internal object SkyPeepAssets {
     fun screenFor(page: String): String? = when (page) {
         "SPLASH" -> "screen_splash"
-        "MENU", "SETTINGS", "SHOP" -> "screen_menu"
+        "MENU" -> "screen_menu"
         "MAP" -> "screen_map"
         "PAUSE" -> "screen_pause"
         "RESULT" -> "screen_over"
         "SKINS" -> "screen_skins"
-        "PLAY" -> null
+        "PLAY", "SHOP", "SETTINGS" -> null
         else -> null
     }
 }

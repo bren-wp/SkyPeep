@@ -15,11 +15,12 @@ SkyPeep preserves its original Brendigo artwork and locally saved data through 0
 | [0.3.26](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.26-preview.492) | Fixed rebound collision geometry and optimized pickup checks and background crop allocations | Published preview |
 | [0.3.27](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.27-preview.508) | Six open worlds and 10,001 actual coin pickups each, without completion or streak currency bonuses | Published preview |
 | [0.3.28](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.28-preview.511) | Screenshot-reviewed map, readable skin/shop buttons, Cloud Drift and Settings | Published preview; PR #42 merged; CI #513 succeeded |
-| **0.3.29** | Illustration-aligned menu touch seams, truthful gem tip, DONE status for completed selected worlds, single-charge skin purchases and new tests | Under CI and emulator validation; no published release yet |
+| [0.3.29](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.29-preview.523) | Menu touch precision, DONE status, wallet transaction checks, victory contrast | Published preview; PR #43 merged; CI #523/#524 passed |
+| **0.3.30** | Independent illustrated Shop/Settings backgrounds and saving every coin/gem pickup | In development, awaiting CI/emulator |
 
 ## Versioning and downloads
 
-Android `versionCode` increases monotonically (0.3.27 = 39; 0.3.28 = 40; planned 0.3.29 = 41). Every successfully validated release beginning with 0.3.24 attaches **three distinct binary artifacts**: testing-only debug APK, unsigned release APK for local signing, and an unsigned Play-upload AAB to sign using the existing upload key. It also includes SHA-256 checksums, F-Droid source-build metadata, license and signed-distribution instructions. No key is uploaded to GitHub. See [Android distribution and F-Droid preparation](ANDROID_DISTRIBUTION.md).
+Android `versionCode` increases monotonically (0.3.27 = 39; 0.3.28 = 40; 0.3.29 = 41; planned 0.3.30 = 42). Every successfully validated release beginning with 0.3.24 attaches **three distinct binary artifacts**: testing-only debug APK, unsigned release APK for local signing, and an unsigned Play-upload AAB to sign using the existing upload key. It also includes SHA-256 checksums, F-Droid source-build metadata, license and signed-distribution instructions. No key is uploaded to GitHub. See [Android distribution and F-Droid preparation](ANDROID_DISTRIBUTION.md).
 
 Keep existing published GitHub Releases; do not overwrite or delete them while preparing later versions. Do not treat preview artwork as genuine app screenshots.
 
