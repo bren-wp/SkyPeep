@@ -1,0 +1,1 @@
+Fixed illustrated menu button overlap, completed-world DONE labels, misleading gem tips, and costume purchases that now use validated one-charge transactions. Existing physics and coin goals are unchanged.

@@ -63,7 +63,6 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         private val SHOP_NAME_COLOR = Color.valueOf("5B3526")
         private val SHOP_PRICE_COLOR = Color.valueOf("734428")
         private val SETTINGS_NAMES = arrayOf("MUSIC","SOUND EFFECTS","VIBRATION","DIFFICULTY")
-        private val TEXT_ON_WOOD = Color.valueOf("38261B")
         private val TEXT_ON_CREAM = Color.valueOf("593D28")
         private val RESULT_VALUE_COLOR = Color.valueOf("673A22")
         private val BIRD_TINTS = arrayOf(Color.WHITE, Color(.83f,.98f,1f,1f),
@@ -542,14 +541,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         x >= l && x <= l+w && y >= t && y <= t+h
 
     private fun clickMenu(x: Float, y: Float) {
-        when {
-            hit(x,y,170f,895f,590f,248f) -> { playSound("click"); begin(level) }
-            hit(x,y,95f,1155f,364f,169f) -> { playSound("click"); screen = Screen.MAP }
-            hit(x,y,471f,1155f,370f,169f) -> { playSound("click"); screen = Screen.SKINS }
-            hit(x,y,95f,1318f,364f,173f) -> { playSound("click"); screen = Screen.SHOP }
-            hit(x,y,471f,1318f,370f,173f) -> { playSound("click"); screen = Screen.SETTINGS }
-            hit(x,y,243f,0f,100f,130f) -> { playSound("click"); toast("EARN COINS IN FLIGHT") }
-            hit(x,y,815f,0f,110f,130f) -> { playSound("click"); toast("COMPLETE WORLDS FOR GEMS") }
+        // Shared artwork hitboxes avoid the former six-pixel menu row overlap.
+        when (SkyPeepMenuTouch.actionAt(x, y)) {
+            SkyPeepMenuTouch.Action.PLAY -> { playSound("click"); begin(level) }
+            SkyPeepMenuTouch.Action.LEVELS -> { playSound("click"); screen = Screen.MAP }
+            SkyPeepMenuTouch.Action.SKINS -> { playSound("click"); screen = Screen.SKINS }
+            SkyPeepMenuTouch.Action.SHOP -> { playSound("click"); screen = Screen.SHOP }
+            SkyPeepMenuTouch.Action.SETTINGS -> { playSound("click"); screen = Screen.SETTINGS }
+            SkyPeepMenuTouch.Action.COINS -> { playSound("click"); toast("COLLECT COINS IN FLIGHT") }
+            SkyPeepMenuTouch.Action.GEMS -> { playSound("click"); toast("COLLECT GEMS IN FLIGHT") }
+            null -> Unit
         }
     }
 
@@ -624,7 +625,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         }
         if (y < 140f && x in 825f..935f) {
             playSound("click")
-            toast("COMPLETE WORLDS FOR GEMS")
+            toast("COLLECT GEMS IN FLIGHT")
             return
         }
         if (SkyPeepUiTouch.skinsBack(x,y)) {
@@ -642,26 +643,22 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // Card art and prices are informational, only the BUY/EQUIP control is actionable.
         val skin = SkyPeepUiTouch.skinPurchaseAt(x,y) ?: return
         playSound("click")
-        if (ownedSkins[skin]) {
-            selectedSkin = skin
-            save()
-            toast("${skinName(skin)} EQUIPPED")
+        // Single-charge wallet operation, including repeated EQUIP taps.
+        val choice = SkyPeepSkinCatalog.get(skin)
+        val purchase = SkyPeepSkinCatalog.purchase(skin, ownedSkins[skin], coins, gems)
+        if (!purchase.success) {
+            toast("NOT ENOUGH ${if (choice.currency == SkinCurrency.GEMS) "GEMS" else "COINS"}")
+            playSound("fail")
             return
         }
-        val choice = SkyPeepSkinCatalog.get(skin)
-        val useGem = choice.currency == SkinCurrency.GEMS
-        val price = choice.price
-        if (!choice.affordable(coins,gems)) {
-            toast("NOT ENOUGH ${if (useGem) "GEMS" else "COINS"}")
-            playSound("fail")
-        } else {
-            if (useGem) gems -= price else coins -= price
-            ownedSkins[skin]=true
-            selectedSkin=skin
-            save()
-            toast("${skinName(skin)} UNLOCKED")
-            playSound("win")
-        }
+        coins = purchase.coins
+        gems = purchase.gems
+        ownedSkins[skin] = true
+        selectedSkin = skin
+        save()
+        toast(if (purchase.alreadyOwned) "${skinName(skin)} EQUIPPED"
+              else "${skinName(skin)} UNLOCKED")
+        if (!purchase.alreadyOwned) playSound("win")
     }
 
     private fun clickShop(x:Float,yTop:Float) {
@@ -1159,13 +1156,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             val marker=SkyPeepMapLayout.marker(world)
             val selected=world==level
             val done=SkyPeepCoinGoal.isComplete(worldCoins[world-1])
-            // These chips cover the reference's obsolete padlocks, while
-            // leaving the original numbered island banners and stars visible.
-            badge(if (selected || done) "green" else "blue",
-                marker.x-72f,H-marker.y-62f,144f,99f)
-            fitted(SkyPeepMapUi.status(world,level,worldCoins[world-1]),
-                H-marker.y+11f,fontSmall,if(selected) .85f else .99f,
-                131f,marker.x)
+            // Each small status face covers only a reference-painted LOCK,
+            // never the numbered island badge, world name or star row.
+            // World 1 has no painted lock and needs no extra overlay.
+            SkyPeepMapUi.lockChip(world)?.let { chip ->
+                badge(if (selected || done) "green" else "blue",
+                    chip.left, H-chip.top-chip.height, chip.width, chip.height)
+                fitted(SkyPeepMapUi.status(world,level,worldCoins[world-1]),
+                    H-chip.top-chip.height/2f+12f, fontSmall, .90f,
+                    chip.width-8f, chip.left+chip.width/2f)
+            }
             if(world==2) {
                 // The supplied illustrated map has CLOUD PASS printed
                 // directly into the parchment plaque. Cover *only* those
@@ -1197,7 +1197,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         badge("wood",120f,1180f,701f,155f)
         fitted("LEVEL COMPLETE",1284f,fontLarge,1.32f,644f)
         fitted(levelTitle(level).uppercase(Locale.ROOT),1190f,fontSmall,1.55f,580f)
-        fitted(difficulty.title,1155f,fontSmall,.90f,220f)
+        // Difficulty is already selected in Settings and shown in sharing;
+        // putting it here overlapped the large world name on real emulator.
         // A genuine three-star rating based on how accurately the player
         // navigated each sky route, not an unconditional triple gold reward.
         for (i in 0..2) victoryStar?.let {
@@ -1216,7 +1217,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         badge("wood",137f,508f,666f,156f)
         fitted("COINS COLLECTED",643f,fontSmall,1.28f,608f)
         fitted(SkyPeepCoinGoal.label(worldCoins[level-1]),
-            586f,fontLarge,.96f,608f,W/2f,TEXT_ON_WOOD)
+            586f,fontLarge,.96f,608f,W/2f,Color.WHITE)
         // Touch zones match the illustrated arcade buttons, not the card.
         SkyPeepResultTouch.victoryButtons.forEach { button ->
             val surface = when (button.action) {
