@@ -25,3 +25,7 @@ artwork and allowed a texture exception to terminate the process.
 - The reduced number of preference mutations is source-verifiable, but frame time and real-device storage latency still require measurement; no claim of zero dropped frames or zero crashes.
 - A storage failure cannot be considered a successful save; progress remains in RAM only until retry and may still be lost if the process terminates before storage recovers.
 - Original artwork, source art hash, scoring, obstacle spacing, three lives, 10,001 physical-coin goal, permissions and identifier remain unchanged.
+
+### Transaction-shape regression
+
+The Kotlin JVM suite now exercises the production `SkyPeepPickupSave.write` path with an in-memory capture callback. It asserts **exactly three** preference mutations (one active-world goal and two wallet balances), clamped corrupt values and rejection of invalid world IDs **before** any write. Disk flush still occurs once in the common guarded `persist` wrapper, whose failure handling is assessed in emulator/manual low-storage QA rather than falsely claimed by this pure test.

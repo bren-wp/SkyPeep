@@ -1439,10 +1439,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     /** A real pickup changes only these three saved values. */
     private fun savePickup() {
         persist {
-            prefs.putInteger(SkyPeepPickupSave.worldKey(level),
-                SkyPeepPickupSave.collected(worldCoins[level-1]))
-            prefs.putInteger("coins", SkyPeepPickupSave.currency(coins))
-            prefs.putInteger("gems", SkyPeepPickupSave.currency(gems))
+            SkyPeepPickupSave.write(level, worldCoins[level-1], coins, gems) {
+                    key, value -> prefs.putInteger(key, value)
+            }
         }
     }
 
@@ -1471,27 +1470,27 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
 
     private fun save() {
         persist {
-        prefs.putInteger("best",best)
-        prefs.putInteger("difficulty",difficulty.ordinal)
-        for (mode in SkyDifficulty.entries) {
-            prefs.putInteger("route_best_${mode.ordinal}",routeBests[mode.ordinal])
-            for (i in 0 until MAX_LEVEL)
-                prefs.putInteger("route_stars_${mode.ordinal}_${i+1}",
-                    routeStars[mode.ordinal][i])
-        }
-        prefs.putInteger("unlocked",MAX_LEVEL)
-        for (i in worldCoins.indices)
-            prefs.putInteger("collected_world_${i+1}",SkyPeepCoinGoal.collected(worldCoins[i]))
-        prefs.putInteger("level",level)
-        prefs.putInteger("coins",coins)
-        prefs.putInteger("gems",gems)
-        prefs.putInteger("skin",selectedSkin)
-        prefs.putInteger("trail_selected",selectedTrail)
-        for (i in 1..3) prefs.putBoolean("trail_owned_$i",ownedTrails[i])
-        prefs.putBoolean("music",musicEnabled)
-        prefs.putBoolean("effects",effectsEnabled)
-        prefs.putBoolean("vibration",vibrationEnabled)
-        for (i in 0..4) prefs.putBoolean("owned_$i",ownedSkins[i])
+            prefs.putInteger("best",best)
+            prefs.putInteger("difficulty",difficulty.ordinal)
+            for (mode in SkyDifficulty.entries) {
+                prefs.putInteger("route_best_${mode.ordinal}",routeBests[mode.ordinal])
+                for (i in 0 until MAX_LEVEL)
+                    prefs.putInteger("route_stars_${mode.ordinal}_${i+1}",
+                        routeStars[mode.ordinal][i])
+            }
+            prefs.putInteger("unlocked",MAX_LEVEL)
+            for (i in worldCoins.indices)
+                prefs.putInteger("collected_world_${i+1}",SkyPeepCoinGoal.collected(worldCoins[i]))
+            prefs.putInteger("level",level)
+            prefs.putInteger("coins",coins)
+            prefs.putInteger("gems",gems)
+            prefs.putInteger("skin",selectedSkin)
+            prefs.putInteger("trail_selected",selectedTrail)
+            for (i in 1..3) prefs.putBoolean("trail_owned_$i",ownedTrails[i])
+            prefs.putBoolean("music",musicEnabled)
+            prefs.putBoolean("effects",effectsEnabled)
+            prefs.putBoolean("vibration",vibrationEnabled)
+            for (i in 0..4) prefs.putBoolean("owned_$i",ownedSkins[i])
         for (i in 0 until MAX_LEVEL) prefs.putInteger("stars_${i+1}",stars[i])
         }
     }
