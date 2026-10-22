@@ -63,7 +63,6 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         private val SHOP_NAME_COLOR = Color.valueOf("5B3526")
         private val SHOP_PRICE_COLOR = Color.valueOf("734428")
         private val SETTINGS_NAMES = arrayOf("MUSIC","SOUND EFFECTS","VIBRATION","DIFFICULTY")
-        private val TEXT_ON_WOOD = Color.valueOf("38261B")
         private val TEXT_ON_CREAM = Color.valueOf("593D28")
         private val RESULT_VALUE_COLOR = Color.valueOf("673A22")
         private val BIRD_TINTS = arrayOf(Color.WHITE, Color(.83f,.98f,1f,1f),
