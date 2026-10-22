@@ -1198,7 +1198,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         badge("wood",120f,1180f,701f,155f)
         fitted("LEVEL COMPLETE",1284f,fontLarge,1.32f,644f)
         fitted(levelTitle(level).uppercase(Locale.ROOT),1190f,fontSmall,1.55f,580f)
-        fitted(difficulty.title,1155f,fontSmall,.90f,220f)
+        // Difficulty is already selected in Settings and shown in sharing;
+        // putting it here overlapped the large world name on real emulator.
         // A genuine three-star rating based on how accurately the player
         // navigated each sky route, not an unconditional triple gold reward.
         for (i in 0..2) victoryStar?.let {
@@ -1217,7 +1218,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         badge("wood",137f,508f,666f,156f)
         fitted("COINS COLLECTED",643f,fontSmall,1.28f,608f)
         fitted(SkyPeepCoinGoal.label(worldCoins[level-1]),
-            586f,fontLarge,.96f,608f,W/2f,TEXT_ON_WOOD)
+            586f,fontLarge,.96f,608f,W/2f,Color.WHITE)
         // Touch zones match the illustrated arcade buttons, not the card.
         SkyPeepResultTouch.victoryButtons.forEach { button ->
             val surface = when (button.action) {

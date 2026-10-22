@@ -20,3 +20,7 @@
 - Confirm original art hash, offline merged manifests, ABI libs, APK/AAB validation and source metadata package.
 - Physics, gate spacing, hearts, 3 lives, six open worlds and separately saved 10,001 coin goals were not modified.
 - Passing tests do not prove physical-device compatibility or exact 1:1 pixel match; inspect emulator captures before making such a claim. Unsigned bundles need independent signing; official F-Droid listing is not established.
+
+## Additional emulator-based visual corrections
+
+The previous verified 0.3.28 screenshot artifact (workflow #513) confirms that Victory rendered its `EXPLORER` text on top of `SKY START`, and that the `10001 / 10001` counter was dark on dark brown wood. Removed the redundant route subtitle from Victory (route remains visible in Settings and share message), and rendered its collected-coin value in white on the existing wood board. Gameplay/world physics and counters remain unchanged. The reconstructed gameplay sky also shows visible image-synthesis seams in the 0.3.28 capture; these remain an open art reconstruction QA defect and are **not** represented as fixed here.
