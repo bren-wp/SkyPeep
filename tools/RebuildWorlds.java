@@ -113,7 +113,17 @@ class RebuildWorlds {
        new Capsule(456,960,432,1160,99),
        new Area(281,1140,501,1280)},
       {new Area(0,0,706,207),new Area(233,103,580,528),new Area(-20,418,618,774),new Area(219,695,591,1280)},
-      {new Area(0,0,706,210),new Area(277,106,574,534),new Area(-20,418,618,774),new Area(251,700,586,1280)}
+      // Sun Peak: retain the illustrated sunrise, floating waterfalls and
+      // temple. Historical world-6 masks erased nearly the entire middle
+      // scene: x=-20..618,y=418..774, including scenery well away from
+      // the baked character and pillar silhouettes.
+      {new Area(-100,-100,806,205),
+       // Right-side fixed top column and ornamental lower cap.
+       new Area(385,130,581,383),new Oval(481,399,130,115),
+       // The baked bird and flight streaks. Keep the landscape outside them.
+       new Oval(251,634,151,130),new Oval(85,663,200,78),
+       // Lower fixed cap and the remainder of the right pillar shaft.
+       new Oval(484,841,130,96),new Area(382,868,581,1280)}
     };
     private static final Area[][] COINS = {
       {}, {}, {}, {},
@@ -261,8 +271,8 @@ class RebuildWorlds {
      * Sample only blue sky outside every mask, use the channel-wise MEDIAN
      * to reject islands/stone/crystals, then smooth it vertically.
      *
-     * This is only used inside already-masked regions of worlds 3 and 4;
-     * all untouched original illustrated pixels remain byte-identical.
+     * Worlds 3/4 use source blue sky, while world 6 uses the original
+     * orange sunset hues. Other illustrated pixels remain untouched.
      */
     private static int[] sourceMatchedSky(
             BufferedImage source,int world) {
@@ -275,14 +285,22 @@ class RebuildWorlds {
             int count=0;
             for(int x=0;x<w;x+=4){
                 double mask=0;
-                for(Region shape:MASKS[world-1])
-                    mask=Math.max(mask,shape.alpha(x,y,32));
+                for(int shape=0;shape<MASKS[world-1].length;shape++)
+                    mask=Math.max(mask,MASKS[world-1][shape].alpha(
+                        x,y,world==6?(shape==0?40:36):32));
                 if(mask>=.04)continue;
                 int rgb=source.getRGB(x,y);
                 int red=(rgb>>>16)&255,green=(rgb>>>8)&255,blue=rgb&255;
-                // Source sky, not land, crystals, red flags or clouds.
-                if(blue<=red+16 || green<=red+12 ||
-                   blue<green-24 || green<=105)continue;
+                // Sample only sky hues, excluding most terrain and clouds.
+                if(world==6) {
+                    // Real warm sunset pixels; reject white clouds, flags
+                    // and low-luminance cliff faces in the supplied artwork.
+                    if(red<180 || green<130 || blue<50 ||
+                       red-green<=7 || green-blue<=19)continue;
+                } else {
+                    if(blue<=red+16 || green<=red+12 ||
+                       blue<green-24 || green<=105)continue;
+                }
                 r[count]=red;g[count]=green;b[count]=blue;
                 count++;
             }
@@ -310,8 +328,29 @@ class RebuildWorlds {
         }
         return smooth;
     }
-    private static void rebuild(Path file,int world) throws Exception {
-        BufferedImage original=ImageIO.read(file.toFile());
+    private static void rebuild(
+            Path file,int world,Path sunPeakReference) throws Exception {
+        BufferedImage original;
+        if(world==6) {
+            // Use the user's unmodified Sun Peak painting instead of the
+            // already banded/inpainted former bg_6 source. All graphics
+            // are local and tracked in Git; no network/AI asset generation.
+            BufferedImage reference=ImageIO.read(sunPeakReference.toFile());
+            if(reference==null || reference.getWidth()!=520 ||
+               reference.getHeight()!=924)
+                throw new IOException("Unexpected original Sun Peak reference: "+
+                    sunPeakReference);
+            original=new BufferedImage(706,1254,BufferedImage.TYPE_INT_RGB);
+            Graphics2D g=original.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g.setRenderingHint(RenderingHints.KEY_RENDERING,
+                RenderingHints.VALUE_RENDER_QUALITY);
+            g.drawImage(reference,0,0,706,1254,null);
+            g.dispose();
+        } else {
+            original=ImageIO.read(file.toFile());
+        }
         if(original==null)throw new IOException("Unreadable SkyPeep artwork: "+file);
         int w=original.getWidth(),h=original.getHeight();
         if(w!=706||h!=1254)throw new IOException("Unexpected art size: "+w+"x"+h);
@@ -356,10 +395,50 @@ class RebuildWorlds {
                 if(coin.alpha(coin.centerX,coin.centerY,17)<.99)
                     throw new IOException("A fixed reference coin remained in world "+world);
         }
+        if(world==6){
+            // Test artwork integrity BEFORE JPEG compression. These are real
+            // landscape landmarks on the original 706x1254 Sun Peak source,
+            // and none is part of a moving bird, pillar or HUD element.
+            // Prior broad replacement areas erased their original colours.
+            final int[][] protectedLandmarks={
+                {319,311}, // illustrated sun centre
+                {80,385},  // left landscape/island
+                {635,534}, // distant sunlit temple / waterfall skyline
+                {645,385}, // right floating islands
+                {95,1000}  // lower-left waterfall/scenery
+            };
+            for(int[] point:protectedLandmarks){
+                double amount=0;
+                for(int mask=0;mask<MASKS[5].length;mask++)
+                    amount=Math.max(amount,MASKS[5][mask].alpha(
+                        point[0],point[1],mask==0?40:36));
+                if(amount>0.001)throw new IOException(
+                    "Sun Peak illustrated landmark in mask: "+
+                    point[0]+","+point[1]+", alpha="+amount);
+            }
+            final int[][] bakedObjects={
+                {475,300}, // upper fixed stone pillar
+                {481,399}, // upper cap
+                {251,634}, // photographed original bird
+                {85,650},  // baked flight streak
+                {484,841}, // lower fixed pillar cap
+                {483,1075} // lower shaft
+            };
+            for(int[] point:bakedObjects){
+                double amount=0;
+                for(int mask=0;mask<MASKS[5].length;mask++)
+                    amount=Math.max(amount,MASKS[5][mask].alpha(
+                        point[0],point[1],mask==0?40:36));
+                if(amount<.98)throw new IOException(
+                    "Sun Peak stationary obstacle/bird survives reconstruction: "+
+                    point[0]+","+point[1]+", alpha="+amount);
+            }
+        }
         BufferedImage air=sky(w,h,world);
-        // The world 3/4 replacement corridor follows the real scene's local
-        // sky colours instead of a synthetic blue procedural mountain fill.
-        int[] matchedSky=(world==3||world==4)?sourceMatchedSky(original,world):null;
+        // Sample local painted colours, including the source Sun Peak
+        // sunset, instead of introducing unrelated procedural sky bands.
+        int[] matchedSky=(world==3||world==4||world==6)?
+            sourceMatchedSky(original,world):null;
         if(matchedSky!=null)for(int y=1;y<h;y++){
             // Reject a hard horizontal colour seam in the reconstructed sky.
             // Original floating islands/clouds remain untouched outside masks.
@@ -388,7 +467,8 @@ class RebuildWorlds {
                 // Keep v0.3.13 masks byte-for-byte consistent for worlds 1-2.
                 // Only the newly reconstructed worlds 3-4 use 32px fades.
                 double feather=world<=2?(mask==0?72:27):
-                               world<=4?(mask==0?72:32):92;
+                               world<=4?(mask==0?72:32):
+                               world==6?(mask==0?40:36):92;
                 amount=Math.max(amount,shape.alpha(x,y,feather));
             }
             for(Area a:COINS[world-1])
@@ -672,11 +752,11 @@ class RebuildWorlds {
     }
 
     public static void main(String[] args) throws Exception {
-        if(args.length!=1) throw new IllegalArgumentException(
-            "Usage: java -Djava.awt.headless=true tools/RebuildWorlds.java <assets-directory>");
+        if(args.length!=2) throw new IllegalArgumentException(
+            "Usage: java -Djava.awt.headless=true tools/RebuildWorlds.java <assets-directory> <sun-peak-original-reference.jpg>");
         for(int level=1;level<=6;level++){
             Path path=Path.of(args[0],"bg_"+level+".jpg");
-            rebuild(path,level);
+            rebuild(path,level,Path.of(args[1]));
             removePillarHeader(Path.of(args[0]),level);
             cleanHudCounters(Path.of(args[0]),level);
             cleanScoreHeader(Path.of(args[0]),level);

@@ -10,8 +10,8 @@ android {
         applicationId 'com.brendigo.skypeep'
         minSdk 23
         targetSdk 36
-        versionCode 41
-        versionName '0.3.29'
+        versionCode 42
+        versionName '0.3.30'
     }
     sourceSets.main {
         manifest.srcFile 'AndroidManifest.xml'
@@ -51,6 +51,9 @@ def artParts = fileTree(dir: "$rootDir/assets/pack", include: 'part-*')
 tasks.register('restoreSkyPeepArtwork') {
     inputs.files(artParts)
     inputs.file(file("$rootDir/tools/RebuildWorlds.java"))
+    // The original supplied Gameplay painting is the canonical Sun Peak
+    // source, rather than the old source package's previously banded bg_6.
+    inputs.file(file("$rootDir/assets/previews/gameplay.jpg"))
     outputs.dir(layout.buildDirectory.dir('generated/skypeep-assets'))
     doLast {
         def ordered = artParts.files.sort { it.name }
@@ -81,7 +84,8 @@ tasks.register('restoreSkyPeepArtwork') {
         project.exec {
             commandLine 'java', '-Djava.awt.headless=true',
                 file("$rootDir/tools/RebuildWorlds.java").absolutePath,
-                outputAssets.absolutePath
+                outputAssets.absolutePath,
+                file("$rootDir/assets/previews/gameplay.jpg").absolutePath
         }
     }
 }

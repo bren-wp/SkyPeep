@@ -1,0 +1,1 @@
+Shop and Settings now use illustrated world scenery; every coin/gem is saved immediately. Original Menu/Skins wallet artwork is preserved when balances match. Sun Peak now rebuilds from the user's original gameplay reference, preserving its sunset and temple. Flight physics unchanged.

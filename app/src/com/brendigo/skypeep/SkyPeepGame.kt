@@ -114,7 +114,6 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private var level = 1
     private var unlocked = MAX_LEVEL
     private val worldCoins = IntArray(MAX_LEVEL)
-    private var coinsSinceSave = 0
     private var resultWon = false
     private var score = 0
     private var best = 0
@@ -388,8 +387,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 }
             }
             Screen.SKINS -> { image("screen_skins", 0f, 0f, W, H); drawSkins() }
-            Screen.SHOP -> { image("screen_menu",0f,0f,W,H); drawShop() }
-            Screen.SETTINGS -> { image("screen_menu", 0f, 0f, W, H); drawSettings() }
+            Screen.SHOP -> { image("bg_$level",0f,0f,W,H); drawShop() }
+            Screen.SETTINGS -> { image("bg_$level", 0f, 0f, W, H); drawSettings() }
         }
         if (messageTimer > 0 && screen != Screen.PLAY) {
             badge("dark",110f,1375f,W-220f,103f)
@@ -424,7 +423,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         val name = when(screen) {
             Screen.PLAY -> "bg_$level"
             Screen.RESULT -> if(resultWon) "bg_$level" else "screen_over"
-            Screen.SHOP, Screen.SETTINGS -> "screen_menu"
+            Screen.SHOP, Screen.SETTINGS -> "bg_$level"
             Screen.SPLASH -> "screen_splash"
             Screen.MENU -> "screen_menu"
             Screen.MAP -> "screen_map"
@@ -736,7 +735,6 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         screen = Screen.PLAY
         score=0
         earnedCoins=0
-        coinsSinceSave=0
         resultWon=false
         precisionPasses=0
         earnedStars=0
@@ -868,17 +866,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 earnedCoins = SkyPeepEconomy.credit(earnedCoins,5)
                 val beforePickup=worldCoins[level-1]
                 worldCoins[level-1] = SkyPeepCoinGoal.increment(beforePickup)
-                coinsSinceSave++
                 playSound("coin")
                 if (SkyPeepCoinGoal.justCompleted(
                     beforePickup,worldCoins[level-1])) {
                     finish(true)
                     return
                 }
-                if (coinsSinceSave >= 10) {
-                    coinsSinceSave = 0
-                    save()
-                }
+                // Real coin pickups occur only at gate contact, not each
+                // frame. Save every physical coin so an app crash cannot
+                // lose up to nine world-goal pickups and wallet rewards.
+                save()
             }
             // Gem centre and 41-unit radius exactly follow drawDiamond.
             if (gate.gem && !gate.gemTaken &&
@@ -888,6 +885,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 gate.gemTaken=true
                 gems = SkyPeepEconomy.credit(gems,1)
                 playSound("coin")
+                save() // Flush real gem pickup before an unexpected process exit.
             }
             if (gate.heart && !gate.heartTaken && SkyPeepPickup.overlaps(
                     birdBody,gate.x+118f,gate.centerY-100f,
@@ -1140,10 +1138,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private fun drawMenuWallet() {
         // Cover only screenshot mockup's sample numeric labels, retaining the original visual buttons.
         // At the reference values preserve the screenshot pixels exactly.
-        badge("dark",119f,H-103f,136f,65f)
-        fitted(SkyPeepHudNumbers.compact(coins),H-54f,fontSmall,1.70f,127f,186f)
-        badge("dark",743f,H-103f,76f,65f)
-        fitted(SkyPeepHudNumbers.compact(gems),H-54f,fontSmall,1.70f,69f,781f)
+        // Reference artwork already paints 1,250 coins and 75 gems.
+        // Preserve those exact pixels until genuine saved balances differ.
+        if (SkyPeepReferenceWallet.menuNeedsCoinOverlay(coins)) {
+            badge("dark",119f,H-103f,136f,65f)
+            fitted(SkyPeepHudNumbers.compact(coins),H-54f,fontSmall,1.70f,127f,186f)
+        }
+        if (SkyPeepReferenceWallet.menuNeedsGemOverlay(gems)) {
+            badge("dark",743f,H-103f,76f,65f)
+            fitted(SkyPeepHudNumbers.compact(gems),H-54f,fontSmall,1.70f,69f,781f)
+        }
     }
 
     private fun drawMapProgress() {
@@ -1259,10 +1263,17 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
 
     private fun drawSkins() {
         // Dynamic saved values always replace the fixed reference mockup.
-        badge("wallet",120f,H-103f,164f,65f)
-        fitted(SkyPeepHudNumbers.compact(coins),H-35f,fontSmall,1.28f,153f,199f)
-        badge("wallet",733f,H-103f,111f,65f)
-        fitted(SkyPeepHudNumbers.compact(gems),H-35f,fontSmall,1.28f,104f,788f)
+        // The SKINS source plate paints 1,250 coins and 89 gems, whereas
+        // Main Menu source paints 1,250 coins and 75 gems. Repaint only
+        // when actual saved data differs from the corresponding illustration.
+        if (SkyPeepReferenceWallet.skinsNeedsCoinOverlay(coins)) {
+            badge("wallet",120f,H-103f,164f,65f)
+            fitted(SkyPeepHudNumbers.compact(coins),H-35f,fontSmall,1.28f,153f,199f)
+        }
+        if (SkyPeepReferenceWallet.skinsNeedsGemOverlay(gems)) {
+            badge("wallet",733f,H-103f,111f,65f)
+            fitted(SkyPeepHudNumbers.compact(gems),H-35f,fontSmall,1.28f,104f,788f)
+        }
         // DEFAULT is already printed in the supplied SKINS artwork.
         // Only replace that static plaque if a different costume is worn.
         if (selectedSkin!=0) {
@@ -1304,7 +1315,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     private fun drawShop() {
-        // Dedicated functional store, not the old SKINS screen duplicated.
+        // Dedicated store over existing world scenery, not menu buttons.
         drawRect(0f,0f,W,H,SHOP_SHADE)
         badge("cream",72f,180f,797f,1320f)
         badge("wood",117f,1365f,708f,122f)
@@ -1346,7 +1357,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     private fun drawSettings() {
-        // Branded parchment and wooden controls, shared with the PAUSED art style.
+        // Branded parchment and wood over world scenery, no ghosted menu buttons.
         drawRect(0f,0f,W,H,SETTINGS_SHADE)
         badge("cream",91f,348f,759f,1020f)
         badge("wood",132f,1214f,677f,139f)
