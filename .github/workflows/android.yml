@@ -67,8 +67,8 @@ jobs:
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+45" app/build.gradle
-          grep -Fq "versionName '0.3.33'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+46" app/build.gradle
+          grep -Fq "versionName '0.3.34'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/apk/release/app-release-unsigned.apk
           test -s app/build/outputs/bundle/release/app-release.aab
@@ -184,7 +184,7 @@ jobs:
   release:
     name: Publish verified preview
     needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.33-panel-art-recovery'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.34-panel-overscan-parity'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -206,7 +206,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.33-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.34-preview.${GITHUB_RUN_NUMBER}"
           for pattern in '*-debug.apk' '*-release-unsigned.apk' '*-play-upload-unsigned.aab' 'SHA256SUMS.txt' '*-fdroid-metadata.yml'; do
             test -n "$(find release-artifacts -type f -name "$pattern" -print -quit)" || {
               echo "Required release asset missing: $pattern"; exit 1;
@@ -219,7 +219,7 @@ jobs:
           # A quoted heredoc treats release notes as literal text: apostrophes
           # and other punctuation cannot accidentally break Bash parsing.
           cat > "$RUNNER_TEMP/skypeep-release-notes.md" <<'SKYPEEP_NOTES'
-          0.3.33: correct a missing-world-background defect when entering Shop or Settings after selecting another map island; stage the selected world before opening the panel, preserving the prior working artwork on a texture decode failure. Both center canvas and overscan now use the same loaded image. Includes pure Kotlin world-art fallback tests. Original four user reference illustrations, six open worlds, 10001 actual collected coins, three lives, physics, existing local saves and app ID are unchanged. Debug APK, unsigned release APK/AAB, F-Droid metadata and checksum included. Store signing, GPU crash diagnostics and true 1:1 visual QA require separate checks.
+          0.3.34: fix widescreen and tall-phone background-edge sampling in Shop/Settings: both pages use real per-world scenery and must sample broad source landscape, not a flat narrow UI pixel strip. Keep menu/levels/skins/pause screenshot strips narrow so baked controls never repeat outside the original illustrated 941x1672 canvas. Regression tests cover all screen classifications, world-panels and six phone/tablet ratios. Gameplay physics, pickups, six worlds, 10001 coins per world, lives, app ID and original assets unchanged. Includes debug APK, unsigned APK/AAB, checksums and F-Droid source metadata. Store signing and physical device visual verification are separate.
           SKYPEEP_NOTES
           gh release create "$VERSION" \
             "${release_files[@]}" \

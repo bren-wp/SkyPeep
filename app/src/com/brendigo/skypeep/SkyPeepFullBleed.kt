@@ -6,6 +6,19 @@ package com.brendigo.skypeep
  * The 941x1672 authored content and touch geometry remain untouched.
  */
 internal object SkyPeepFullBleed {
+    /**
+     * These screens render the loaded per-world background JPG, NOT UI
+     * screenshots with logos and wallet controls. Their expanded margins
+     * should therefore sample broad natural scenery just like active flight.
+     * Victory also uses the world; defeat still uses original GAME OVER art.
+     */
+    fun usesScenery(screen: String, victoryWon: Boolean = false): Boolean =
+        when(screen) {
+            "PLAY", "SHOP", "SETTINGS" -> true
+            "RESULT" -> victoryWon
+            else -> false
+        }
+
     /** The user-facing menu artwork has controls near its outer edges.\n     * Never duplicate those controls into wide Android overscan.\n     */
     fun safeUiStrip(sourcePixels: Int): Int {
         require(sourcePixels > 0)

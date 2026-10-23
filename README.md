@@ -35,6 +35,8 @@ Guide a brave little aviator through floating islands, glittering crystals, moon
 
 **Reference fidelity:** Unchanged wallet amounts retain their exact painted Menu/Skins reference pixels; dynamic overlays appear only when coins or gems actually differ from the corresponding source artwork.
 
+**Responsive scenery margins:** On tall phones and wide tablets, Shop and Settings reuse broad original world scenery for expanded margins instead of stretching narrow menu-image edge strips. Other screenshot-based pages continue protecting their original text, wallets and logos from duplication beyond the 941×1672 reference canvas.
+
 **Panel world artwork:** Choosing a different illustrated island on the map no longer leaves Shop or Settings with a missing background texture. Their scenery stages safely when opening the panel, while an unavailable resource reuses the last successfully loaded world's art.
 
 **Record durability and safe startup:** New best scores are saved at the scoring gate, without requiring a completed run. If one saved preference has an invalid type, SkyPeep uses that entry's default while continuing to read valid entries; the issue is logged for diagnosis. Android sharing restrictions are handled as recoverable errors. These safeguards do not replace physical-device crash QA.
