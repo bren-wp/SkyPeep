@@ -17,11 +17,12 @@ SkyPeep preserves its original Brendigo artwork and locally saved data through 0
 | [0.3.28](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.28-preview.511) | Screenshot-reviewed map, readable skin/shop buttons, Cloud Drift and Settings | Published preview; PR #42 merged; CI #513 succeeded |
 | [0.3.29](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.29-preview.523) | Menu touch precision, DONE status, wallet transaction checks, victory contrast | Published preview; PR #43 merged; CI #523/#524 passed |
 | [0.3.30](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.30-preview.543) | Illustrated Shop/Settings, reference wallet values, Sun Peak reconstruction and per-pickup saves | Published preview; PR #45 merged; CI #543/#544 successful |
-| **0.3.31** | Reduced on-pickup preference writes, guarded storage I/O, graceful failed world loading and release-shell regression | Development; awaiting CI/emulator and verified preview |
+| [0.3.31](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.31-preview.551) | Reduced pickup saves, guarded I/O, safe failed world transitions and release-shell regression | Published preview; PR #46 merged and CI #551/#552/#553 passed |
+| **0.3.32** | Safe per-key preferences reads, mid-flight record durability, share-sheet error recovery | Development, requires full CI/emulator and verified preview |
 
 ## Versioning and downloads
 
-Android `versionCode` increases monotonically (0.3.27 = 39; 0.3.28 = 40; 0.3.29 = 41; 0.3.30 = 42; planned 0.3.31 = 43). Every successfully validated release beginning with 0.3.24 attaches **three distinct binary artifacts**: testing-only debug APK, unsigned release APK for local signing, and an unsigned Play-upload AAB to sign using the existing upload key. It also includes SHA-256 checksums, F-Droid source-build metadata, license and signed-distribution instructions. No key is uploaded to GitHub. See [Android distribution and F-Droid preparation](ANDROID_DISTRIBUTION.md).
+Android `versionCode` increases monotonically (0.3.30 = 42; 0.3.31 = 43; planned 0.3.32 = 44). Every successfully validated release beginning with 0.3.24 attaches **three distinct binary artifacts**: testing-only debug APK, unsigned release APK for local signing, and an unsigned Play-upload AAB to sign using the existing upload key. It also includes SHA-256 checksums, F-Droid source-build metadata, license and signed-distribution instructions. No key is uploaded to GitHub. See [Android distribution and F-Droid preparation](ANDROID_DISTRIBUTION.md).
 
 Keep existing published GitHub Releases; do not overwrite or delete them while preparing later versions. Do not treat preview artwork as genuine app screenshots.
 
