@@ -227,6 +227,27 @@ sleep 1
 adb logcat -d -s SkyPeepMap:I '*:S' | grep -q 'selected_world=4' || {
   echo "FAIL: world 4 must be available without unlocking"; exit 1;
 }
+# Regression: selecting another island changes the saved selection but MUST
+# NOT require loading its big background JPG until gameplay or a world panel.
+# Both panel and full-bleed region must use the actual loaded world texture.
+tap_ui 95 1540
+capture island-four-menu MENU
+tap_ui 275 1400
+capture island-four-shop SHOP
+adb logcat -d -s SkyPeepAssets:I '*:S' | grep -q 'panel=SHOP selected=4 loaded=4' || {
+  echo "FAIL: shop opened with unloaded world 4 background"; exit 1;
+}
+tap_ui 470 1360
+capture island-four-shop-back MENU
+tap_ui 660 1400
+capture island-four-settings SETTINGS
+adb logcat -d -s SkyPeepAssets:I '*:S' | grep -q 'panel=SETTINGS selected=4 loaded=4' || {
+  echo "FAIL: settings opened with unloaded world 4 background"; exit 1;
+}
+tap_ui 465 1380
+capture island-four-settings-back MENU
+tap_ui 270 1210
+capture island-four-map MAP
 tap_ui 730 1140
 sleep 1
 adb logcat -d -s SkyPeepMap:I '*:S' | grep -q 'selected_world=2' || {

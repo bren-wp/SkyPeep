@@ -31,3 +31,7 @@ leading to empty panels in a valid MAP → MENU → SHOP/SETTINGS path.
   MENU → SHOP and SETTINGS → BACK → PLAY.
 - Pixel-for-pixel appearance on all physical devices and the previously
   user-reported runtime crash still require independent evidence.
+
+## Real Android emulator route regression
+
+The emulator smoke script now explicitly exercises **MAP → island 4 → MENU → SHOP → MENU → SETTINGS → MENU → MAP → island 2 → PLAY**. It captures the panel screens and checks `SkyPeepAssets` diagnostics show that both panels use the successfully staged world-4 texture. The route then checks that switching again to world 2 still enters gameplay. This complements JVM selection tests and catches the actual prior empty-panel scenario; it does not prove physical-device GPU parity.

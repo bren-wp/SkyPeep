@@ -581,6 +581,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             }
         }
         screen = next
+        Gdx.app.log("SkyPeepAssets",
+            "panel=${next.name} selected=$level loaded=$loadedLevelArt")
     }
 
     /** Never paint a background texture that has not been loaded yet. */
