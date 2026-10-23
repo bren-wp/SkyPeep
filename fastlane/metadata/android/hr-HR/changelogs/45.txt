@@ -1,0 +1,1 @@
+Ispravljene prazne ilustrirane pozadine Trgovine i Postavki nakon odabira drugog otoka na karti. Grafika se sigurno učitava, uz prethodnu pozadinu kao zamjenu ako učitavanje ne uspije. Fizika i izvorne ilustracije nisu mijenjane.
