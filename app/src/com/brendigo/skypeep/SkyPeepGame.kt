@@ -398,8 +398,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 }
             }
             Screen.SKINS -> { image("screen_skins", 0f, 0f, W, H); drawSkins() }
-            Screen.SHOP -> { image("bg_$level",0f,0f,W,H); drawShop() }
-            Screen.SETTINGS -> { image("bg_$level", 0f, 0f, W, H); drawSettings() }
+            Screen.SHOP -> { image(panelBackdropName(),0f,0f,W,H); drawShop() }
+            Screen.SETTINGS -> { image(panelBackdropName(), 0f, 0f, W, H); drawSettings() }
         }
         if (messageTimer > 0 && screen != Screen.PLAY) {
             badge("dark",110f,1375f,W-220f,103f)
@@ -434,7 +434,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         val name = when(screen) {
             Screen.PLAY -> "bg_$level"
             Screen.RESULT -> if(resultWon) "bg_$level" else "screen_over"
-            Screen.SHOP, Screen.SETTINGS -> "bg_$level"
+            Screen.SHOP, Screen.SETTINGS -> panelBackdropName()
             Screen.SPLASH -> "screen_splash"
             Screen.MENU -> "screen_menu"
             Screen.MAP -> "screen_map"
@@ -556,13 +556,38 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             SkyPeepMenuTouch.Action.PLAY -> { playSound("click"); begin(level) }
             SkyPeepMenuTouch.Action.LEVELS -> { playSound("click"); screen = Screen.MAP }
             SkyPeepMenuTouch.Action.SKINS -> { playSound("click"); screen = Screen.SKINS }
-            SkyPeepMenuTouch.Action.SHOP -> { playSound("click"); screen = Screen.SHOP }
-            SkyPeepMenuTouch.Action.SETTINGS -> { playSound("click"); screen = Screen.SETTINGS }
+            SkyPeepMenuTouch.Action.SHOP -> { playSound("click"); openWorldPanel(Screen.SHOP) }
+            SkyPeepMenuTouch.Action.SETTINGS -> { playSound("click"); openWorldPanel(Screen.SETTINGS) }
             SkyPeepMenuTouch.Action.COINS -> { playSound("click"); toast("COLLECT COINS IN FLIGHT") }
             SkyPeepMenuTouch.Action.GEMS -> { playSound("click"); toast("COLLECT GEMS IN FLIGHT") }
             null -> Unit
         }
     }
+
+    /**
+     * Selecting an island on MAP only updates the selected-world preference.
+     * When opening Shop/Settings later, load its scenery BEFORE switching
+     * screens. If decoding fails the last working world remains renderable.
+     */
+    private fun openWorldPanel(next: Screen) {
+        require(next == Screen.SHOP || next == Screen.SETTINGS)
+        if (SkyPeepPanelArtwork.needsStage(level, loadedLevelArt)) {
+            try {
+                loadLevelArt(level)
+            } catch (error: Exception) {
+                Gdx.app.error("SkyPeepAssets",
+                    "Panel world $level could not be loaded", error)
+                toast("WORLD BACKGROUND UNAVAILABLE")
+            }
+        }
+        screen = next
+        Gdx.app.log("SkyPeepAssets",
+            "panel=${next.name} selected=$level loaded=$loadedLevelArt")
+    }
+
+    /** Never paint a background texture that has not been loaded yet. */
+    private fun panelBackdropName(): String =
+        SkyPeepPanelArtwork.backgroundFor(loadedLevelArt) ?: "bg_$level"
 
     private fun clickMap(x: Float, y: Float) {
         when {

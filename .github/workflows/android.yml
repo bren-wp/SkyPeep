@@ -67,8 +67,8 @@ jobs:
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+44" app/build.gradle
-          grep -Fq "versionName '0.3.32'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+45" app/build.gradle
+          grep -Fq "versionName '0.3.33'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/apk/release/app-release-unsigned.apk
           test -s app/build/outputs/bundle/release/app-release.aab
@@ -184,7 +184,7 @@ jobs:
   release:
     name: Publish verified preview
     needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.32-score-prefs-recovery'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.33-panel-art-recovery'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -206,7 +206,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.32-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.33-preview.${GITHUB_RUN_NUMBER}"
           for pattern in '*-debug.apk' '*-release-unsigned.apk' '*-play-upload-unsigned.aab' 'SHA256SUMS.txt' '*-fdroid-metadata.yml'; do
             test -n "$(find release-artifacts -type f -name "$pattern" -print -quit)" || {
               echo "Required release asset missing: $pattern"; exit 1;
@@ -219,7 +219,7 @@ jobs:
           # A quoted heredoc treats release notes as literal text: apostrophes
           # and other punctuation cannot accidentally break Bash parsing.
           cat > "$RUNNER_TEMP/skypeep-release-notes.md" <<'SKYPEEP_NOTES'
-          0.3.32: safely fall back when individual saved values are malformed, while retaining other valid settings and progress. New personal and route-best scores are durably saved when earned rather than only at flight end. Share-sheet security or input errors are handled without closing the game. Added JVM regression tests for storage and score-saving contracts. Original four illustrated references, all six worlds, physics, three lives and 10001 physical coin goals are unchanged. Includes verified debug APK, unsigned APK and AAB, checksum and F-Droid source metadata. Physical device crashes and store signing require separate checks.
+          0.3.33: correct a missing-world-background defect when entering Shop or Settings after selecting another map island; stage the selected world before opening the panel, preserving the prior working artwork on a texture decode failure. Both center canvas and overscan now use the same loaded image. Includes pure Kotlin world-art fallback tests. Original four user reference illustrations, six open worlds, 10001 actual collected coins, three lives, physics, existing local saves and app ID are unchanged. Debug APK, unsigned release APK/AAB, F-Droid metadata and checksum included. Store signing, GPU crash diagnostics and true 1:1 visual QA require separate checks.
           SKYPEEP_NOTES
           gh release create "$VERSION" \
             "${release_files[@]}" \

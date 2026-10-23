@@ -1,0 +1,1 @@
+Fixed blank illustrated Shop and Settings backgrounds after switching map islands. The selected world scene is loaded safely, with fallback to the prior scene if an asset cannot be decoded. Original artwork and physics unchanged.
