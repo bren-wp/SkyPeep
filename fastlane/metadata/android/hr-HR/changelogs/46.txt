@@ -1,0 +1,1 @@
+Poboljšani rubovi ilustriranih pozadina Trgovine i Postavki na visokim telefonima i tabletima. Umjesto uskih ravnih traka prikazuje se širi izvorni krajolik, bez promjene gameplaya i spremljenog napretka.

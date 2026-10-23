@@ -447,8 +447,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // four-pixel sliver created visibly empty, flat strips on tall devices.
         // Artwork and all UI elements inside the 941x1672 authored canvas stay
         // at 1:1 proportions, while only the safe overscan area is extended.
-        val safeScenery = screen == Screen.PLAY ||
-            (screen == Screen.RESULT && resultWon)
+        val safeScenery = SkyPeepFullBleed.usesScenery(
+            screen.name, resultWon)
         // For UI screens use only the true outer 12px SKY/SCENERY ROWS,
         // not a tall 1/8-image slice that could repeat the logo or wallet.
         // Always sample their FULL WIDTH: stretching just 12 source columns
@@ -481,8 +481,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 texture.width-horizontalSourceWidth,0,
                 horizontalSourceWidth,texture.height,false,false)
         }
-        // Shop and Settings darken the main-menu art beneath their cream
-        // panels. Continue that EXACT overlay into the expanded margins:
+        // Shop and Settings darken their staged WORLD scene behind their
+        // parchment panels. Extend the SAME shade into extra margins:
         // otherwise tall devices show a bright rectangular seam around the
         // centre panel while its photographed background is dimmed.
         val shade=when(screen) {

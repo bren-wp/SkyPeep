@@ -24,6 +24,37 @@ class SkyPeepFullBleedTest {
             SkyPeepFullBleed.safeUiStrip(1254))
     }
 
+    @Test fun illustratedWorldPanelsUseBroadSceneryNotTwelvePixelUiStrip() {
+        for (screen in listOf("PLAY", "SHOP", "SETTINGS")) {
+            assertTrue("world scenery: $screen",
+                SkyPeepFullBleed.usesScenery(screen))
+            val top = SkyPeepFullBleed.horizontalBand(
+                941, 1672, SkyPeepFullBleed.usesScenery(screen), bottom=false)
+            assertEquals(128, top.height)
+        }
+        for (screen in listOf("SPLASH", "MENU", "MAP", "SKINS", "PAUSE")) {
+            assertFalse("photo UI: $screen", SkyPeepFullBleed.usesScenery(screen))
+            val top = SkyPeepFullBleed.horizontalBand(
+                941, 1672, SkyPeepFullBleed.usesScenery(screen), bottom=false)
+            assertEquals(12, top.height)
+        }
+        assertFalse(SkyPeepFullBleed.usesScenery("RESULT", false))
+        assertTrue(SkyPeepFullBleed.usesScenery("RESULT", true))
+        assertFalse(SkyPeepFullBleed.usesScenery("UNKNOWN"))
+    }
+
+    @Test fun sceneryOverscanWorksAcrossAllSupportedPhoneAndTabletRatios() {
+        for ((w,h) in listOf(360 to 640,720 to 1280,1080 to 2400,
+                               1200 to 1920,1600 to 2000,2048 to 1536)) {
+            val frame = SkyPeepScreenFrame.forPixels(w,h)
+            assertTrue(frame.extraX >= 0f && frame.extraY >= 0f)
+            val sampled = SkyPeepFullBleed.horizontalBand(706,1254,
+                SkyPeepFullBleed.usesScenery("SHOP"), bottom=true)
+            assertEquals(128, sampled.height)
+            assertEquals(1254, sampled.y + sampled.height)
+        }
+    }
+
     @Test fun tallScreenSourceBandsStayInsideOriginalTexture() {
         for ((width,height) in listOf(12 to 16,706 to 1254,
                                       941 to 1672,2048 to 1536)) {

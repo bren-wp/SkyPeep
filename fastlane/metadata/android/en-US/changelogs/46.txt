@@ -1,0 +1,1 @@
+Improved illustrated Shop and Settings background edges on tall phones and tablets. Broader real scenery replaces flat narrow edge strips without changing the original menu, gameplay, physics or saves.
