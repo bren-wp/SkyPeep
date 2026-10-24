@@ -1341,15 +1341,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 button.left+button.width/2f,Color.WHITE)
         }
         for (i in 1..4) {
-            // Draw every visible purchase/equip action inside EXACTLY the
-            // same illustrated rectangle that handles the corresponding tap.
+            val caption = SkyPeepSkinUi.dynamicCaption(
+                i, selectedSkin, ownedSkins[i]) ?: continue
+            // The original screenshot already paints its four BUY buttons.
+            // Repainting unchanged BUY art degraded 1:1 lower-card pixels.
+            // Draw only the dynamic EQUIP or EQUIPPED state, using the same
+            // rectangle that handles the actual button tap.
             val button=SkyPeepUiTouch.skinPurchaseRect(i)
-            val owned=ownedSkins[i]
-            // Green BUY buttons preserve the original illustrated reference.
-            // Their rendered geometry and click geometry are identical.
             badge("green",
                 button.left,H-button.top-button.height,button.width,button.height)
-            fitted(if(selectedSkin==i)"EQUIPPED" else if(owned)"EQUIP" else "BUY",
+            fitted(caption,
                 H-button.top-button.height/2f+13f,fontSmall,1.14f,
                 button.width-12f,button.left+button.width/2f,Color.WHITE)
         }

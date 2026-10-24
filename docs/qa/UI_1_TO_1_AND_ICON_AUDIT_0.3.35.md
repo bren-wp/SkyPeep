@@ -55,3 +55,16 @@ This avoids new unrelated artwork and an undersized launcher subject.
   debug/release APK, unsigned AAB, four ABIs and source art SHA-256;
 - Physical-device cutouts, status/gesture bar insets and GPU context-loss
   behaviour still require manual QA and crash logs.
+
+## Lower SKINS card pixel preservation
+
+An earlier emulator comparison against the user-supplied four screenshot references
+measured mean absolute RGB-channel errors (normalized to 520x924):
+MENU 5.19/255, LEVELS 6.94/255 and SKINS 7.31/255. SKINS' lower
+third was ~12.05/255, compared with 5.57 upper and 4.31 middle.
+The source JPG already contains four precisely painted green BUY buttons;
+redrawing every unchanged BUY with procedural NinePatches needlessly replaced
+those original pixels. The app now skips that draw entirely when the button
+still says BUY, and draws only EQUIP/EQUIPPED after a real purchase or
+selection. These historic values are diagnostic for a previous build, not
+a fabricated post-fix measurement or certification.
