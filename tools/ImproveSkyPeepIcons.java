@@ -70,7 +70,7 @@ public final class ImproveSkyPeepIcons {
         graphics.fillOval(0,0,size-1,size-1);
         graphics.setColor(new Color(12,68,91,145));
         graphics.setStroke(new BasicStroke(Math.max(.55f,size/220f)));
-        graphics.drawOval(.5f,.5f,size-1.5f,size-1.5f);
+        graphics.drawOval(0,0,size-1,size-1);
         int w=Math.round(size*.755f),h=Math.round(w*bird.getHeight()/(float)bird.getWidth());
         graphics.drawImage(bird,(size-w)/2,(size-h)/2,w,h,null);
         graphics.dispose();
