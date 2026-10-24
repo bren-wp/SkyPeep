@@ -27,6 +27,12 @@ internal object SkyPeepUiTouch {
     fun pauseActionAt(x: Float, yTop: Float): PauseAction? =
         pauseTargets.firstOrNull { (_, bounds) -> bounds.contains(x, yTop) }?.first
 
+    // The green DEFAULT / EQUIPPED surface in the artwork is a real button.
+    // Never activate the DEFAULT name plaque or a blank part of the bird.
+    val defaultEquipRect = Rect(289f, 851f, 363f, 97f)
+    fun defaultEquipAt(x: Float, yTop: Float): Boolean =
+        defaultEquipRect.contains(x, yTop)
+
     // The original SKINS screenshot contains four BUY buttons. Only their
     // visible bottom-row area is actionable; tapping the bird/card must not buy.
     private val skinPurchaseTargets = (0..3).map { index ->

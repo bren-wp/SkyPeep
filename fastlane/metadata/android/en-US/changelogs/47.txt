@@ -1,0 +1,1 @@
+Improved SkyPeep launcher icon with a larger original aviator and adaptive Android mask. Corrected the Skins DEFAULT button hit area and EQUIP status after switching outfits. Original artwork, physics and offline saves preserved.

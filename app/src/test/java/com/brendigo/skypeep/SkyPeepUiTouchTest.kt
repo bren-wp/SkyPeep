@@ -33,6 +33,23 @@ class SkyPeepUiTouchTest {
         assertFalse(SkyPeepUiTouch.skinsBack(100f, 1490f))
     }
 
+    @Test fun defaultSkinButtonDoesNotOverlapPaintedPlaqueOrBack() {
+        val r = SkyPeepUiTouch.defaultEquipRect
+        assertTrue(SkyPeepUiTouch.defaultEquipAt(r.left+100f, r.top+45f))
+        assertTrue(SkyPeepUiTouch.defaultEquipAt(470f, 903f))
+        for (y in listOf(750f, 805f, 960f, 1015f, 1550f)) {
+            assertFalse("Default must not equip at y=$y",
+                SkyPeepUiTouch.defaultEquipAt(470f, y))
+        }
+        assertFalse(SkyPeepUiTouch.defaultEquipAt(700f, 905f))
+        assertFalse(SkyPeepUiTouch.defaultEquipAt(Float.NaN, 900f))
+        assertFalse(SkyPeepUiTouch.skinsBack(470f, 900f))
+        for (skin in 1..4) {
+            val card = SkyPeepUiTouch.skinPurchaseRect(skin)
+            assertFalse(SkyPeepUiTouch.defaultEquipAt(card.left+70f, card.top+40f))
+        }
+    }
+
     @Test fun shopOnlyAcceptsVisibleOfferControlsAndBack() {
         for (id in 0..3) {
             val r = SkyPeepUiTouch.shopPurchaseRect(id)

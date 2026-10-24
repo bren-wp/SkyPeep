@@ -1,0 +1,1 @@
+Poboljšana ikona SkyPeepa s većom izvornom ptičicom i prilagodljivom Android ikonom. Ispravljena dodirna zona gumba DEFAULT i stanje EQUIP pri zamjeni kostima. Izvorne ilustracije, fizika i spremanje nisu mijenjani.
