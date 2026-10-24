@@ -20,11 +20,12 @@ SkyPeep preserves its original Brendigo artwork and locally saved data through 0
 | [0.3.31](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.31-preview.551) | Reduced pickup saves, guarded I/O, safe failed world transitions and release-shell regression | Published preview; PR #46 merged and CI #551/#552/#553 passed |
 | [0.3.32](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.32-preview.559) | Safe per-key preferences reads, mid-flight record durability, share-sheet error recovery | Published preview; PR #47 merged; #559/#560/#561 succeeded |
 | [0.3.33](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.33-preview.565) | Shop/Settings selected-island scene loading, emulator route QA | Published preview; PR #48 merged; CI #565/#566/#567 successful |
-| **0.3.34** | Correct natural scenery overscan on Shop/Settings across phone and tablet ratios | In development; pending CI, emulator and release |
+| [0.3.34](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.34-preview.569) | Landscape edge sampling for Shop/Settings on tall and wide devices | Published; PR #49 merged; CI #569–571 successful |
+| **0.3.35** | Larger original aviator app icon, adaptive launcher icon, accurate Skins EQUIP tap/state and full-screen visual audit | In development; awaiting CI, emulator and release |
 
 ## Versioning and downloads
 
-Android `versionCode` increases monotonically (0.3.32 = 44; 0.3.33 = 45; planned 0.3.34 = 46). Every successfully validated release beginning with 0.3.24 attaches **three distinct binary artifacts**: testing-only debug APK, unsigned release APK for local signing, and an unsigned Play-upload AAB to sign using the existing upload key. It also includes SHA-256 checksums, F-Droid source-build metadata, license and signed-distribution instructions. No key is uploaded to GitHub. See [Android distribution and F-Droid preparation](ANDROID_DISTRIBUTION.md).
+Android `versionCode` increases monotonically (0.3.33 = 45; 0.3.34 = 46; planned 0.3.35 = 47). Every successfully validated release beginning with 0.3.24 attaches **three distinct binary artifacts**: testing-only debug APK, unsigned release APK for local signing, and an unsigned Play-upload AAB to sign using the existing upload key. It also includes SHA-256 checksums, F-Droid source-build metadata, license and signed-distribution instructions. No key is uploaded to GitHub. See [Android distribution and F-Droid preparation](ANDROID_DISTRIBUTION.md).
 
 Keep existing published GitHub Releases; do not overwrite or delete them while preparing later versions. Do not treat preview artwork as genuine app screenshots.
 

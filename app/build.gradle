@@ -10,13 +10,15 @@ android {
         applicationId 'com.brendigo.skypeep'
         minSdk 23
         targetSdk 36
-        versionCode 46
-        versionName '0.3.34'
+        versionCode 47
+        versionName '0.3.35'
     }
     sourceSets.main {
         manifest.srcFile 'AndroidManifest.xml'
         java.srcDirs = ['src/com']
-        res.srcDirs = ['res']
+        // Original icon art remains intact; generated resources contain the
+        // larger branded aviator icon and correctly masked adaptive layers.
+        res.srcDirs = ["$buildDir/generated/skypeep-res"]
         assets.srcDirs = ["$buildDir/generated/skypeep-assets"]
         jniLibs.srcDirs = ["$buildDir/generated/skypeep-jniLibs"]
     }
@@ -90,6 +92,38 @@ tasks.register('restoreSkyPeepArtwork') {
     }
 }
 tasks.named('preBuild').configure { dependsOn('restoreSkyPeepArtwork') }
+
+// Build the launcher images from the EXISTING original SkyPeep bird icon.
+// Other resources are copied unchanged, preserving application labels.
+tasks.register('generateSkyPeepAppIcons') {
+    inputs.dir(file('res'))
+    inputs.file(file("$rootDir/tools/ImproveSkyPeepIcons.java"))
+    outputs.dir(layout.buildDirectory.dir('generated/skypeep-res'))
+    doLast {
+        def destination = file("$buildDir/generated/skypeep-res")
+        delete(destination)
+        copy {
+            from file('res')
+            into destination
+        }
+        project.exec {
+            commandLine 'java', '-Djava.awt.headless=true',
+                file("$rootDir/tools/ImproveSkyPeepIcons.java").absolutePath,
+                file('res').absolutePath, destination.absolutePath
+        }
+        ['mdpi':48,'hdpi':72,'xhdpi':96,'xxhdpi':144,'xxxhdpi':192].each { density, size ->
+            def path = file("$destination/mipmap-$density/ic_launcher.png")
+            if (!path.isFile() || path.length() < 100)
+                throw new GradleException("Missing generated SkyPeep icon: $density")
+        }
+        if (!file("$destination/mipmap-anydpi-v26/ic_launcher.xml").isFile())
+            throw new GradleException('Adaptive launcher icon not generated')
+    }
+}
+tasks.named('preBuild').configure { dependsOn('generateSkyPeepAppIcons') }
+tasks.matching {
+    it.name.startsWith('merge') && it.name.endsWith('Resources')
+}.configureEach { dependsOn('generateSkyPeepAppIcons') }
 
 // Android Gradle Plugin does not automatically unpack root-level .so files
 // from the platform's classifier JARs just because they are runtime dependencies.

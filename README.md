@@ -33,6 +33,10 @@ Guide a brave little aviator through floating islands, glittering crystals, moon
 
 **Illustrated panels:** Shop and Settings now display the existing world scenery rather than the Main Menu's logo and buttons behind their themed UI. The four supplied visual references remain unmodified. Reconstructed live world backgrounds still need separate visual cleanup before claiming 1:1.
 
+**Skins reference fidelity:** The existing four BUY buttons are painted in the original user-supplied skins artwork; they remain untouched until ownership/equipment state changes, avoiding needless visual replacements. The Default card has its correct tap target and live EQUIP state.
+
+**Launcher branding and touch accuracy:** The original aviator is displayed larger within the Android app icon; an Android 8+ adaptive launcher foreground/background is derived deterministically from the project's existing icon. On SKINS the DEFAULT plaque stays named DEFAULT even if another costume is worn; only its real green EQUIP button changes state and accepts touches. Purchase cards, their hitboxes and screenshots remain untouched.
+
 **Reference fidelity:** Unchanged wallet amounts retain their exact painted Menu/Skins reference pixels; dynamic overlays appear only when coins or gems actually differ from the corresponding source artwork.
 
 **Responsive scenery margins:** On tall phones and wide tablets, Shop and Settings reuse broad original world scenery for expanded margins instead of stretching narrow menu-image edge strips. Other screenshot-based pages continue protecting their original text, wallets and logos from duplication beyond the 941×1672 reference canvas.

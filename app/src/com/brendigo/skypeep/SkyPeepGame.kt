@@ -668,10 +668,13 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             screen = Screen.MENU
             return
         }
-        if (hit(x,y,285f,810f,398f,120f)) {
+        if (SkyPeepUiTouch.defaultEquipAt(x,y)) {
             playSound("click")
-            selectedSkin = 0
-            save()
+            if (selectedSkin != 0) {
+                selectedSkin = 0
+                save()
+            }
+            Gdx.app.log("SkyPeepSkin", "equipped=0")
             toast("DEFAULT EQUIPPED")
             return
         }
@@ -691,6 +694,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         ownedSkins[skin] = true
         selectedSkin = skin
         save()
+        Gdx.app.log("SkyPeepSkin", "equipped=$skin")
         toast(if (purchase.alreadyOwned) "${skinName(skin)} EQUIPPED"
               else "${skinName(skin)} UNLOCKED")
         if (!purchase.alreadyOwned) playSound("win")
@@ -1325,23 +1329,28 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             badge("wallet",733f,H-103f,111f,65f)
             fitted(SkyPeepHudNumbers.compact(gems),H-35f,fontSmall,1.28f,104f,788f)
         }
-        // DEFAULT is already printed in the supplied SKINS artwork.
-        // Only replace that static plaque if a different costume is worn.
-        if (selectedSkin!=0) {
-            badge("cream",341f,H-821f,282f,68f)
-            fitted(skinName(selectedSkin).uppercase(Locale.ROOT),
-                H-775f,fontSmall,1.25f,265f,W/2f,TEXT_ON_CREAM)
+        // DEFAULT labels the illustrated default bird, not the currently worn
+        // costume. Preserve the painted plaque. When another skin is worn,
+        // replace ONLY the outdated baked EQUIPPED caption with live EQUIP.
+        if (selectedSkin != 0) {
+            val button = SkyPeepUiTouch.defaultEquipRect
+            badge("green", button.left,
+                H-button.top-button.height, button.width, button.height)
+            fitted("EQUIP", H-button.top-button.height/2f+13f,
+                fontSmall,1.14f,button.width-10f,
+                button.left+button.width/2f,Color.WHITE)
         }
         for (i in 1..4) {
-            // Draw every visible purchase/equip action inside EXACTLY the
-            // same illustrated rectangle that handles the corresponding tap.
+            val caption = SkyPeepSkinUi.dynamicCaption(
+                i, selectedSkin, ownedSkins[i]) ?: continue
+            // The original screenshot already paints its four BUY buttons.
+            // Repainting unchanged BUY art degraded 1:1 lower-card pixels.
+            // Draw only the dynamic EQUIP or EQUIPPED state, using the same
+            // rectangle that handles the actual button tap.
             val button=SkyPeepUiTouch.skinPurchaseRect(i)
-            val owned=ownedSkins[i]
-            // Green BUY buttons preserve the original illustrated reference.
-            // Their rendered geometry and click geometry are identical.
             badge("green",
                 button.left,H-button.top-button.height,button.width,button.height)
-            fitted(if(selectedSkin==i)"EQUIPPED" else if(owned)"EQUIP" else "BUY",
+            fitted(caption,
                 H-button.top-button.height/2f+13f,fontSmall,1.14f,
                 button.width-12f,button.left+button.width/2f,Color.WHITE)
         }

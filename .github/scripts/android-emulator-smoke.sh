@@ -95,6 +95,18 @@ tap_ui 95 1540
 capture map-back MENU
 tap_ui 660 1230
 capture skins SKINS
+# Buy the Captain cosmetic using ONLY its painted bottom BUY button,
+# then check the default EQUIP control returns the original aviator.
+tap_ui 110 1405
+capture skins-captain-equipped SKINS
+adb logcat -d -s SkyPeepSkin:I '*:S' | grep -q 'equipped=1' || {
+  echo "FAIL: Captain BUY did not equip the purchased bird"; exit 1;
+}
+tap_ui 470 903
+capture skins-default-reequipped SKINS
+adb logcat -d -s SkyPeepSkin:I '*:S' | grep -q 'equipped=0' || {
+  echo "FAIL: DEFAULT EQUIP did not restore original aviator"; exit 1;
+}
 tap_ui 100 1560
 capture skins-back MENU
 tap_ui 275 1400
