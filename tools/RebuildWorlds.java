@@ -861,7 +861,9 @@ class RebuildWorlds {
             "Insufficient original cyan badge pixels in world "+world+
             ": "+samples.size());
 
-        final int distance=66,sigma=22;
+        // Some original world badges have sparse cyan around the numerals;
+        // look across the whole illustrated shield, not only a 66px core.
+        final int distance=130,sigma=22;
         double[] weight=new double[distance*distance*2+1];
         for(int d2=0;d2<weight.length;d2++)
             weight[d2]=Math.exp(-d2/(2.0*sigma*sigma));
