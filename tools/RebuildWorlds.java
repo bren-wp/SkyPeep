@@ -449,8 +449,10 @@ class RebuildWorlds {
         // Exercise both real reconstruction paths without altering source art.
         for(int world:new int[]{1,2}) {
             int[] rebuilt=sourceMatchedSky(input,world);
-            int lo=(rebuilt[620*w+45]>>>16)&255;
-            int hi=(rebuilt[620*w+665]>>>16)&255;
+            // Sample clear source sky on both sides of the baked pillars,
+            // not the midflight bird/motion masks around row 620.
+            int lo=(rebuilt[300*w+45]>>>16)&255;
+            int hi=(rebuilt[300*w+665]>>>16)&255;
             if(hi-lo<20)throw new IllegalStateException(
                 "Regression: world "+world+" replacement lost horizontal source lighting");
         }
