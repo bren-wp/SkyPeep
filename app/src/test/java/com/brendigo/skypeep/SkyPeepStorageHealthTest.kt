@@ -22,4 +22,39 @@ class SkyPeepStorageHealthTest {
         // No implicit recovery on a subsequent unrelated successful read.
         assertFalse(health.canWrite)
     }
+    @Test fun failedFullFlushIsNotFalselyClearedBySuccessfulPickupWrite() {
+        val health = SkyPeepStorageHealth()
+        health.onFlushFailure()
+        assertTrue(health.canWrite)
+        assertTrue(health.needsFullSnapshot)
+        assertFalse(health.purchaseReady)
+        // Even if a later partial transaction reaches storage, ownership,
+        // route scores or options from the earlier save may still be missing.
+        health.onFlushSuccess(fullSnapshot = false)
+        assertTrue(health.needsFullSnapshot)
+        assertFalse(health.purchaseReady)
+        health.onFlushSuccess(fullSnapshot = true)
+        assertFalse(health.needsFullSnapshot)
+        assertTrue(health.purchaseReady)
+    }
+
+    @Test fun unreadableOriginalNeverBecomesWritableAfterAnyRetry() {
+        val health = SkyPeepStorageHealth()
+        health.onReadFailure()
+        health.onFlushFailure()
+        health.onFlushSuccess(fullSnapshot = true)
+        assertFalse(health.canWrite)
+        assertFalse(health.purchaseReady)
+    }
+
+    @Test fun secondFailedFlushStillRequiresFullRecovery() {
+        val health = SkyPeepStorageHealth()
+        health.onFlushFailure()
+        health.onFlushFailure()
+        health.onFlushSuccess(fullSnapshot = false)
+        assertTrue(health.needsFullSnapshot)
+        health.onFlushSuccess(fullSnapshot = true)
+        assertTrue(health.purchaseReady)
+    }
+
 }
