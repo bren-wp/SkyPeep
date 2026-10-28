@@ -1116,8 +1116,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             fitted("+1 LIFE",(birdY+BIRD_H+52f).coerceAtMost(H-236f),
                 fontSmall,1.0f,202f,BIRD_X+BIRD_W*.5f)
         if (readyForFirstTap) {
-            badge("dark",290f,355f,360f,88f)
-            fitted("TAP TO FLY",412f,fontSmall,1.5f,331f)
+            // Not a second PLAY button: any safe gameplay touch starts
+            // flight. The original screenshot is unmodified once airborne.
+            badge("cream",SkyPeepHudLayout.PROMPT_X,
+                SkyPeepHudLayout.PROMPT_Y,
+                SkyPeepHudLayout.PROMPT_WIDTH,
+                SkyPeepHudLayout.PROMPT_HEIGHT)
+            fitted("TAP TO FLY",
+                SkyPeepHudLayout.PROMPT_Y + 74f,
+                fontLarge,1.08f,SkyPeepHudLayout.PROMPT_WIDTH-32f,
+                W/2f,TEXT_ON_CREAM)
         }
     }
 
@@ -1179,29 +1187,35 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         val left = SkyPeepHudLayout.coinX(visibleFrame)
         val right = SkyPeepHudLayout.gemX(visibleFrame)
         val pause = SkyPeepHudLayout.pauseX(visibleFrame)
-        // Reduced visual weight of numeric badges (the pause target stays
-        // full-size and accessible); hearts sit in the freed left-hand space.
+        // Source-illustrated coin, gemstone, pause and winged score artwork.
+        // The rebuilt score texture keeps its native ratio instead of a
+        // vertically squashed banner; preserve its top position.
         image("hud_left_$level", left, top-106f, 235f, 96f)
         image("hud_right_$level", right, top-108f, 170f, 99f)
         image("hud_pause_$level", pause, top-129f, 125f, 122f)
-        image("hud_score_$level", 313f, top-182f, 315f, 174f)
+        image("hud_score_$level", 313f, top-188f, 315f, 180f)
+        // Three lives and the per-world goal occupy the LEFT status lane.
+        // They must never overlay the original central winged score ribbon.
         for (i in 0 until SkyPeepLives.MAX) {
             if (i >= lives) batch.color = EMPTY_HEART_TINT
-            drawHeart(visibleFrame.left+48f+i*57f,top-165f,25f)
+            drawHeart(SkyPeepHudLayout.heartCenterX(visibleFrame,i),
+                SkyPeepHudLayout.heartCenterY(visibleFrame),21f)
             batch.color = Color.WHITE
         }
-        // The original six wallet plates are now cleaned at build time.
-        // Keep illustrated gemstone, coin and edge strokes 1:1; no generic
-        // overlay pills that hide the original decorative cyan borders.
-        fitted(hudText.coins(coins),top-50f,fontSmall,1.50f,104f,left+150f)
-        fitted(hudText.gems(gems),top-49f,fontSmall,1.48f,64f,right+117f)
-        // Keep the original score face and button positions untouched.
+        // Original HUD plates are cleaned at build time. The live digits
+        // remain inside their navy fields and do not cover the coin/gem art.
+        fitted(hudText.coins(coins),top-52f,fontSmall,1.27f,108f,left+171f)
+        fitted(hudText.gems(gems),top-51f,fontSmall,1.25f,70f,right+122f)
         drawWingedScore()
-        // A single restrained goal pill replaces cluttered precision/bonus
-        // indicators. Never conflate spendable wallet coins and world pickups.
-        badge("dark",W/2f-137f,top-247f,274f,55f)
+        // Real collected pickups (not spendable wallet balance), now off
+        // the banner and never competing with the centre score numerals.
+        val goalX=SkyPeepHudLayout.goalX(visibleFrame)
+        val goalY=SkyPeepHudLayout.goalBottom(visibleFrame)
+        badge("dark",goalX,goalY,
+            SkyPeepHudLayout.GOAL_WIDTH,SkyPeepHudLayout.GOAL_HEIGHT)
         fitted(SkyPeepCoinGoal.label(worldCoins[level-1]),
-            top-211f,fontSmall,.86f,258f,W/2f)
+            goalY+35f,fontSmall,.84f,SkyPeepHudLayout.GOAL_WIDTH-14f,
+            goalX+SkyPeepHudLayout.GOAL_WIDTH/2f)
         // Never silently show a healthy wallet when local storage is no
         // longer safely readable or flush() failed. Only the failure state
         // adds this strip; ordinary gameplay stays source-art compatible.
