@@ -681,6 +681,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             return
         }
         if (SkyPeepUiTouch.defaultEquipAt(x,y)) {
+            if (selectedSkin != 0 && !ensurePurchaseStorageReady()) return
             playSound("click")
             if (selectedSkin != 0) {
                 selectedSkin = 0
@@ -692,6 +693,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         }
         // Card art and prices are informational, only the BUY/EQUIP control is actionable.
         val skin = SkyPeepUiTouch.skinPurchaseAt(x,y) ?: return
+        if (!ensurePurchaseStorageReady()) return
         playSound("click")
         // Single-charge wallet operation, including repeated EQUIP taps.
         val choice = SkyPeepSkinCatalog.get(skin)
@@ -721,6 +723,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         }
         // A purchase must originate from the visible BUY/EQUIP badge.
         val offerId = SkyPeepUiTouch.shopPurchaseAt(x,yTop) ?: return
+        if (!ensurePurchaseStorageReady()) return
         val offer = SkyPeepTrailCatalog.all[offerId]
         val purchased=SkyPeepTrailCatalog.purchase(
             offer.id,ownedTrails[offer.id],coins,gems)
@@ -739,6 +742,19 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // Avoid writing wallet balances into globally accessible diagnostic logs.
         Gdx.app.log("SkyPeepShop","selected=${offer.name}")
         playSound(if(purchased.alreadyOwned) "click" else "win")
+    }
+
+    /**
+     * Do not charge the wallet or change ownership when existing stored data
+     * was unreadable or a previous full snapshot may not have reached disk.
+     * Retry the complete known in-memory state before any new transaction.
+     */
+    private fun ensurePurchaseStorageReady(): Boolean {
+        if (storageHealth.canWrite && storageHealth.needsFullSnapshot) save()
+        if (storageHealth.purchaseReady && !lastSaveFailed) return true
+        toast("SAVE UNAVAILABLE - PURCHASE BLOCKED")
+        Gdx.app.error("SkyPeepStorage", "Blocked cosmetic change until storage recovers")
+        return false
     }
 
     private fun clickSettings(x: Float, y: Float) {
@@ -1531,18 +1547,30 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
      * save remains mandatory for settings, scores, stars and shop ownership.
      * On I/O failure, the in-memory state is retained for the next retry.
      */
-    private fun persist(write: () -> Unit) {
-        if (!::prefs.isInitialized || !storageHealth.canWrite || !SkyPeepQaSession.shouldPersist(
+    private fun persist(fullSnapshot: Boolean = false, write: () -> Unit) {
+        if (!::prefs.isInitialized || !SkyPeepQaSession.shouldPersist(
                 world = qaWorld, mapUnlocked = qaMapUnlocked,
                 skin = qaSkin, victory = qaVictory, pillars = qaPillars,
                 score = qaScore, loss = qaLoss,
                 backgroundMotion = qaBackgroundMotion,
                 difficulty = qaDifficulty)) return
+        if (!storageHealth.canWrite) {
+            lastSaveFailed = true
+            return
+        }
+        // Partial pickup/record writes cannot repair an earlier failed full
+        // save that also included costume ownership, stars and preferences.
+        if (!fullSnapshot && storageHealth.needsFullSnapshot) {
+            save()
+            return
+        }
         try {
             write()
             prefs.flush()
-            lastSaveFailed = false
+            storageHealth.onFlushSuccess(fullSnapshot)
+            lastSaveFailed = storageHealth.needsFullSnapshot
         } catch (e: RuntimeException) {
+            storageHealth.onFlushFailure()
             lastSaveFailed = true
             // A full-storage/permission fault should not crash Android
             // during a flight, onPause or dispose. Do not claim it saved.
@@ -1552,7 +1580,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     private fun save() {
-        persist {
+        persist(fullSnapshot = true) {
             prefs.putInteger("best",best)
             prefs.putInteger("difficulty",difficulty.ordinal)
             for (mode in SkyDifficulty.entries) {
