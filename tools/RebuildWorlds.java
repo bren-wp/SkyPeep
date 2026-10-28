@@ -807,14 +807,13 @@ class RebuildWorlds {
     private static boolean originalBadgeBackground(int rgb,int world) {
         int r=(rgb>>>16)&255,g=(rgb>>>8)&255,b=rgb&255;
         return switch(world) {
-            case 1 -> r<75 && g>38 && g<210 && b>90 && b>g+12;
+            case 1 -> r<125 && g>90 && g<230 && b>155 && b>g+8;
             case 2 -> r>180 && r<246 && g>215 && b>236 && b-r>8;
             case 3 -> r<154 && g>155 && b>215 && b>g+9;
             case 4 -> r>=8 && r<70 && g>28 && g<117 &&
                       b>60 && b<160 && b>g+20;
             case 5 -> r<90 && g>112 && g<235 && b>175 && b>g+12;
-            case 6 -> r<60 && g>29 && g<138 &&
-                      b>68 && b<195 && b>g+22;
+            case 6 -> r<185 && g>105 && b>190 && b>=g+5 && b>r+50;
             default -> false;
         };
     }
@@ -826,13 +825,13 @@ class RebuildWorlds {
      */
     private static double badgeMask(int x,int y,
                                     int x1,int y1,int x2,int y2) {
-        double radius=12.0;
+        double radius=31.0;
         double cx=(x1+x2)/2.0,cy=(y1+y2)/2.0;
         double qx=Math.abs(x-cx)-(x2-x1)/2.0+radius;
         double qy=Math.abs(y-cy)-(y2-y1)/2.0+radius;
         double d=Math.hypot(Math.max(0,qx),Math.max(0,qy))
                  +Math.min(Math.max(qx,qy),0)-radius;
-        return clamp(.5-d/18.0);
+        return clamp(.5-d/14.0);
     }
 
     /**
@@ -860,9 +859,15 @@ class RebuildWorlds {
             {108,29,261,122},{120,27,257,116},{105,24,272,146}
         };
         int[] b=bounds[world-1];
-        int mx1=b[0]+5,my1=b[1]+3;
-        int mx2=b[2]-14,my2=b[3]-16;
-        if(world==6){ mx1=110;my1=27;mx2=258;my2=130; }
+        // Each score illustration has its OWN inner shield silhouette.
+        // These feathered insets follow the underlying winged artwork
+        // rather than painting a single rectangular patch over every world.
+        final int[][] scoreInsets={
+            {112,40,271,144},{121,42,251,141},{119,34,255,129},
+            {128,37,246,124},{125,27,251,120},{118,35,254,131}
+        };
+        int[] v=scoreInsets[world-1];
+        int mx1=v[0],my1=v[1],mx2=v[2],my2=v[3];
 
         java.util.ArrayList<BadgeSkySample> samples=new java.util.ArrayList<>();
         for(int y=18;y<139;y+=3)for(int x=76;x<300;x+=3) {
