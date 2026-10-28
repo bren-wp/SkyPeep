@@ -86,6 +86,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private var visibleFrame = SkyPeepScreenFrame.forPixels(941,1672)
     private lateinit var prefs: Preferences
     private val storageHealth = SkyPeepStorageHealth()
+    private var lastSaveFailed = false
     private val pictures = mutableMapOf<String, Texture>()
     private var loadedScreenArt: String? = null
     private var loadedLevelArt = 0
@@ -1169,6 +1170,14 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         badge("dark",W/2f-137f,top-247f,274f,55f)
         fitted(SkyPeepCoinGoal.label(worldCoins[level-1]),
             top-211f,fontSmall,.86f,258f,W/2f)
+        // Never silently show a healthy wallet when local storage is no
+        // longer safely readable or flush() failed. Only the failure state
+        // adds this strip; ordinary gameplay stays source-art compatible.
+        if (!storageHealth.canWrite || lastSaveFailed) {
+            badge("dark",W/2f-260f,visibleFrame.bottom+90f,520f,68f)
+            fitted("PROGRESS NOT SAVED",visibleFrame.bottom+138f,
+                fontSmall,.95f,495f,W/2f)
+        }
     }
 
     private fun drawWingedScore() {
@@ -1532,7 +1541,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         try {
             write()
             prefs.flush()
+            lastSaveFailed = false
         } catch (e: RuntimeException) {
+            lastSaveFailed = true
             // A full-storage/permission fault should not crash Android
             // during a flight, onPause or dispose. Do not claim it saved.
             Gdx.app.error("SkyPeepStorage", "Unable to save local progress", e)
