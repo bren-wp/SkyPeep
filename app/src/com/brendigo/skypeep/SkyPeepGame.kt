@@ -106,6 +106,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private val tmp = GlyphLayout()
     private val fontColorScratch = Color()
     private val hudText = SkyPeepHudTextCache()
+    private val flightHud = SkyPeepFlightHudState()
     private val backgroundCrop = SkyPeepBackgroundMotion.MutableCrop()
     private val touch = Vector2()
     private var lastContinuousRendering: Boolean? = null
@@ -828,6 +829,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         screen = Screen.PLAY
         score=0
         earnedCoins=0
+        flightHud.reset()
         resultWon=false
         precisionPasses=0
         earnedStars=0
@@ -957,6 +959,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 // Spending wallet currency cannot reduce world progress.
                 coins = SkyPeepEconomy.credit(coins,5)
                 earnedCoins = SkyPeepEconomy.credit(earnedCoins,5)
+                flightHud.collectCoin()
                 val beforePickup=worldCoins[level-1]
                 worldCoins[level-1] = SkyPeepCoinGoal.increment(beforePickup)
                 playSound("coin")
@@ -976,6 +979,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                     SkyPeepPickup.GEM_RADIUS)) {
                 gate.gemTaken=true
                 gems = SkyPeepEconomy.credit(gems,1)
+                flightHud.collectGem()
                 playSound("coin")
                 savePickup() // Durably commit the actual gem pickup.
             }
@@ -1198,10 +1202,13 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 SkyPeepHudLayout.heartCenterY(visibleFrame),21f)
             batch.color = Color.WHITE
         }
-        // Original HUD plates are cleaned at build time. The live digits
-        // remain inside their navy fields and do not cover the coin/gem art.
-        fitted(hudText.coins(coins),top-52f,fontSmall,1.27f,108f,left+171f)
-        fitted(hudText.gems(gems),top-51f,fontSmall,1.25f,70f,right+122f)
+        // Flight HUD numbers are real pickups for THIS RUN, not spendable
+        // wallet totals from Menu/Skins/Shop. Preserve wallet and progress
+        // Preferences separately, with no migration or economy change.
+        fitted(hudText.coins(flightHud.coinsCollected),top-52f,
+            fontSmall,1.27f,108f,left+171f)
+        fitted(hudText.gems(flightHud.gemsCollected),top-51f,
+            fontSmall,1.25f,70f,right+122f)
         drawWingedScore()
         // Real collected pickups (not spendable wallet balance), now off
         // the banner and never competing with the centre score numerals.
