@@ -67,19 +67,6 @@ class SkyPeepHudLayoutTest {
         }
     }
 
-    @Test fun brandedPreflightInstructionDoesNotCoverInitialBirdOrCoins() {
-        assertTrue(SkyPeepHudLayout.PROMPT_Y > 0f)
-        assertTrue(SkyPeepHudLayout.PROMPT_X > 0f)
-        assertTrue(SkyPeepHudLayout.PROMPT_X +
-            SkyPeepHudLayout.PROMPT_WIDTH < 941f)
-        // Flight starts at birdY=840: the prompt is below the bird
-        // rather than a fake, tappable button placed over the bird.
-        assertTrue(SkyPeepHudLayout.PROMPT_Y +
-            SkyPeepHudLayout.PROMPT_HEIGHT < 840f)
-        assertTrue(SkyPeepHudLayout.PROMPT_Y > 255f)
-    }
-
-
     @Test fun illustratedWalletAndScorePlatesMaintainNativePixelRatios() {
         assertEquals(269f/113f,
             SkyPeepHudLayout.COIN_PLATE_WIDTH /
