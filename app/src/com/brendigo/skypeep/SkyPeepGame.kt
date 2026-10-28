@@ -686,6 +686,10 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             if (selectedSkin != 0) {
                 selectedSkin = 0
                 save()
+                if (lastSaveFailed) {
+                    toast("EQUIP CHANGE NOT SAVED")
+                    return
+                }
             }
             Gdx.app.log("SkyPeepSkin", "equipped=0")
             toast("DEFAULT EQUIPPED")
@@ -708,6 +712,10 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         ownedSkins[skin] = true
         selectedSkin = skin
         save()
+        if (lastSaveFailed) {
+            toast("PURCHASE NOT SAVED - CHECK STORAGE")
+            return
+        }
         Gdx.app.log("SkyPeepSkin", "equipped=$skin")
         toast(if (purchase.alreadyOwned) "${skinName(skin)} EQUIPPED"
               else "${skinName(skin)} UNLOCKED")
@@ -737,6 +745,10 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         ownedTrails[offer.id]=true
         selectedTrail=offer.id
         save()
+        if (lastSaveFailed) {
+            toast("PURCHASE NOT SAVED - CHECK STORAGE")
+            return
+        }
         toast(if(purchased.alreadyOwned) "${offer.name} EQUIPPED"
               else "${offer.name} UNLOCKED")
         // Avoid writing wallet balances into globally accessible diagnostic logs.
