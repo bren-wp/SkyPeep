@@ -41,13 +41,6 @@ internal object SkyPeepHudLayout {
     }
     fun heartCenterY(frame: SkyPeepScreenFrame.Frame): Float = frame.top - 156f
 
-    // Brand-coloured, deliberately inert preflight instruction. The user
-    // starts the flight by tapping ANY gameplay sky, not by finding a button.
-    const val PROMPT_X = 249f
-    const val PROMPT_Y = 522f
-    const val PROMPT_WIDTH = 443f
-    const val PROMPT_HEIGHT = 108f
-
     /** topY uses the reference image's top-down coordinates (H-worldY). */
     fun pauseContains(frame: SkyPeepScreenFrame.Frame,
                       x: Float, topY: Float): Boolean =
