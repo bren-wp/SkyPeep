@@ -50,9 +50,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             "Wind Gate","Moon Glow","Sun Peak")
         private val SCORE_STROKE_OFFSETS = floatArrayOf(-2.8f,0f,2.8f)
         private val SCORE_OUTLINE = Color.valueOf("10264B")
-        private val SCORE_OUTLINE_GOLD = Color.valueOf("603217")
-        private val SCORE_INK = arrayOf("159DE8","164F9C","FFE45C",
-            "C6EEFF","A9C1FF","FFBE31").map(Color::valueOf)
+        // Original winged source badge shows white digits with a navy edge.
+        private val SCORE_INK = Color.WHITE
         private val TRAIL_TINTS = arrayOf(Color.WHITE, Color.valueOf("43DBFF"),
             Color.valueOf("FFD145"), Color.valueOf("C078FF"))
         private val SHOP_SHADE = Color(.04f,.13f,.30f,.72f)
@@ -1229,11 +1228,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // separate dark overlay. Keep the large reference-style outlined
         // numerals centred and automatically fit three-plus digit results.
         val baseline=visibleFrame.top-54f
-        val size=1.08f
-        val available=154f
+        val size=1.38f
+        val available=160f
         val center=W/2f
-        val outline=if(level==6) SCORE_OUTLINE_GOLD else SCORE_OUTLINE
-        val ink=SCORE_INK[(level-1).coerceIn(0,SCORE_INK.lastIndex)]
+        val outline=SCORE_OUTLINE
+        val ink=SCORE_INK
         for (dx in SCORE_STROKE_OFFSETS)
             for (dy in SCORE_STROKE_OFFSETS)
                 if (dx!=0f || dy!=0f)
