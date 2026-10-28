@@ -7,7 +7,7 @@
 
 **An illustrated, offline Android flying adventure by [Brendigo](https://brendigo.com).**
 
-[**Discover the worlds**](#six-skies-to-explore) · [**How to play**](#how-to-play) · [**Download**](https://github.com/bren-wp/SkyPeep/releases)
+[**Discover the worlds**](#six-skies-to-explore) · [**How to play**](#how-to-play) · [**Download**](https://github.com/bren-wp/SkyPeep/releases) · [**Privacy**](docs/PRIVACY.md)
 
 ![Original SkyPeep gameplay illustration — artwork reference, not emulator footage](assets/previews/gameplay.jpg)
 
@@ -105,7 +105,7 @@ Find the newest **successfully validated** build on [GitHub Releases](https://gi
 
 SkyPeep is developed in Kotlin and LibGDX with source-controlled, checksum-verified original artwork. Build/test logs, actual emulator screenshots, visual comparisons and release packaging are available through [GitHub Actions](https://github.com/bren-wp/SkyPeep/actions/workflows/android.yml).
 
-See [Android installation and signing](docs/ANDROID_DISTRIBUTION.md), [visual QA](docs/VISUAL_PARITY_AUDIT.md), [dead-code audit](docs/DEAD_CODE_AUDIT.md) and [release history](docs/RELEASE_HISTORY.md). Artwork reconstruction issue [#44](https://github.com/bren-wp/SkyPeep/issues/44) is tracked transparently; automated metrics are not a certification of pixel-perfect parity.
+See [Privacy and offline progress](docs/PRIVACY.md), [Android installation and signing](docs/ANDROID_DISTRIBUTION.md), [visual QA](docs/VISUAL_PARITY_AUDIT.md), [dead-code audit](docs/DEAD_CODE_AUDIT.md) and [release history](docs/RELEASE_HISTORY.md). Artwork reconstruction issue [#44](https://github.com/bren-wp/SkyPeep/issues/44) is tracked transparently; automated metrics are not a certification of pixel-perfect parity.
 
 ---
 
