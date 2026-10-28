@@ -34,6 +34,8 @@ jobs:
         run: python3 tools/check_release_shell.py .github/workflows/android.yml
       - name: Validate source-derived world sky interpolation
         run: java -Djava.awt.headless=true tools/RebuildWorlds.java --self-test
+      - name: Verify each screenshot uses the correct original-world reference
+        run: java -Djava.awt.headless=true tools/CompareSkyPeepScreens.java --verify-mappings
       - name: Extract original score headers for independent visual QA
         shell: bash
         run: |
