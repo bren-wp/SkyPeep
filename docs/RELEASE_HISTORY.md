@@ -1,6 +1,15 @@
 # SkyPeep — release history and development status
 
-## SkyPeep 0.3.37 (candidate — awaiting full CI)
+## SkyPeep 0.3.38 (candidate — CI pending)
+
+- Corrected optional Android vibration permission and added explicit source/merged-manifest CI gate.
+- Prevented a partial successful flush from clearing a previous failed save; a full progress snapshot must first recover. BUY/EQUIP operations cannot proceed while storage is unsafe.
+- Added storage recovery regression tests and expanded real screenshot comparison with three per-screen regional MAE measurements.
+- Original artwork, saved keys, purchases, HUD composition and flight physics preserved; Issue #44 awaits human review.
+- 16 real emulator screenshots remain in README and, after QA approval, in the versioned release. **Candidate only; do not assume tests have passed.**
+
+## SkyPeep 0.3.37 (published, validated)
+
 
 - Safeguard existing offline progress after saved preference read errors; avoid replacing recorded purchases or wallet values with startup fallbacks.
 - Source-match Sky Start and Cloud Drift reconstructed background colours with original illustration lighting; follow-up visual comparison required for open Issue #44.
