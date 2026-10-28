@@ -5,7 +5,7 @@
 - Corrected optional Android vibration permission and added explicit source/merged-manifest CI gate.
 - Prevented a partial successful flush from clearing a previous failed save; a full progress snapshot must first recover. BUY/EQUIP operations cannot proceed while storage is unsafe.
 - Added storage recovery regression tests and expanded real screenshot comparison with three per-screen regional MAE measurements.
-- Original artwork, saved keys, purchases, HUD composition and flight physics preserved; Issue #44 awaits human review.
+- Original artwork, saved keys, purchase economy and flight physics preserved. Gameplay HUD now shows **actual per-flight coin/gem pickups**, not the saved spendable wallet. Removed TAP TO FLY panel and reconstructed six source-colour winged badges; Issue #44 awaits human review.
 - 16 real emulator screenshots remain in README and, after QA approval, in the versioned release. **Candidate only; do not assume tests have passed.**
 
 ## SkyPeep 0.3.37 (published, validated)
