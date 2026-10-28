@@ -1213,7 +1213,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         val goalY=SkyPeepHudLayout.goalBottom(visibleFrame)
         badge("dark",goalX,goalY,
             SkyPeepHudLayout.GOAL_WIDTH,SkyPeepHudLayout.GOAL_HEIGHT)
-        fitted(SkyPeepCoinGoal.label(worldCoins[level-1]),
+        fitted(hudText.progress(worldCoins[level-1]),
             goalY+35f,fontSmall,.84f,SkyPeepHudLayout.GOAL_WIDTH-14f,
             goalX+SkyPeepHudLayout.GOAL_WIDTH/2f)
         // Never silently show a healthy wallet when local storage is no
