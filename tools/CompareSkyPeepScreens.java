@@ -171,6 +171,27 @@ class CompareSkyPeepScreens {
                 throw new IOException("Insufficient score contrast in world "+world+
                     " (min="+minimum+", max="+maximum+"). Check screenshot.");
         }
+        // The former dark "TAP TO FLY" banner covered this empty sky
+        // region in the original Sun Peak concept painting. A real preflight
+        // emulator screenshot MUST show scenery, not that opaque blue plate.
+        // Inspect only the central corridor, away from the bird and pillars.
+        BufferedImage sun=load(Path.of("smoke-results","world-6.png"));
+        int dark=0, sampled=0;
+        for(int y=(int)(sun.getHeight()*.73);y<(int)(sun.getHeight()*.79);y+=2)
+            for(int x=(int)(sun.getWidth()*.35);x<(int)(sun.getWidth()*.65);x+=2) {
+                int rgb=sun.getRGB(x,y);
+                int r=(rgb>>>16)&255,g=(rgb>>>8)&255,b=rgb&255;
+                if(r<80&&g<110&&b<155)dark++;
+                sampled++;
+            }
+        double bluePlateFraction=dark/(double)Math.max(1,sampled);
+        report.append(String.format(java.util.Locale.ROOT,
+            "sun-peak-preflight-empty-sky | navy-fraction=%.3f%n",
+            bluePlateFraction));
+        if(bluePlateFraction>.25)
+            throw new IOException(
+                "Opaque TAP TO FLY banner is visible in Sun Peak: dark fraction "+
+                bluePlateFraction);
         Files.writeString(output, report.toString(), StandardCharsets.UTF_8);
         System.out.print(report);
     }
