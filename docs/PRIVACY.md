@@ -2,7 +2,7 @@
 
 **Last reviewed: 28 October 2026**
 
-SkyPeep by Brendigo is an offline Android arcade game. The game does not ask for an account, display ads or use an analytics, advertising or remote crash-reporting SDK. Its Android manifest does not request INTERNET, location, contacts, camera, microphone or file-storage permissions. The merged manifests for debug and release are verified in CI.
+SkyPeep by Brendigo is an offline Android arcade game. The game does not ask for an account, display ads or use an analytics, advertising or remote crash-reporting SDK. Its Android manifest does not request INTERNET, location, contacts, camera, microphone or file-storage permissions. The app requests only the normal Android `VIBRATE` permission for optional haptic feedback when the player enables vibration. It does not require access to sensors or personal data for vibration. The merged manifests for debug and release are verified in CI.
 
 ## What stays on the device
 
@@ -14,7 +14,7 @@ Android's local audio engine plays bundled sound effects and music; SkyPeep does
 
 ## Progress durability and limitations
 
-SkyPeep writes collected coins and gems during real pickups and saves preferences on key events and pause. If a saved preference cannot be read reliably, the game will refuse further writes **for that session** rather than risk overwriting existing values with defaults. A visible warning explains that storage must be checked.
+SkyPeep writes collected coins and gems during real pickups and saves preferences on key events and pause. If a saved preference cannot be read reliably, the game will refuse further writes **for that session** rather than risk overwriting existing values with defaults. Cosmetic purchases and equipment changes are blocked until storage is safe. Following a failed flush, the complete in-memory progress snapshot must be saved successfully before subsequent limited pickup/record writes can clear the warning. A visible warning explains that storage must be checked.
 
 SkyPeep currently disables Android app backup. **Uninstalling the application, clearing its storage or changing to an incompatible APK signing identity can permanently remove local game progress.** Do not uninstall an installed version merely to switch between Play, debug and F-Droid signatures. The game cannot guarantee recovery from device failure or storage corruption.
 
