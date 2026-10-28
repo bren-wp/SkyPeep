@@ -36,6 +36,20 @@ jobs:
         run: java -Djava.awt.headless=true tools/RebuildWorlds.java --self-test
       - name: Build debug APK, unsigned release APK and unsigned AAB
         run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:bundleRelease --stacktrace
+      - name: Preserve original and rebuilt source score art for 1:1 QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p smoke-results/score-art
+          cat assets/pack/part-* > "$RUNNER_TEMP/skypeep-original-art.zip"
+          unzip -p "$RUNNER_TEMP/skypeep-original-art.zip" hud_score_6.png > smoke-results/score-art/original-hud-score-6.png
+          cp app/build/generated/skypeep-assets/hud_score_6.png smoke-results/score-art/rebuilt-hud-score-6.png
+          file smoke-results/score-art/*.png | grep -q 'PNG image data'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SkyPeep-Score-Source-QA-${{ github.run_number }}
+          path: smoke-results/score-art/
+          if-no-files-found: error
       - name: Verify offline and local-only Android manifest
         run: |
           grep -q 'android:allowBackup="false"' app/AndroidManifest.xml
