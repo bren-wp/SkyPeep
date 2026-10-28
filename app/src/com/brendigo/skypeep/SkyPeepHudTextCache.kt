@@ -12,6 +12,8 @@ internal class SkyPeepHudTextCache {
     private var scoreLabel = "0"
     private var coinLabel = "0"
     private var gemLabel = "0"
+    private var lastProgress = Int.MIN_VALUE
+    private var progressLabel = "0 / 10001"
 
     fun score(value: Int): String {
         val safe = value.coerceAtLeast(0)
@@ -29,6 +31,16 @@ internal class SkyPeepHudTextCache {
             coinLabel = SkyPeepHudNumbers.compact(safe)
         }
         return coinLabel
+    }
+
+    /** A flight cannot allocate a fresh goal string on every 60/120Hz frame. */
+    fun progress(value: Int): String {
+        val safe = SkyPeepCoinGoal.collected(value)
+        if (lastProgress != safe) {
+            lastProgress = safe
+            progressLabel = SkyPeepCoinGoal.label(safe)
+        }
+        return progressLabel
     }
 
     fun gems(value: Int): String {
