@@ -1190,8 +1190,10 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // Source-illustrated coin, gemstone, pause and winged score artwork.
         // The rebuilt score texture keeps its native ratio instead of a
         // vertically squashed banner; preserve its top position.
-        image("hud_left_$level", left, top-106f, 235f, 96f)
-        image("hud_right_$level", right, top-108f, 170f, 99f)
+        // Match reconstructed original PNG proportions (269:113 and
+        // 191:115) while preserving their previous top-edge anchors.
+        image("hud_left_$level", left, top-109f, 235f, 99f)
+        image("hud_right_$level", right, top-111f, 170f, 102f)
         image("hud_pause_$level", pause, top-129f, 125f, 122f)
         image("hud_score_$level", 313f, top-188f, 315f, 180f)
         // Three lives and the per-world goal occupy the LEFT status lane.
