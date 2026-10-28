@@ -23,3 +23,11 @@ At the 941x1672 design size, the score is drawn x=313..628, top-down y=8..188. T
 Issue #44 remains open for the original scenery seams. Evaluate each world (not only the static reference) on a physical device and verify the live per-flight HUD, six score badges and unobstructed initial flight view in motion. The four original images cover Menu, Levels, Skins and Sun Peak Gameplay, not every unrelated settings/result screen.
 
 This candidate must complete JVM tests, rebuilt-art integrity, emulator navigation and pixel-comparison reports before a verified release is claimed.
+
+## Actual emulator reference diagnostics (CI #707 baseline)
+
+The previous comparison incorrectly compared **Sky Start (world 1)** to the provided **Sun Peak (world 6)** gameplay concept. That unmatched-scene MAE was approximately 91.46/255 and is **not a valid Sun Peak fidelity score**. A separate actual-image calculation using the same RGB sampling and center-fit procedure on the genuine **world-6.png** emulator screenshot and **assets/previews/gameplay.jpg** gives **30.34/255** (top/centre/bottom central region MAEs approximately 39.14, 35.56 and 26.97/255). These values are diagnostics of the earlier CI #707 image only, not the output of the current unverified commit. The screenshot comparison now pairs Sun Peak with world 6 and has a regression guard preventing a return to the wrong pairing.
+
+The CI #707 screenshot also showed clearly repeating **144-pixel shaft decoration** along the vertical gameplay pillars. The code previously drew horizontal stone lines at fixed rows of each repeatedly tiled segment. The new shaft texture is column-only and has identical top/bottom rows by construction, while the original source-painted pillar caps, suns and leaves remain unchanged. JVM tests exercise the column profile and geometry. This removes a visible artificial repetition but **does not resolve** background reconstruction Issue #44 or establish pixel-perfect equivalence of the whole screen.
+
+CI must pass again after these fixes. Real QA images in the README are updated only by a completed successful release pipeline.
