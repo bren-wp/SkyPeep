@@ -34,6 +34,21 @@ jobs:
         run: python3 tools/check_release_shell.py .github/workflows/android.yml
       - name: Validate source-derived world sky interpolation
         run: java -Djava.awt.headless=true tools/RebuildWorlds.java --self-test
+      - name: Extract original score headers for independent visual QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p smoke-results/original-score-art
+          cat assets/pack/part-* > "$RUNNER_TEMP/skypeep-original.zip"
+          for world in 1 2 3 4 5 6; do
+            unzip -p "$RUNNER_TEMP/skypeep-original.zip" "hud_score_${world}.png" > "smoke-results/original-score-art/world-${world}.png"
+            file "smoke-results/original-score-art/world-${world}.png" | grep -q 'PNG image data'
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SkyPeep-Original-Score-QA-${{ github.run_number }}
+          path: smoke-results/original-score-art/
+          if-no-files-found: error
       - name: Build debug APK, unsigned release APK and unsigned AAB
         run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:bundleRelease --stacktrace
       - name: Preserve original and rebuilt source score art for 1:1 QA
