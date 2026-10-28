@@ -86,7 +86,7 @@ visually reviewed; existing assets/previews images are **concept references**.
 
 ## Rebuild and verify on a trusted machine
 
-Install Android SDK API 36, Java 17 and Gradle 8.14.3, then:
+Install Android SDK API 36, Java 17 and Gradle 8.14.6, then:
 
 ```sh
 python3 tools/dead_code_audit.py
