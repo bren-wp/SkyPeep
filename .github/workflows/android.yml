@@ -276,7 +276,7 @@ jobs:
           # A quoted heredoc treats release notes as literal text: apostrophes
           # and other punctuation cannot accidentally break Bash parsing.
           cat > "$RUNNER_TEMP/skypeep-release-notes.md" <<'SKYPEEP_NOTES'
-          0.3.38: Fixes optional haptic feedback by declaring Android's normal VIBRATE permission, prevents cosmetic purchases while storage is unsafe, and requires recovery by a full progress snapshot after any failed flush. Existing artwork, gameplay physics, six worlds and all progress keys remain unchanged. Includes 16 genuine Android emulator screen captures, debug APK, unsigned release APK/AAB, SHA-256 and F-Droid metadata. Issue #44 remains open for manual review; no claim of source-pixel-identical gameplay.
+          0.3.38: Removes TAP TO FLY graphic while preserving first-tap input; displays real per-flight coins/gems on the HUD while retaining the same durable wallet and 10,001-pickup goals. Aligns the original six winged score plates and isolates life/goal indicators. Fixes VIBRATE permission, guards cosmetic purchases and requires full save recovery after a failed flush. Original artwork, physics and progress keys unchanged. Includes 16 genuine emulator captures, test APK, unsigned release APK/AAB, SHA-256 and F-Droid metadata. Issue #44 remains open for manual review; no false pixel-perfect certification.
           SKYPEEP_NOTES
           gh release create "$VERSION" \
             "${release_files[@]}" "${screenshot_files[@]}" \
