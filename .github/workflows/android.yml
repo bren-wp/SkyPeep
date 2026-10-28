@@ -32,7 +32,9 @@ jobs:
         run: python3 tools/dead_code_audit.py
       - name: Validate release job Bash syntax
         run: python3 tools/check_release_shell.py .github/workflows/android.yml
-      - name: Validate source-derived world sky interpolation\n        run: java -Djava.awt.headless=true tools/RebuildWorlds.java --self-test\n      - name: Build debug APK, unsigned release APK and unsigned AAB
+      - name: Validate source-derived world sky interpolation
+        run: java -Djava.awt.headless=true tools/RebuildWorlds.java --self-test
+      - name: Build debug APK, unsigned release APK and unsigned AAB
         run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:bundleRelease --stacktrace
       - name: Verify offline and local-only Android manifest
         run: |
