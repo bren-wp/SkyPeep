@@ -77,7 +77,12 @@ Builds:
     commit: 66bf21005e87c625cf0d511eca0797c38e0a03af
     gradle:
       - 'yes'
+  - versionName: '0.3.36'
+    versionCode: 48
+    commit: ca46cbe43c6c6847ad227d0196477646b9947dbf
+    gradle:
+      - 'yes'
 AutoUpdateMode: None
 UpdateCheckMode: None
-CurrentVersion: '0.3.35'
-CurrentVersionCode: 47
+CurrentVersion: '0.3.36'
+CurrentVersionCode: 48

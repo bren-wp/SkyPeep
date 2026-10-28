@@ -85,6 +85,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private lateinit var viewport: ExtendViewport
     private var visibleFrame = SkyPeepScreenFrame.forPixels(941,1672)
     private lateinit var prefs: Preferences
+    private val storageHealth = SkyPeepStorageHealth()
+    private var lastSaveFailed = false
     private val pictures = mutableMapOf<String, Texture>()
     private var loadedScreenArt: String? = null
     private var loadedLevelArt = 0
@@ -199,6 +201,10 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         for (i in 1..3) ownedTrails[i] = readBool("trail_owned_$i",false)
         selectedTrail = readInt("trail_selected",0).coerceIn(0,3)
         if (!ownedTrails[selectedTrail]) selectedTrail = 0
+        if (!storageHealth.canWrite) {
+            Gdx.app.error("SkyPeepStorage", "Saved entries could not be read; writes disabled to preserve existing progress")
+            toast("SAVE UNAVAILABLE — PROGRESS PROTECTED")
+        }
         Gdx.app.log("SkyPeepShop",
             "loaded=${SkyPeepTrailCatalog.all[selectedTrail].name}")
 
@@ -280,12 +286,18 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private fun readInt(key: String, fallback: Int): Int =
         SkyPeepPreferenceRead.integer(key, fallback,
             { name, default -> prefs.getInteger(name, default) },
-            { name, cause -> Gdx.app.error("SkyPeepStorage", "Invalid integer preference: $name", cause) })
+            { name, cause ->
+                storageHealth.onReadFailure()
+                Gdx.app.error("SkyPeepStorage", "Cannot read integer preference: $name", cause)
+            })
 
     private fun readBool(key: String, fallback: Boolean): Boolean =
         SkyPeepPreferenceRead.boolean(key, fallback,
             { name, default -> prefs.getBoolean(name, default) },
-            { name, cause -> Gdx.app.error("SkyPeepStorage", "Invalid boolean preference: $name", cause) })
+            { name, cause ->
+                storageHealth.onReadFailure()
+                Gdx.app.error("SkyPeepStorage", "Cannot read boolean preference: $name", cause)
+            })
 
     private fun loadLevelArt(newLevel: Int) {
         require(newLevel in 1..MAX_LEVEL)
@@ -1158,6 +1170,14 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         badge("dark",W/2f-137f,top-247f,274f,55f)
         fitted(SkyPeepCoinGoal.label(worldCoins[level-1]),
             top-211f,fontSmall,.86f,258f,W/2f)
+        // Never silently show a healthy wallet when local storage is no
+        // longer safely readable or flush() failed. Only the failure state
+        // adds this strip; ordinary gameplay stays source-art compatible.
+        if (!storageHealth.canWrite || lastSaveFailed) {
+            badge("dark",W/2f-260f,visibleFrame.bottom+90f,520f,68f)
+            fitted("PROGRESS NOT SAVED",visibleFrame.bottom+138f,
+                fontSmall,.95f,495f,W/2f)
+        }
     }
 
     private fun drawWingedScore() {
@@ -1512,7 +1532,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
      * On I/O failure, the in-memory state is retained for the next retry.
      */
     private fun persist(write: () -> Unit) {
-        if (!::prefs.isInitialized || !SkyPeepQaSession.shouldPersist(
+        if (!::prefs.isInitialized || !storageHealth.canWrite || !SkyPeepQaSession.shouldPersist(
                 world = qaWorld, mapUnlocked = qaMapUnlocked,
                 skin = qaSkin, victory = qaVictory, pillars = qaPillars,
                 score = qaScore, loss = qaLoss,
@@ -1521,7 +1541,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         try {
             write()
             prefs.flush()
+            lastSaveFailed = false
         } catch (e: RuntimeException) {
+            lastSaveFailed = true
             // A full-storage/permission fault should not crash Android
             // during a flight, onPause or dispose. Do not claim it saved.
             Gdx.app.error("SkyPeepStorage", "Unable to save local progress", e)

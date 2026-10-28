@@ -27,7 +27,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.14.3'
+          gradle-version: '8.14.6'
       - name: Audit unused Kotlin/Java code
         run: python3 tools/dead_code_audit.py
       - name: Validate release job Bash syntax
@@ -69,8 +69,8 @@ jobs:
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+48" app/build.gradle
-          grep -Fq "versionName '0.3.36'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+49" app/build.gradle
+          grep -Fq "versionName '0.3.37'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/apk/release/app-release-unsigned.apk
           test -s app/build/outputs/bundle/release/app-release.aab
@@ -186,7 +186,7 @@ jobs:
   release:
     name: Publish verified preview
     needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.36-background-seam-qa'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.37-hud-saves-real-screens'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -195,6 +195,25 @@ jobs:
         with:
           name: SkyPeep-Android-${{ github.run_number }}
           path: release-artifacts
+      - uses: actions/download-artifact@v4
+        with:
+          name: SkyPeep-Emulator-Smoke-${{ github.run_number }}
+          path: screenshot-artifacts
+      - name: Stage 16 authentic Android emulator screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-screenshots
+          for item in splash:splash menu:menu levels:levels gameplay:gameplay pause:pause gameover:loss-before victory:victory skins:skins shop:shop settings:settings \
+                      world-1:world-1 world-2:world-2 world-3:world-3 world-4:world-4 world-5:world-5 world-6:world-6; do
+            label="${item%%:*}"
+            name="${item#*:}"
+            source="screenshot-artifacts/${name}.png"
+            test -s "$source" || { echo "Missing real emulator capture: $source"; exit 1; }
+            file "$source" | grep -q 'PNG image data' || { echo "Invalid PNG: $source"; exit 1; }
+            cp "$source" "release-screenshots/SkyPeep-Emulator-${label}.png"
+          done
+          test "$(find release-screenshots -maxdepth 1 -name '*.png' | wc -l)" -eq 16
       - name: Publish APK and unsigned AAB after successful QA
         env:
           # Optional fine-grained Contents:write PAT for repositories where
@@ -208,7 +227,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.36-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.37-preview.${GITHUB_RUN_NUMBER}"
           for pattern in '*-debug.apk' '*-release-unsigned.apk' '*-play-upload-unsigned.aab' 'SHA256SUMS.txt' '*-fdroid-metadata.yml'; do
             test -n "$(find release-artifacts -type f -name "$pattern" -print -quit)" || {
               echo "Required release asset missing: $pattern"; exit 1;
@@ -218,13 +237,15 @@ jobs:
           # could supersede this run even after the first head check.
           mapfile -d '' -t release_files < <(find release-artifacts -type f -print0)
           test "${#release_files[@]}" -ge 7
+          mapfile -d '' -t screenshot_files < <(find release-screenshots -type f -name 'SkyPeep-Emulator-*.png' -print0)
+          test "${#screenshot_files[@]}" -eq 16
           # A quoted heredoc treats release notes as literal text: apostrophes
           # and other punctuation cannot accidentally break Bash parsing.
           cat > "$RUNNER_TEMP/skypeep-release-notes.md" <<'SKYPEEP_NOTES'
-          0.3.36: Source-derived two-dimensional sky reconstruction for Crystal Drop, Wind Gate and Sun Peak replaces row-flat background infill and interpolates missing sky rows to reduce reconstruction boundaries. New offline interpolation self-test; full existing JVM, original-art integrity, emulator screen, six-world and viewport QA gates remain mandatory. Original supplied artwork, 10,001 real collectible goals, physics, shop, wallets and saved progress are unchanged. Debug APK, unsigned release APK/AAB and SHA-256 manifests included. Issue #44 remains open for manual screenshot review; no claim of pixel-perfect parity or physical-device validation.
+          0.3.37: Improves preservation of offline progress if saved preferences cannot be read, source-matches reconstructed Sky Start and Cloud Drift sky regions, and expands the real Android screenshot gallery. Minimum SDK 24 for Google Play automatic protection compatibility (target 36), while original artwork and flight physics remain unchanged. Includes 16 real emulator screenshots, debug APK, unsigned release APK/AAB, checksums and source metadata. Visual reconstruction Issue #44 remains open until reviewed against original reference images.
           SKYPEEP_NOTES
           gh release create "$VERSION" \
-            "${release_files[@]}" \
+            "${release_files[@]}" "${screenshot_files[@]}" \
             --target "$GITHUB_SHA" \
             --title "SkyPeep $VERSION" \
             --draft --prerelease \
@@ -237,3 +258,22 @@ jobs:
             exit 0
           fi
           gh release edit "$VERSION" --draft=false
+          # A fixed public gallery lets README show authentic Android frames
+          # without pointing at mockups or unstable Actions ZIP artifacts.
+          # The gallery is updated only on successful, current-commit QA.
+          cat > "$RUNNER_TEMP/skypeep-gallery-notes.md" <<'SKYPEEP_GALLERY'
+          Real PNG captures from the Android API 35 emulator after successful
+          SkyPeep build, JVM tests, six-world navigation, touch and viewport QA.
+          Includes four source-reference comparison screens, all UI states
+          and all six gameplay worlds. These are emulator frames, not artwork
+          mockups or a claim of pixel-perfect identity or physical-device QA.
+          SKYPEEP_GALLERY
+          if gh release view skypeep-gallery >/dev/null 2>&1; then
+            gh release upload skypeep-gallery "${screenshot_files[@]}" --clobber
+            gh release edit skypeep-gallery --notes-file "$RUNNER_TEMP/skypeep-gallery-notes.md"
+          else
+            gh release create skypeep-gallery "${screenshot_files[@]}" \
+              --target "$GITHUB_SHA" --title "SkyPeep real Android screenshot gallery" \
+              --notes-file "$RUNNER_TEMP/skypeep-gallery-notes.md" --prerelease
+          fi
+

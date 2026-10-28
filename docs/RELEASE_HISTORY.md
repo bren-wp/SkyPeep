@@ -1,11 +1,18 @@
 # SkyPeep — release history and development status
 
-## SkyPeep 0.3.36 (candidate — awaiting CI)
+## SkyPeep 0.3.37 (candidate — awaiting full CI)
 
-- Source-matched 2D sky reconstruction and gradient regression for worlds 3/4/6; original art, physics and save format unchanged.
-- CI requires reconstruction check, JVM and six-world Android emulator before release.
-- Simplified player-facing README and synced previously published 0.3.35 F-Droid metadata.
-- Issue #44 stays open until actual screenshots are visually reviewed; candidate status does not imply publication.
+- Safeguard existing offline progress after saved preference read errors; avoid replacing recorded purchases or wallet values with startup fallbacks.
+- Source-match Sky Start and Cloud Drift reconstructed background colours with original illustration lighting; follow-up visual comparison required for open Issue #44.
+- Raise minimum Android SDK to 24 for Google Play automatic protection; target SDK stays 36, versionCode becomes 49.
+- Public local-data privacy notice and a genuine Android emulator screenshot gallery featuring ten screens and six worlds, published only after successful CI.
+- Original source artwork, physical flight balance and saved-data format remain unchanged.
+
+## SkyPeep 0.3.36 (published, validated)
+
+- [v0.3.36-preview.595](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.36-preview.595) passed CI build and six-world API 35 emulator navigation.
+- Two-dimensional, original-source sky reconstruction implemented for worlds 3, 4 and 6, with interpolation regression tests and signed-state-verified release packaging.
+- PR #51 merged into main. Real image metrics still showed gameplay deviations; screenshot QA is not a blanket 1:1 certification.
 
 SkyPeep preserves its original Brendigo artwork and locally saved data through 0.3.x. The GitHub release page is authoritative for what users can install; source commits and draft pull requests are **not** releases.
 
@@ -28,11 +35,11 @@ SkyPeep preserves its original Brendigo artwork and locally saved data through 0
 | [0.3.32](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.32-preview.559) | Safe per-key preferences reads, mid-flight record durability, share-sheet error recovery | Published preview; PR #47 merged; #559/#560/#561 succeeded |
 | [0.3.33](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.33-preview.565) | Shop/Settings selected-island scene loading, emulator route QA | Published preview; PR #48 merged; CI #565/#566/#567 successful |
 | [0.3.34](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.34-preview.569) | Landscape edge sampling for Shop/Settings on tall and wide devices | Published; PR #49 merged; CI #569–571 successful |
-| **0.3.35** | Larger original aviator app icon, adaptive launcher icon, accurate Skins EQUIP tap/state and full-screen visual audit | In development; awaiting CI, emulator and release |
+| [0.3.35](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.35-preview.579) | Branded app icon, adaptive launcher, accurate Skins EQUIP control | Published preview; PR #50 merged |\n| [0.3.36](https://github.com/bren-wp/SkyPeep/releases/tag/v0.3.36-preview.595) | Original-sky 2D reconstruction, image QA and responsive emulator tests | Published preview; PR #51 merged; CI #595 passed |
 
 ## Versioning and downloads
 
-Android `versionCode` increases monotonically (0.3.33 = 45; 0.3.34 = 46; planned 0.3.35 = 47). Every successfully validated release beginning with 0.3.24 attaches **three distinct binary artifacts**: testing-only debug APK, unsigned release APK for local signing, and an unsigned Play-upload AAB to sign using the existing upload key. It also includes SHA-256 checksums, F-Droid source-build metadata, license and signed-distribution instructions. No key is uploaded to GitHub. See [Android distribution and F-Droid preparation](ANDROID_DISTRIBUTION.md).
+Android `versionCode` increases monotonically (0.3.33 = 45; 0.3.34 = 46; 0.3.35 = 47; 0.3.36 = 48; 0.3.37 candidate = 49). Every successfully validated release beginning with 0.3.24 attaches **three distinct binary artifacts**: testing-only debug APK, unsigned release APK for local signing, and an unsigned Play-upload AAB to sign using the existing upload key. It also includes SHA-256 checksums, F-Droid source-build metadata, license and signed-distribution instructions. No key is uploaded to GitHub. See [Android distribution and F-Droid preparation](ANDROID_DISTRIBUTION.md).
 
 Keep existing published GitHub Releases; do not overwrite or delete them while preparing later versions. Do not treat preview artwork as genuine app screenshots.
 
