@@ -87,6 +87,18 @@ class CompareSkyPeepScreens {
             BufferedImage reference = load(Path.of("assets/previews", scene[2]));
             BufferedImage adjusted = fit(screenshot, reference.getWidth(), reference.getHeight());
             double error = meanAbsoluteError(adjusted, reference);
+            // Report three independent vertical regions to reveal where
+            // screenshot UI and photographed artwork deviate. These are
+            // DIAGNOSTICS, not automatic pixel-perfect certification.
+            for (int band = 0; band < 3; band++) {
+                double upper = band / 3.0;
+                double lower = (band + 1) / 3.0;
+                double detail = regionMAE(adjusted, reference,
+                    0.08, upper, 0.92, lower);
+                report.append(String.format(java.util.Locale.ROOT,
+                    "%s | region-%d MAE=%.2f/255%n",
+                    scene[0], band + 1, detail));
+            }
             report.append(String.format(java.util.Locale.ROOT,
                 "%s | MAE=%.2f/255 | screenshot=%dx%d | reference=%dx%d%n",
                 scene[0], error, screenshot.getWidth(), screenshot.getHeight(),
