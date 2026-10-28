@@ -1115,18 +1115,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         if (healingFeedback > 0f)
             fitted("+1 LIFE",(birdY+BIRD_H+52f).coerceAtMost(H-236f),
                 fontSmall,1.0f,202f,BIRD_X+BIRD_W*.5f)
-        if (readyForFirstTap) {
-            // Not a second PLAY button: any safe gameplay touch starts
-            // flight. The original screenshot is unmodified once airborne.
-            badge("cream",SkyPeepHudLayout.PROMPT_X,
-                SkyPeepHudLayout.PROMPT_Y,
-                SkyPeepHudLayout.PROMPT_WIDTH,
-                SkyPeepHudLayout.PROMPT_HEIGHT)
-            fitted("TAP TO FLY",
-                SkyPeepHudLayout.PROMPT_Y + 74f,
-                fontLarge,1.08f,SkyPeepHudLayout.PROMPT_WIDTH-32f,
-                W/2f,TEXT_ON_CREAM)
-        }
+
     }
 
     private fun drawStoneStem(x:Float,width:Float,start:Float,end:Float) {
