@@ -65,7 +65,7 @@ but is not what an official F-Droid repository should distribute as-is.
 
 The upstream F-Droid metadata file is `.fdroid.yml`, and localized descriptions
 are stored under `fastlane/metadata/android/en-US/` and `hr-HR/`.
-The repository's upstream `.fdroid.yml` currently keeps the last published source (0.3.35; versionCode 47). **At packaging time** the
+The repository's upstream `.fdroid.yml` currently keeps the last published source (0.3.36; versionCode 48). **At packaging time** the
 release asset `SkyPeep-X.Y.Z-fdroid-metadata.yml` is automatically expanded
 to contain a `Builds` entry pinned to that release's **exact 40-character Git
 commit**, `versionName` and `versionCode`. This gives F-Droid reviewers a
