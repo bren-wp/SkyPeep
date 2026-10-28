@@ -124,12 +124,11 @@ class CompareSkyPeepScreens {
                     {.02,.01,.29,.15},  // live coins and three-life row
                     {.30,.00,.69,.21},  // score and original title ribbon
                     {.69,.01,1.00,.15}, // live gems and pause button
-                    {.02,.15,.30,.29},  // collected-coin goal, left lane
-                    {.26,.55,.74,.73}   // preflight prompt (if waiting)
+                    {.02,.15,.30,.29}   // collected-coin goal, left lane
                 };
                 String[] hudNames={
                     "coin-and-lives","winged-score","gems-and-pause",
-                    "goal-left-lane","preflight-prompt-zone"
+                    "goal-left-lane"
                 };
                 for (int zone=0;zone<hudRois.length;zone++) {
                     double[] p=hudRois[zone];
