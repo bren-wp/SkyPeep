@@ -117,8 +117,29 @@ class CompareSkyPeepScreens {
                 report.append(String.format(java.util.Locale.ROOT,
                     "sky-start-original-midground-island | ROI MAE=%.2f/255%n",
                     islandError));
-                // This metric is diagnostic until the revised masks are
-                // verified against the actual emulator capture.
+                // Separate genuine HUD areas from the animated flight
+                // corridor. Scores/wallet amounts change by design, but these
+                // values locate oversized plates and clipped titles.
+                double[][] hudRois={
+                    {.02,.01,.29,.15},  // live coins and three-life row
+                    {.30,.00,.69,.21},  // score and original title ribbon
+                    {.69,.01,1.00,.15}, // live gems and pause button
+                    {.02,.15,.30,.29},  // collected-coin goal, left lane
+                    {.26,.55,.74,.73}   // preflight prompt (if waiting)
+                };
+                String[] hudNames={
+                    "coin-and-lives","winged-score","gems-and-pause",
+                    "goal-left-lane","preflight-prompt-zone"
+                };
+                for (int zone=0;zone<hudRois.length;zone++) {
+                    double[] p=hudRois[zone];
+                    report.append(String.format(java.util.Locale.ROOT,
+                        "sky-start-%s | ROI MAE=%.2f/255%n",
+                        hudNames[zone],
+                        regionMAE(adjusted,reference,p[0],p[1],p[2],p[3])));
+                }
+                // Diagnostic only: live HUD and moving gameplay are not a
+                // screenshot of the static original reference painting.
             }
         }
         // Compact score face moved. Dark Wind Gate and Moon Glow scenery are
