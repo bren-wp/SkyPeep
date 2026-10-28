@@ -1192,10 +1192,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // vertically squashed banner; preserve its top position.
         // Match reconstructed original PNG proportions (269:113 and
         // 191:115) while preserving their previous top-edge anchors.
-        image("hud_left_$level", left, top-109f, 235f, 99f)
-        image("hud_right_$level", right, top-111f, 170f, 102f)
+        image("hud_left_$level", left, top-109f,
+            SkyPeepHudLayout.COIN_PLATE_WIDTH,
+            SkyPeepHudLayout.COIN_PLATE_HEIGHT)
+        image("hud_right_$level", right, top-111f,
+            SkyPeepHudLayout.GEM_PLATE_WIDTH,
+            SkyPeepHudLayout.GEM_PLATE_HEIGHT)
         image("hud_pause_$level", pause, top-129f, 125f, 122f)
-        image("hud_score_$level", 313f, top-188f, 315f, 180f)
+        image("hud_score_$level", 313f, top-188f,
+            SkyPeepHudLayout.SCORE_WIDTH,
+            SkyPeepHudLayout.SCORE_HEIGHT)
         // Three lives and the per-world goal occupy the LEFT status lane.
         // They must never overlay the original central winged score ribbon.
         for (i in 0 until SkyPeepLives.MAX) {
