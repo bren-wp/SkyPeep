@@ -17,7 +17,7 @@ class CompareSkyPeepScreens {
         {"menu", "menu.png", "menu.jpg"},
         {"levels", "levels.png", "levels.jpg"},
         {"skins", "skins.png", "skins.jpg"},
-        {"world-1", "world-1.png", "gameplay.jpg"}
+        {"world-6", "world-6.png", "gameplay.jpg"}
     };
     private static BufferedImage load(Path path) throws IOException {
         if (!Files.isRegularFile(path)) throw new IOException("Missing screenshot/reference: " + path);
@@ -54,9 +54,8 @@ class CompareSkyPeepScreens {
         }
         return difference / (double) count;
     }
-    // Sample a fixed, unoccluded illustrated island in Sky Start. The old
-    // overwide pillar mask erased this region despite no bird or pillar being
-    // present there. This is reference-to-real-emulator evidence, not an image.
+    // Source gameplay reference is SUN PEAK (world 6) only. Never compare
+    // Sky Start or another world against this differently coloured painting.
     private static double regionMAE(
         BufferedImage actual, BufferedImage reference,
         double left, double top, double right, double bottom) {
@@ -74,7 +73,26 @@ class CompareSkyPeepScreens {
         }
         return diff/(double)Math.max(1,count);
     }
+    /** Guard against accidentally comparing SUN PEAK concept art with Sky Start. */
+    private static void verifyReferenceMappings() {
+        int count = 0;
+        for (String[] scene : SCENES) {
+            if ("gameplay.jpg".equals(scene[2])) {
+                if (!"world-6".equals(scene[0]) ||
+                    !"world-6.png".equals(scene[1]))
+                    throw new IllegalStateException(
+                        "Gameplay concept is Sun Peak, not "+scene[0]);
+                count++;
+            }
+        }
+        if (count != 1) throw new IllegalStateException(
+            "Expected exactly one matching gameplay reference, got "+count);
+        System.out.println("PASS: Sun Peak gameplay screenshot/reference mapping");
+    }
+
     public static void main(String[] args) throws Exception {
+        verifyReferenceMappings();
+        if (args.length == 1 && "--verify-mappings".equals(args[0])) return;
         Path output = Path.of("smoke-results/visual-comparison.txt");
         StringBuilder report = new StringBuilder();
         report.append("SkyPeep reference-vs-emulator diagnostic (current Android CI build)\n")
@@ -112,10 +130,10 @@ class CompareSkyPeepScreens {
             if(error > maxMae) throw new IOException(
                 scene[0]+" illustration regressed: MAE="+error+
                 ", permitted="+maxMae);
-            if("world-1".equals(scene[0])){
+            if("world-6".equals(scene[0])){
                 double islandError=regionMAE(adjusted,reference,.33,.23,.45,.35);
                 report.append(String.format(java.util.Locale.ROOT,
-                    "sky-start-original-midground-island | ROI MAE=%.2f/255%n",
+                    "sun-peak-midground-diagnostic | ROI MAE=%.2f/255%n",
                     islandError));
                 // Separate genuine HUD areas from the animated flight
                 // corridor. Scores/wallet amounts change by design, but these
@@ -133,7 +151,7 @@ class CompareSkyPeepScreens {
                 for (int zone=0;zone<hudRois.length;zone++) {
                     double[] p=hudRois[zone];
                     report.append(String.format(java.util.Locale.ROOT,
-                        "sky-start-%s | ROI MAE=%.2f/255%n",
+                        "sun-peak-%s | ROI MAE=%.2f/255%n",
                         hudNames[zone],
                         regionMAE(adjusted,reference,p[0],p[1],p[2],p[3])));
                 }
