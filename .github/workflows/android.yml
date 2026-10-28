@@ -43,6 +43,8 @@ jobs:
           if grep -Eq 'android.permission.(INTERNET|ACCESS_FINE_LOCATION|ACCESS_COARSE_LOCATION|READ_CONTACTS|READ_SMS)' app/AndroidManifest.xml; then
             echo "Unexpected sensitive Android permission"; exit 1
           fi
+      - name: Confirm optional feedback vibration permission
+        run: grep -Fq 'android.permission.VIBRATE' app/AndroidManifest.xml
       - name: Validate effective merged Android permissions (debug and release)
         run: |
           # Dependencies and build-variant manifests can introduce permissions
@@ -64,13 +66,16 @@ jobs:
               grep -E 'android.permission.' "$merged" || true
               exit 1
             fi
+            grep -Fq 'android.permission.VIBRATE' "$merged" || {
+              echo "FAIL: optional haptic feedback permission missing in $variant"; exit 1;
+            }
             echo "PASS: $variant merged manifest remains offline and local-only"
           done
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+49" app/build.gradle
-          grep -Fq "versionName '0.3.37'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+50" app/build.gradle
+          grep -Fq "versionName '0.3.38'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/apk/release/app-release-unsigned.apk
           test -s app/build/outputs/bundle/release/app-release.aab
@@ -186,7 +191,7 @@ jobs:
   release:
     name: Publish verified preview
     needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.37-hud-saves-real-screens'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.38-storage-ui-qa'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -227,7 +232,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.37-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.38-preview.${GITHUB_RUN_NUMBER}"
           for pattern in '*-debug.apk' '*-release-unsigned.apk' '*-play-upload-unsigned.aab' 'SHA256SUMS.txt' '*-fdroid-metadata.yml'; do
             test -n "$(find release-artifacts -type f -name "$pattern" -print -quit)" || {
               echo "Required release asset missing: $pattern"; exit 1;
@@ -242,7 +247,7 @@ jobs:
           # A quoted heredoc treats release notes as literal text: apostrophes
           # and other punctuation cannot accidentally break Bash parsing.
           cat > "$RUNNER_TEMP/skypeep-release-notes.md" <<'SKYPEEP_NOTES'
-          0.3.37: Improves preservation of offline progress if saved preferences cannot be read, source-matches reconstructed Sky Start and Cloud Drift sky regions, and expands the real Android screenshot gallery. Minimum SDK 24 for Google Play automatic protection compatibility (target 36), while original artwork and flight physics remain unchanged. Includes 16 real emulator screenshots, debug APK, unsigned release APK/AAB, checksums and source metadata. Visual reconstruction Issue #44 remains open until reviewed against original reference images.
+          0.3.38: Fixes optional haptic feedback by declaring Android's normal VIBRATE permission, prevents cosmetic purchases while storage is unsafe, and requires recovery by a full progress snapshot after any failed flush. Existing artwork, gameplay physics, six worlds and all progress keys remain unchanged. Includes 16 genuine Android emulator screen captures, debug APK, unsigned release APK/AAB, SHA-256 and F-Droid metadata. Issue #44 remains open for manual review; no claim of source-pixel-identical gameplay.
           SKYPEEP_NOTES
           gh release create "$VERSION" \
             "${release_files[@]}" "${screenshot_files[@]}" \
