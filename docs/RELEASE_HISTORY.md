@@ -1,5 +1,12 @@
 # SkyPeep — release history and development status
 
+## SkyPeep 0.3.36 (candidate — awaiting CI)
+
+- Source-matched 2D sky reconstruction and gradient regression for worlds 3/4/6; original art, physics and save format unchanged.
+- CI requires reconstruction check, JVM and six-world Android emulator before release.
+- Simplified player-facing README and synced previously published 0.3.35 F-Droid metadata.
+- Issue #44 stays open until actual screenshots are visually reviewed; candidate status does not imply publication.
+
 SkyPeep preserves its original Brendigo artwork and locally saved data through 0.3.x. The GitHub release page is authoritative for what users can install; source commits and draft pull requests are **not** releases.
 
 | Version | Key verified development focus | Status |
