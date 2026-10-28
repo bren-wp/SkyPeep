@@ -17,7 +17,7 @@
 
 Soar through painted clouds, floating islands, crystal valleys, moonlit horizons and golden peaks. Time each flap, slip between moving stone pillars, gather treasures and build a collection of unforgettable flights.
 
-No ads, no account, no in-app payments and no internet connection required to play.
+No ads, no account, no in-app payments and no internet connection required to play. SkyPeep keeps game progress on your device rather than uploading it to a game server.
 
 ## Six skies to explore
 
@@ -41,15 +41,44 @@ Every world is ready to play from the start. Complete each world by gathering **
 - **Customize your trail.** Choose Classic, Cyan Dash, Golden Spark or Moonlight.
 - **Play offline.** Records, collected currency, stars, items and settings are stored on the device.
 
-## The illustrated world
+## Discover SkyPeep — real Android screenshots
 
-The images below are **original design references** supplied for SkyPeep. They are not represented as unmodified Android emulator screenshots.
+These are **actual screenshots captured from the running Android API 35 emulator**, not rendered concept art. The [screen gallery](https://github.com/bren-wp/SkyPeep/releases/tag/skypeep-gallery) is refreshed **only after the complete Android test workflow passes**; the screenshots show genuine in-game states and illustrative QA fixtures rather than a promise that every player's currency or score will match them.
 
-| Main menu | World map |
+| Splash | Main menu | Levels |
+|:---:|:---:|:---:|
+| ![Real SkyPeep splash screen](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-splash.png) | ![Real SkyPeep menu screen](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-menu.png) | ![Real SkyPeep world map](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-levels.png) |
+
+| Gameplay | Pause | Game Over |
+|:---:|:---:|:---:|
+| ![Real SkyPeep gameplay screen](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-gameplay.png) | ![Real SkyPeep pause screen](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-pause.png) | ![Real SkyPeep Game Over screen](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-gameover.png) |
+
+| Level Complete | Skins | Shop | Settings |
+|:---:|:---:|:---:|:---:|
+| ![Real SkyPeep victory screen](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-victory.png) | ![Real SkyPeep skins screen](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-skins.png) | ![Real SkyPeep shop screen](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-shop.png) | ![Real SkyPeep settings screen](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-settings.png) |
+
+### Every world, in the actual game
+
+| Sky Start | Cloud Drift | Crystal Drop |
+|:---:|:---:|:---:|
+| ![Actual Sky Start gameplay](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-world-1.png) | ![Actual Cloud Drift gameplay](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-world-2.png) | ![Actual Crystal Drop gameplay](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-world-3.png) |
+
+| Wind Gate | Moon Glow | Sun Peak |
+|:---:|:---:|:---:|
+| ![Actual Wind Gate gameplay](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-world-4.png) | ![Actual Moon Glow gameplay](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-world-5.png) | ![Actual Sun Peak gameplay](https://github.com/bren-wp/SkyPeep/releases/download/skypeep-gallery/SkyPeep-Emulator-world-6.png) |
+
+The game's current real-world presentation can be compared to the original illustrated design. [GitHub Actions](https://github.com/bren-wp/SkyPeep/actions/workflows/android.yml) retains capture logs and numerical reference comparisons; visual differences are tracked transparently, not hidden behind mockups.
+
+<details>
+<summary>View the four original SkyPeep concept illustrations</summary>
+
+| Original menu | Original world map |
 |:---:|:---:|
-| ![Original SkyPeep main menu reference](assets/previews/menu.jpg) | ![Original SkyPeep levels reference](assets/previews/levels.jpg) |
-| Costumes | Flight illustration |
-| ![Original SkyPeep costume reference](assets/previews/skins.jpg) | ![Original SkyPeep gameplay reference](assets/previews/gameplay.jpg) |
+| ![Original menu artwork](assets/previews/menu.jpg) | ![Original levels artwork](assets/previews/levels.jpg) |
+| Original skins | Original gameplay |
+| ![Original skins artwork](assets/previews/skins.jpg) | ![Original gameplay artwork](assets/previews/gameplay.jpg) |
+
+</details>
 
 ## How to play
 
@@ -76,7 +105,7 @@ Find the newest **successfully validated** build on [GitHub Releases](https://gi
 
 SkyPeep is developed in Kotlin and LibGDX with source-controlled, checksum-verified original artwork. Build/test logs, actual emulator screenshots, visual comparisons and release packaging are available through [GitHub Actions](https://github.com/bren-wp/SkyPeep/actions/workflows/android.yml).
 
-See [Android installation and signing](docs/ANDROID_DISTRIBUTION.md), [visual QA](docs/VISUAL_PARITY_AUDIT.md), [dead-code audit](docs/DEAD_CODE_AUDIT.md) and [release history](docs/RELEASE_HISTORY.md). Ongoing artwork reconstruction issue [#44](https://github.com/bren-wp/SkyPeep/issues/44) is tracked transparently; automated metrics are not a certification of pixel-perfect parity.
+See [Android installation and signing](docs/ANDROID_DISTRIBUTION.md), [visual QA](docs/VISUAL_PARITY_AUDIT.md), [dead-code audit](docs/DEAD_CODE_AUDIT.md) and [release history](docs/RELEASE_HISTORY.md). Artwork reconstruction issue [#44](https://github.com/bren-wp/SkyPeep/issues/44) is tracked transparently; automated metrics are not a certification of pixel-perfect parity.
 
 ---
 
