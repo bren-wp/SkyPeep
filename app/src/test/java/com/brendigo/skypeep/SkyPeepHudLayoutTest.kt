@@ -79,4 +79,17 @@ class SkyPeepHudLayoutTest {
         assertTrue(SkyPeepHudLayout.PROMPT_Y > 255f)
     }
 
+
+    @Test fun illustratedWalletAndScorePlatesMaintainNativePixelRatios() {
+        assertEquals(269f/113f,
+            SkyPeepHudLayout.COIN_PLATE_WIDTH /
+                SkyPeepHudLayout.COIN_PLATE_HEIGHT, .015f)
+        assertEquals(191f/115f,
+            SkyPeepHudLayout.GEM_PLATE_WIDTH /
+                SkyPeepHudLayout.GEM_PLATE_HEIGHT, .015f)
+        assertEquals(367f/210f,
+            SkyPeepHudLayout.SCORE_WIDTH /
+                SkyPeepHudLayout.SCORE_HEIGHT, .015f)
+    }
+
 }
