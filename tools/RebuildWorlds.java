@@ -800,9 +800,23 @@ class RebuildWorlds {
     /** Source blue pixels sampled around the numerals on the real winged badge. */
     private record BadgeSkySample(int x,int y,int red,int green,int blue) { }
 
-    private static boolean originalBadgeBlue(int rgb) {
+    /** Match the ORIGINAL score-shield paint for each illustrated world.
+     * Some sky badges are PALE (Cloud Drift) or NAVY (Wind Gate, Sun Peak),
+     * not bright cyan. A one-palette rule destroyed the actual world design.
+     */
+    private static boolean originalBadgeBackground(int rgb,int world) {
         int r=(rgb>>>16)&255,g=(rgb>>>8)&255,b=rgb&255;
-        return r<120 && g>r+35 && b>r+55 && b>155 && g>65;
+        return switch(world) {
+            case 1 -> r<75 && g>38 && g<210 && b>90 && b>g+12;
+            case 2 -> r>180 && r<246 && g>215 && b>236 && b-r>8;
+            case 3 -> r<154 && g>155 && b>215 && b>g+9;
+            case 4 -> r>=8 && r<70 && g>28 && g<117 &&
+                      b>60 && b<160 && b>g+20;
+            case 5 -> r<90 && g>112 && g<235 && b>175 && b>g+12;
+            case 6 -> r<60 && g>29 && g<138 &&
+                      b>68 && b<195 && b>g+22;
+            default -> false;
+        };
     }
 
     /**
@@ -822,7 +836,7 @@ class RebuildWorlds {
     }
 
     /**
-     * Replace only the numeral in the ORIGINAL cyan badge, borrowing colour
+     * Replace only the numeral in the ORIGINAL illustrated badge, borrowing colour
      * from its unoccluded blue brush strokes. No new illustration, cream
      * rectangle, or third-party inpainting library is involved.
      */
@@ -853,7 +867,7 @@ class RebuildWorlds {
         java.util.ArrayList<BadgeSkySample> samples=new java.util.ArrayList<>();
         for(int y=18;y<139;y+=3)for(int x=76;x<300;x+=3) {
             int rgb=original.getRGB(x,y);
-            if(originalBadgeBlue(rgb))
+            if(originalBadgeBackground(rgb,world))
                 samples.add(new BadgeSkySample(x,y,
                     (rgb>>>16)&255,(rgb>>>8)&255,rgb&255));
         }
@@ -898,8 +912,8 @@ class RebuildWorlds {
         // An opaque beige/white rectangle is not part of the original
         // reference. Confirm the rebuilt centre is still a blue sky badge.
         int middle=cleaned.getRGB((mx1+mx2)/2,(my1+my2)/2);
-        if(!originalBadgeBlue(middle))throw new IOException(
-            "Score badge no longer original sky-blue in world "+world);
+        if(!originalBadgeBackground(middle,world))throw new IOException(
+            "Score badge no longer matches its original sky colour in world "+world);
         for(int y=0;y<height;y++)for(int x=0;x<width;x++)
             if((x<b[0]-3 || x>b[2]+3 || y<b[1]-3 || y>b[3]+3) &&
                original.getRGB(x,y)!=cleaned.getRGB(x,y))
@@ -907,7 +921,7 @@ class RebuildWorlds {
         if(!ImageIO.write(cleaned,"png",file.toFile()) ||
            Files.size(file)<18000)
             throw new IOException("Invalid original-art score badge: "+file);
-        System.out.println("PASS: source-matched blue badge world "+world+
+        System.out.println("PASS: source-matched illustrated badge world "+world+
                            " ("+samples.size()+" original sky samples)");
     }
 
