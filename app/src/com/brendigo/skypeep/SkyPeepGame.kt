@@ -771,7 +771,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         when (row) {
             0 -> setMusic(!musicEnabled)
             1 -> { effectsEnabled=!effectsEnabled; save() }
-            2 -> { vibrationEnabled=!vibrationEnabled; save() }
+            2 -> {
+                vibrationEnabled = !vibrationEnabled
+                save()
+                Gdx.app.log("SkyPeepSettings", "vibration=$vibrationEnabled")
+            }
             3 -> {
                 difficulty = difficulty.next()
                 save()
