@@ -27,7 +27,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.14.3'
+          gradle-version: '8.14.6'
       - name: Audit unused Kotlin/Java code
         run: python3 tools/dead_code_audit.py
       - name: Validate release job Bash syntax
