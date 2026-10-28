@@ -274,44 +274,91 @@ class RebuildWorlds {
      * Worlds 3/4 use source blue sky, while world 6 uses the original
      * orange sunset hues. Other illustrated pixels remain untouched.
      */
+    private static boolean eligibleSky(int rgb,int world) {
+        int red=(rgb>>>16)&255,green=(rgb>>>8)&255,blue=rgb&255;
+        // Do not sample original structures, clouds, sun/moon or masonry.
+        if(world==6)
+            return red>=180 && green>=130 && blue>=50 &&
+                   red-green>7 && green-blue>19;
+        return blue>red+16 && green>red+12 &&
+               blue>=green-24 && green>105;
+    }
+
+    private static boolean sourceSkyAt(BufferedImage source,int world,int x,int y) {
+        if(x<0||y<0||x>=source.getWidth()||y>=source.getHeight())
+            return false;
+        int feather=world==6?36:32;
+        for(int i=0;i<MASKS[world-1].length;i++)
+            if(MASKS[world-1][i].alpha(x,y,world==6&&i==0?40:feather)>=.04)
+                return false;
+        return eligibleSky(source.getRGB(x,y),world);
+    }
+
+    private static int mixRgb(int first,int second,double factor) {
+        int r=mix((first>>>16)&255,(second>>>16)&255,factor);
+        int g=mix((first>>>8)&255,(second>>>8)&255,factor);
+        int b=mix(first&255,second&255,factor);
+        return (r<<16)|(g<<8)|b;
+    }
+
+    /**
+     * Restore photographed sky with TWO-DIMENSIONAL source-derived samples.
+     *
+     * The earlier single RGB value per image row ignored the left-to-right
+     * lighting of the original painting. Mask feathering then revealed hard
+     * rectangular/oval boundaries against the unmodified side scenery.
+     * A coarse 32px grid of nearby unmasked sky colours is interpolated
+     * smoothly without touching any original image pixel outside a mask.
+     * Sparse patches fall back to the vertically smoothed source median.
+     */
     private static int[] sourceMatchedSky(
             BufferedImage source,int world) {
         int h=source.getHeight(),w=source.getWidth();
         int[][] sampled=new int[h][3];
+        boolean[] known=new boolean[h];
         int[] r=new int[w],g=new int[w],b=new int[w];
-        int[] fallback=PALETTE[world-1][0];
-        int[] last={fallback[0],fallback[1],fallback[2]};
         for(int y=0;y<h;y++){
             int count=0;
             for(int x=0;x<w;x+=4){
-                double mask=0;
-                for(int shape=0;shape<MASKS[world-1].length;shape++)
-                    mask=Math.max(mask,MASKS[world-1][shape].alpha(
-                        x,y,world==6?(shape==0?40:36):32));
-                if(mask>=.04)continue;
+                if(!sourceSkyAt(source,world,x,y))continue;
                 int rgb=source.getRGB(x,y);
-                int red=(rgb>>>16)&255,green=(rgb>>>8)&255,blue=rgb&255;
-                // Sample only sky hues, excluding most terrain and clouds.
-                if(world==6) {
-                    // Real warm sunset pixels; reject white clouds, flags
-                    // and low-luminance cliff faces in the supplied artwork.
-                    if(red<180 || green<130 || blue<50 ||
-                       red-green<=7 || green-blue<=19)continue;
-                } else {
-                    if(blue<=red+16 || green<=red+12 ||
-                       blue<green-24 || green<=105)continue;
-                }
-                r[count]=red;g[count]=green;b[count]=blue;
+                r[count]=(rgb>>>16)&255;
+                g[count]=(rgb>>>8)&255;
+                b[count]=rgb&255;
                 count++;
             }
             if(count>=8){
                 Arrays.sort(r,0,count);
                 Arrays.sort(g,0,count);
                 Arrays.sort(b,0,count);
-                last=new int[]{r[count/2],g[count/2],b[count/2]};
+                sampled[y][0]=r[count/2];
+                sampled[y][1]=g[count/2];
+                sampled[y][2]=b[count/2];
+                known[y]=true;
             }
-            sampled[y]=last.clone();
         }
+        // Interpolate genuinely missing rows in both directions. Forward
+        // fill alone produced sudden horizon bands when sky reappeared.
+        int previous=-1;
+        for(int y=0;y<h;y++)if(known[y]){
+            if(previous<0) {
+                for(int row=0;row<y;row++)
+                    sampled[row]=sampled[y].clone();
+            } else {
+                for(int row=previous+1;row<y;row++){
+                    double t=(row-previous)/(double)(y-previous);
+                    for(int channel=0;channel<3;channel++)
+                        sampled[row][channel]=mix(
+                            sampled[previous][channel],sampled[y][channel],t);
+                }
+            }
+            previous=y;
+        }
+        if(previous<0)throw new IllegalStateException(
+            "No unmasked original sky colours found in world "+world);
+        for(int row=previous+1;row<h;row++)
+            sampled[row]=sampled[previous].clone();
+
         int[] smooth=new int[h];
         for(int y=0;y<h;y++){
             long sr=0,sg=0,sb=0,total=0;
@@ -326,7 +373,78 @@ class RebuildWorlds {
             smooth[y]=((int)(sr/total)<<16)|
                       ((int)(sg/total)<<8)|(int)(sb/total);
         }
-        return smooth;
+
+        final int spacing=32;
+        int cols=(w+spacing-1)/spacing+1;
+        int rows=(h+spacing-1)/spacing+1;
+        int[] nodes=new int[cols*rows];
+        for(int row=0;row<rows;row++)for(int col=0;col<cols;col++){
+            int cx=Math.min(w-1,col*spacing);
+            int cy=Math.min(h-1,row*spacing);
+            long sr=0,sg=0,sb=0,count=0;
+            for(int yy=Math.max(0,cy-54);yy<=Math.min(h-1,cy+54);yy+=6)
+                for(int xx=Math.max(0,cx-84);xx<=Math.min(w-1,cx+84);xx+=6){
+                    if(!sourceSkyAt(source,world,xx,yy))continue;
+                    int rgb=source.getRGB(xx,yy);
+                    sr+=(rgb>>>16)&255;
+                    sg+=(rgb>>>8)&255;
+                    sb+=rgb&255;
+                    count++;
+                }
+            int base=smooth[cy],colour=base;
+            if(count>=12){
+                int averaged=((int)(sr/count)<<16)|
+                             ((int)(sg/count)<<8)|(int)(sb/count);
+                // Avoid sampling a nearby unusually bright cloud or ridge
+                // as a completely different sky colour inside the mask.
+                int result=0;
+                for(int shift:new int[]{0,8,16}){
+                    int v=(averaged>>>shift)&255,bv=(base>>>shift)&255;
+                    result|=(Math.max(bv-42,Math.min(bv+42,v))<<shift);
+                }
+                colour=mixRgb(base,result,.85);
+            }
+            nodes[row*cols+col]=colour;
+        }
+        int[] field=new int[w*h];
+        for(int y=0;y<h;y++){
+            int y0=Math.min(rows-2,y/spacing);
+            double fy=(y-y0*spacing)/(double)spacing;
+            for(int x=0;x<w;x++){
+                int x0=Math.min(cols-2,x/spacing);
+                double fx=(x-x0*spacing)/(double)spacing;
+                int a=mixRgb(nodes[y0*cols+x0],
+                             nodes[y0*cols+x0+1],fx);
+                int c=mixRgb(nodes[(y0+1)*cols+x0],
+                             nodes[(y0+1)*cols+x0+1],fx);
+                field[y*w+x]=mixRgb(a,c,fy);
+            }
+        }
+        return field;
+    }
+
+    /** Standalone, offline regression for source-derived 2D sky gradients. */
+    private static void verifySkyReconstruction() {
+        int w=706,h=1254;
+        BufferedImage input=new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
+        for(int y=0;y<h;y++)for(int x=0;x<w;x++){
+            int red=25+x/12,green=143+x/14,blue=223+x/33;
+            input.setRGB(x,y,(red<<16)|(green<<8)|blue);
+        }
+        int[] field=sourceMatchedSky(input,3);
+        int left=(field[620*w+45]>>>16)&255;
+        int right=(field[620*w+665]>>>16)&255;
+        if(right-left<20)throw new IllegalStateException(
+            "Regression: horizontal original-sky lighting was flattened");
+        for(int y=100;y<h-2;y+=39)
+            for(int x=16;x<w-2;x+=39) {
+                int one=field[y*w+x],two=field[y*w+x+1];
+                for(int shift:new int[]{0,8,16})
+                    if(Math.abs(((one>>>shift)&255)-((two>>>shift)&255))>3)
+                        throw new IllegalStateException(
+                            "Regression: vertical reconstruction edge at "+x+","+y);
+            }
+        System.out.println("PASS: 2D sky interpolation and continuity");
     }
     private static void rebuild(
             Path file,int world,Path sunPeakReference) throws Exception {
@@ -442,7 +560,7 @@ class RebuildWorlds {
         if(matchedSky!=null)for(int y=1;y<h;y++){
             // Reject a hard horizontal colour seam in the reconstructed sky.
             // Original floating islands/clouds remain untouched outside masks.
-            int from=matchedSky[y-1],to=matchedSky[y];
+            int from=matchedSky[(y-1)*w+w/2],to=matchedSky[y*w+w/2];
             for(int shift:new int[]{0,8,16})
                 if(Math.abs(((from>>>shift)&255)-((to>>>shift)&255))>16)
                     throw new IOException("Hard world-"+world+
@@ -492,7 +610,7 @@ class RebuildWorlds {
                 if(amount<.02)originalIslandPixels++;
             }
             int from=original.getRGB(x,y);
-            int to=matchedSky==null?air.getRGB(x,y):matchedSky[y];
+            int to=matchedSky==null?air.getRGB(x,y):matchedSky[y*w+x];
             if(coveredCoin>=0 && coinAlpha>0)
                 to=coinBackdrop(coinSky[coveredCoin],staticCoins[coveredCoin],y);
             int r=mix((from>>>16)&255,(to>>>16)&255,amount),
@@ -752,6 +870,10 @@ class RebuildWorlds {
     }
 
     public static void main(String[] args) throws Exception {
+        if(args.length==1 && args[0].equals("--self-test")) {
+            verifySkyReconstruction();
+            return;
+        }
         if(args.length!=2) throw new IllegalArgumentException(
             "Usage: java -Djava.awt.headless=true tools/RebuildWorlds.java <assets-directory> <sun-peak-original-reference.jpg>");
         for(int level=1;level<=6;level++){

@@ -423,7 +423,7 @@ echo "PASS: difficulty persists and live Tempest Wind Gate physics runs."
 # stays centered while original illustrated edge pixels fill wider/taller
 # screens. Capture both menu + gameplay and verify viewport logs in logcat.
 baseline_size="$size"
-for dimensions in 360x640 720x1280 1080x2400 1200x1920 1600x2000; do
+for dimensions in 360x640 720x1280 1080x1920 1080x2400 1200x1920 1600x2000; do
   adb shell wm size "$dimensions"
   w="${dimensions%x*}"
   h="${dimensions#*x}"
@@ -470,6 +470,6 @@ java -Djava.awt.headless=true tools/ResponsiveViewportQa.java
 test -s smoke-results/responsive-viewport-audit.txt || {
   echo "FAIL: responsive screenshot audit was not produced"; exit 1;
 }
-echo "PASS: five actual Android aspect ratios preserve SkyPeep UI and fill display."
+echo "PASS: six actual Android aspect ratios preserve SkyPeep UI and fill display."
 
 echo "PASS: Android app process survives boot and splash navigation."

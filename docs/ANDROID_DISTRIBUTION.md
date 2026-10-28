@@ -7,7 +7,7 @@
 | SkyPeep-X.Y.Z-debug.apk | Android manual testing | Debug signed, NOT production |
 | SkyPeep-X.Y.Z-release-unsigned.apk | Sideload/other stores, sign locally | NOT installable unchanged |
 | SkyPeep-X.Y.Z-play-upload-unsigned.aab | Google Play after signing | NOT accepted by Play unchanged |
-| SkyPeep-X.Y.Z-fdroid-metadata.yml | Source build recipe for F-Droid review | Text metadata (currently pins last verified 0.3.23) |
+| SkyPeep-X.Y.Z-fdroid-metadata.yml | Source build recipe for F-Droid review | Text metadata (tracks prior published source and pins each new release at packaging) |
 | LICENSE-MIT.txt | Source code license | MIT |
 | SkyPeep-X.Y.Z-SIGNING-AND-FDROID.md | This file and signing guidance | Text |
 | SkyPeep-X.Y.Z-CONTENTS.txt | Included files and exact Git commit | Text |
@@ -26,8 +26,8 @@ On a trusted machine that already has your proper keystore, run:
 
 ```sh
 jarsigner -keystore /secure/sky-upload.jks \
-  -signedjar SkyPeep-0.3.24-play-signed.aab \
-  SkyPeep-0.3.24-play-upload-unsigned.aab YOUR_EXISTING_UPLOAD_ALIAS
+  -signedjar SkyPeep-0.3.35-play-signed.aab \
+  SkyPeep-0.3.35-play-upload-unsigned.aab YOUR_EXISTING_UPLOAD_ALIAS
 
 jarsigner -verify -verbose -certs SkyPeep-0.3.24-play-signed.aab
 ```
@@ -43,13 +43,13 @@ for the Play-signed bundle. Never upload your key, signed keystore or passwords.
 An unsigned release APK must be ZIP-aligned and signed before it can be installed:
 
 ```sh
-zipalign -p -f 4 SkyPeep-0.3.24-release-unsigned.apk \
-  SkyPeep-0.3.24-release-aligned.apk
+zipalign -p -f 4 SkyPeep-0.3.35-release-unsigned.apk \
+  SkyPeep-0.3.35-release-aligned.apk
 apksigner sign --ks /secure/distribution.jks \
   --ks-key-alias YOUR_EXISTING_DISTRIBUTION_ALIAS \
-  --out SkyPeep-0.3.24-release-signed.apk \
-  SkyPeep-0.3.24-release-aligned.apk
-apksigner verify --verbose SkyPeep-0.3.24-release-signed.apk
+  --out SkyPeep-0.3.35-release-signed.apk \
+  SkyPeep-0.3.35-release-aligned.apk
+apksigner verify --verbose SkyPeep-0.3.35-release-signed.apk
 ```
 
 An installed package can only be updated with a matching signing certificate
@@ -65,8 +65,7 @@ but is not what an official F-Droid repository should distribute as-is.
 
 The upstream F-Droid metadata file is `.fdroid.yml`, and localized descriptions
 are stored under `fastlane/metadata/android/en-US/` and `hr-HR/`.
-The repository's upstream `.fdroid.yml` currently keeps the last fully
-validated published source (0.3.23; versionCode 35). **At packaging time** the
+The repository's upstream `.fdroid.yml` currently keeps the last published source (0.3.35; versionCode 47). **At packaging time** the
 release asset `SkyPeep-X.Y.Z-fdroid-metadata.yml` is automatically expanded
 to contain a `Builds` entry pinned to that release's **exact 40-character Git
 commit**, `versionName` and `versionCode`. This gives F-Droid reviewers a

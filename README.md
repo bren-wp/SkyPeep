@@ -1,127 +1,89 @@
 <div align="center">
 
-<img src="app/res/mipmap-xxxhdpi/ic_launcher.png" alt="SkyPeep app icon" width="112" />
+<img src="app/res/mipmap-xxxhdpi/ic_launcher.png" alt="SkyPeep original aviator bird logo" width="112" />
 
 # SkyPeep
-### A little aviator. Six skies to conquer.
+### Six worlds. One brave little aviator.
 
-**An offline-first illustrated arcade adventure by [Brendigo](https://brendigo.com).**
+**An illustrated, offline Android flying adventure by [Brendigo](https://brendigo.com).**
 
-[🎮 Explore the worlds](#six-worlds-to-explore) · [🧡 How to play](#how-to-play) · [⬇️ Install a preview](#install-an-android-preview) · [🛠️ Development](#for-developers)
+[**Discover the worlds**](#six-skies-to-explore) · [**How to play**](#how-to-play) · [**Download**](https://github.com/bren-wp/SkyPeep/releases)
 
-![Original SkyPeep gameplay illustration — concept reference, not a live screenshot](assets/previews/gameplay.jpg)
+![Original SkyPeep gameplay illustration — artwork reference, not emulator footage](assets/previews/gameplay.jpg)
 
 </div>
 
-## One tap. An extraordinary journey.
+## A small bird. A big sky.
 
-Guide a brave little aviator through floating islands, glittering crystals, moonlit skies and sun-soaked mountains. Thread between illustrated stone pillars, collect coins and gems, and chase your best score. No account, internet connection, advertisements or real-money purchases required.
+Soar through painted clouds, floating islands, crystal valleys, moonlit horizons and golden peaks. Time each flap, slip between moving stone pillars, gather treasures and build a collection of unforgettable flights.
 
-### What's inside
+No ads, no account, no in-app payments and no internet connection required to play.
 
-| | |
-|---|---|
-| ❤️ **Three chances per flight** | Keep flying after a collision; collect occasional hearts to recover one missing life, up to three |
-| 🪽 **One-tap flight** | Flap to rise, time your descent and navigate evolving openings |
-| 🏔️ **Six open worlds** | Sky Start, Cloud Drift, Crystal Drop, Wind Gate, Moon Glow and Sun Peak — all immediately playable |
-| 🌬️ **Three challenges** | Breeze, Explorer and Tempest, with independent best scores and precision stars |
-| 💎 **Collect and customize** | Gather 10,001 physical coin pickups per world across flights; buy and equip bird outfits and flight trails |
-| 📱 **Android-first presentation** | Responsive fullscreen gameplay, pause and tappable menus without scrolling |
-| 🔋 **Battery-conscious** | Static illustrated screens redraw only when needed; flight remains responsive, with no motion-sensor polling |
+## Six skies to explore
 
-**Illustrated controls:** The Levels map keeps the original world banners, stars and backgrounds unobstructed: small OPEN/PLAY/DONE chips replace only the five illustrated lock icons without covering island numbers; the first island has no lock. The selected world and cumulative pickup count appear in the lower toolbar. The SKINS and SHOP BUY/EQUIP buttons use bright green illustrated surfaces and large readable captions.
+| World | Your adventure |
+|:--|:--|
+| ☁️ **01 · Sky Start** | Set out among bright clouds, floating islands and waterfalls |
+| 🏔️ **02 · Cloud Drift** | Navigate sweeping heights and layered mountain clouds |
+| 💎 **03 · Crystal Drop** | Discover glowing crystals, ancient scenery and skybound ruins |
+| 🌬️ **04 · Wind Gate** | Master gusts, stone arches and narrower flight paths |
+| 🌙 **05 · Moon Glow** | Fly through luminous landscapes beneath a night sky |
+| ☀️ **06 · Sun Peak** | Reach the golden summit and complete the final sky route |
 
-**Illustrated panels:** Shop and Settings now display the existing world scenery rather than the Main Menu's logo and buttons behind their themed UI. The four supplied visual references remain unmodified. Reconstructed live world backgrounds still need separate visual cleanup before claiming 1:1.
+Every world is ready to play from the start. Complete each world by gathering **10,001 real coin pickups** across your flights; spending coins does not erase your world progress.
 
-**Skins reference fidelity:** The existing four BUY buttons are painted in the original user-supplied skins artwork; they remain untouched until ownership/equipment state changes, avoiding needless visual replacements. The Default card has its correct tap target and live EQUIP state.
+## Find your flight style
 
-**Launcher branding and touch accuracy:** The original aviator is displayed larger within the Android app icon; an Android 8+ adaptive launcher foreground/background is derived deterministically from the project's existing icon. On SKINS the DEFAULT plaque stays named DEFAULT even if another costume is worn; only its real green EQUIP button changes state and accepts touches. Purchase cards, their hitboxes and screenshots remain untouched.
+- **Three lives per flight.** Recover lost health with hearts along the way.
+- **Three difficulty settings.** Choose Breeze, Explorer or Tempest and chase route-specific personal bests.
+- **Collect coins and gems.** Every earned collectible is part of the flight, never a simulated purchase.
+- **Unlock bird costumes.** Fly as Default, Captain, Forest, Cosmic or Royal.
+- **Customize your trail.** Choose Classic, Cyan Dash, Golden Spark or Moonlight.
+- **Play offline.** Records, collected currency, stars, items and settings are stored on the device.
 
-**Reference fidelity:** Unchanged wallet amounts retain their exact painted Menu/Skins reference pixels; dynamic overlays appear only when coins or gems actually differ from the corresponding source artwork.
+## The illustrated world
 
-**Responsive scenery margins:** On tall phones and wide tablets, Shop and Settings reuse broad original world scenery for expanded margins instead of stretching narrow menu-image edge strips. Other screenshot-based pages continue protecting their original text, wallets and logos from duplication beyond the 941×1672 reference canvas.
+The images below are **original design references** supplied for SkyPeep. They are not represented as unmodified Android emulator screenshots.
 
-**Panel world artwork:** Choosing a different illustrated island on the map no longer leaves Shop or Settings with a missing background texture. Their scenery stages safely when opening the panel, while an unavailable resource reuses the last successfully loaded world's art.
-
-**Record durability and safe startup:** New best scores are saved at the scoring gate, without requiring a completed run. If one saved preference has an invalid type, SkyPeep uses that entry's default while continuing to read valid entries; the issue is logged for diagnosis. Android sharing restrictions are handled as recoverable errors. These safeguards do not replace physical-device crash QA.
-
-**Performance and recovery:** Real coin/gem pickups now flush only the current world progress and wallet counters, not every saved setting and unlock; full saves remain for purchases, route results and settings. Storage errors and unavailable incoming world art are handled without terminating the current game.
-
-**Durable progress:** Each collected coin and gem is flushed to offline local storage as it is picked up, so the latest real collection does not wait for a tenth coin.
-
-**Menu and purchase safety:** Menu tap targets no longer overlap across adjacent illustrated rows; skin buying uses a tested wallet transaction and never charges an already-owned costume. On the map, a selected completed world shows DONE. Gems come from real in-flight pickups, not an automatic level-completion grant.
-
-**Game balance:** Precision is assessed at the midpoint of each stone passage; a score is granted when the actual bird body fully clears it. Clearing pillars alone does not complete a world: each needs 10,001 actual coin pickups, saved across attempts. Consecutive openings are constrained to achievable changes. On a sky-edge rebound, collisions are immediately recalculated from the corrected bird position. A short recovery shield prevents one obstacle from consuming several lives. Hearts do not require payment and appear only if the bird has been hurt.
-
-## See the original artwork
-
-These are **design-reference images**, not captured gameplay screenshots. Run-time screenshots from Android emulator testing appear in [GitHub Actions artifacts](https://github.com/bren-wp/SkyPeep/actions/workflows/android.yml).
-
-| Main menu | World selection |
+| Main menu | World map |
 |:---:|:---:|
-| ![Original SkyPeep menu design](assets/previews/menu.jpg) | ![Original six-world map design](assets/previews/levels.jpg) |
-| Bird costumes | Flight composition |
-| ![Original costume selector design](assets/previews/skins.jpg) | ![Original gameplay concept design](assets/previews/gameplay.jpg) |
-
-## Six worlds to explore
-
-| Chapter | Atmosphere |
-|---|---|
-| ☁️ **01 · Sky Start** | Bright blue skies, drifting islands and waterfalls |
-| 🏔️ **02 · Cloud Drift** | Airy peaks, clouds and sweeping elevation |
-| 💠 **03 · Crystal Drop** | Ancient structures and luminous crystal formations |
-| 🌪️ **04 · Wind Gate** | Windswept routes and dramatic stone obstacles |
-| 🌙 **05 · Moon Glow** | Moonlit landscapes with luminous details |
-| ☀️ **06 · Sun Peak** | Golden vistas and the final sky challenge |
-
-Every world features its own original reconstructed background, themed stone pillars and score interface. Source imagery is preserved and verified during every CI build.
+| ![Original SkyPeep main menu reference](assets/previews/menu.jpg) | ![Original SkyPeep levels reference](assets/previews/levels.jpg) |
+| Costumes | Flight illustration |
+| ![Original SkyPeep costume reference](assets/previews/skins.jpg) | ![Original SkyPeep gameplay reference](assets/previews/gameplay.jpg) |
 
 ## How to play
 
-1. **Tap to flap.** Release to descend under gravity and changing air currents.
-2. **Fly through the middle of the gap.** Avoid stone and the edges of the visible sky.
-3. **Gather coins, gems and hearts.** Hearts appear periodically while injured; each restores one missing life.
-4. **Complete each world.** All six are already open. Collect 10,001 actual coins per world over as many attempts as needed; precision determines earned stars.
-5. **Choose your flight license.** Breeze is gentler, Explorer is the classic balance and Tempest is more demanding.
+1. **Tap to flap.** The bird climbs with each tap and descends between flaps.
+2. **Find the opening.** Avoid moving pillars and obstacles to keep your three lives.
+3. **Collect treasures.** Pick up coins, gems and hearts while flying through each world.
+4. **Grow your collection.** Spend earned currency on costumes and trails, without reducing completed world goals.
+5. **Keep exploring.** Improve your records and win up to three precision stars.
 
-Bonus coins from streaks or completing a world have been removed. Six separate pickup totals, wallet currency, results, stars, outfits, trails and settings are saved locally. Hearts and the three flight lives **reset at the beginning of each new run**.
+## Download SkyPeep
 
-## Style your aviator
+Find the newest **successfully validated** build on [GitHub Releases](https://github.com/bren-wp/SkyPeep/releases). Release attachments clearly identify their intended use:
 
-Dress the bird as **Default, Captain, Forest, Cosmic or Royal** and fly with **Classic, Cyan Dash, Golden Spark or Moonlight** trails. Everything is earned through play with in-game currency, never real money.
-
-## Install an Android preview
-
-Visit **[SkyPeep GitHub Releases](https://github.com/bren-wp/SkyPeep/releases)** and choose the latest **successfully validated** preview. The attached `SkyPeep-X.Y.Z-debug.apk` is the installable **testing-only** build. Each verified 0.3.24+ release also includes `SkyPeep-X.Y.Z-release-unsigned.apk` (sign locally for direct APK distribution), `SkyPeep-X.Y.Z-play-upload-unsigned.aab` (sign with the existing Google Play upload key), SHA-256 checksums, MIT license, F-Droid build metadata and signing instructions.
-
-> **Important:** The release APK and Play AAB are deliberately **unsigned**, and F-Droid builds/signs its own APK from source. None of the unsigned files is installable as-is or immediately eligible for store upload. Follow the [signing and F-Droid guide](docs/ANDROID_DISTRIBUTION.md). The newest code on a development branch may be awaiting CI even when an older public preview is available.
-
-Minimum Android SDK is API 23. The application is local-only with no requested Internet, location or contacts permissions. Scores can be optionally shared using the Android chooser.
-
-## For developers
-
-| Stack | Quality gates |
+| Download | Purpose |
 |---|---|
-| Kotlin + LibGDX 1.14.0 | Kotlin JVM regression tests and Android API 35 emulator smoke |
-| Android compile/target SDK 36 | Offline merged-manifest permission check |
-| Java 17 + Gradle | 24-part original-art SHA-256 verification and native library checks |
-| Portrait reference 941 × 1672 | Five physical emulator viewport sizes and per-screen screenshots |
+| **Debug APK** | Installable preview for Android testing; signed with a debug certificate |
+| **Unsigned release APK** | For independent distribution after signing with a compatible private key |
+| **Unsigned AAB** | For Google Play upload after signing with the existing upload key |
+| **SHA256SUMS.txt** | Verify the downloaded package files |
 
-```bash
-python3 tools/dead_code_audit.py
-gradle :app:testDebugUnitTest :app:assembleDebug :app:bundleRelease
-```
+**Important:** An unsigned release APK/AAB is not ready to install or publish. Android requires a compatible signing certificate for updates to preserve existing local game data. Never uninstall an earlier copy merely to switch between debug, F-Droid and Play signing identities without first considering data loss.
 
-The audit and tests are meaningful checks, **not a guarantee of zero bugs, complete pixel-for-pixel parity or physical-device GPU stability**.
+## Development and verification
 
-[Version history and release status](docs/RELEASE_HISTORY.md) · [Performance audit](docs/qa/PERFORMANCE_0.3.25.md) · [Contact and background QA](docs/qa/CONTACT_RENDER_0.3.26.md) · [Visual parity audit](docs/VISUAL_PARITY_AUDIT.md) · [Contact and responsive QA](docs/CONTACT_AND_RESPONSIVE_QA.md) · [Dead-code audit](docs/DEAD_CODE_AUDIT.md)
+SkyPeep is developed in Kotlin and LibGDX with source-controlled, checksum-verified original artwork. Build/test logs, actual emulator screenshots, visual comparisons and release packaging are available through [GitHub Actions](https://github.com/bren-wp/SkyPeep/actions/workflows/android.yml).
+
+See [Android installation and signing](docs/ANDROID_DISTRIBUTION.md), [visual QA](docs/VISUAL_PARITY_AUDIT.md), [dead-code audit](docs/DEAD_CODE_AUDIT.md) and [release history](docs/RELEASE_HISTORY.md). Ongoing artwork reconstruction issue [#44](https://github.com/bren-wp/SkyPeep/issues/44) is tracked transparently; automated metrics are not a certification of pixel-perfect parity.
 
 ---
 
 <div align="center">
 
-**Built for curious flyers by [Brendigo](https://brendigo.com).**
+**Made for curious flyers. Created by [Brendigo](https://brendigo.com).**
 
-[GitHub repository](https://github.com/bren-wp/SkyPeep) · [Releases](https://github.com/bren-wp/SkyPeep/releases) · [LICENSE](LICENSE)
+[Source code](https://github.com/bren-wp/SkyPeep) · [Downloads](https://github.com/bren-wp/SkyPeep/releases) · [License](LICENSE)
 
 </div>

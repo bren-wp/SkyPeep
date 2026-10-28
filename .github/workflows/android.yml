@@ -32,6 +32,8 @@ jobs:
         run: python3 tools/dead_code_audit.py
       - name: Validate release job Bash syntax
         run: python3 tools/check_release_shell.py .github/workflows/android.yml
+      - name: Validate source-derived world sky interpolation
+        run: java -Djava.awt.headless=true tools/RebuildWorlds.java --self-test
       - name: Build debug APK, unsigned release APK and unsigned AAB
         run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:bundleRelease --stacktrace
       - name: Verify offline and local-only Android manifest
@@ -67,8 +69,8 @@ jobs:
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+47" app/build.gradle
-          grep -Fq "versionName '0.3.35'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+48" app/build.gradle
+          grep -Fq "versionName '0.3.36'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/apk/release/app-release-unsigned.apk
           test -s app/build/outputs/bundle/release/app-release.aab
@@ -184,7 +186,7 @@ jobs:
   release:
     name: Publish verified preview
     needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.35-icon-ui-fidelity'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.36-background-seam-qa'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -206,7 +208,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.35-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.36-preview.${GITHUB_RUN_NUMBER}"
           for pattern in '*-debug.apk' '*-release-unsigned.apk' '*-play-upload-unsigned.aab' 'SHA256SUMS.txt' '*-fdroid-metadata.yml'; do
             test -n "$(find release-artifacts -type f -name "$pattern" -print -quit)" || {
               echo "Required release asset missing: $pattern"; exit 1;
@@ -219,7 +221,7 @@ jobs:
           # A quoted heredoc treats release notes as literal text: apostrophes
           # and other punctuation cannot accidentally break Bash parsing.
           cat > "$RUNNER_TEMP/skypeep-release-notes.md" <<'SKYPEEP_NOTES'
-          0.3.35: pixel-aligned SKINS default selection control, accurate dynamic EQUIP/EQUIPPED state and skin-switch emulator coverage; refreshed all-density aviator launcher artwork built from the bundled original SkyPeep icon without generating or downloading images. Adds adaptive Android 8+ icon mask and native-size regression checks. UI layout and touch QA cover all screens, five viewport sizes and unchanged original menu/map/skins illustrations. Six worlds, physics, three lives, 10001 collected-coin goals and local saves remain unchanged. Debug APK, unsigned release APK/AAB and checksums included. Store signing and real-device pixel-perfect inspection remain separate.
+          0.3.36: Source-derived two-dimensional sky reconstruction for Crystal Drop, Wind Gate and Sun Peak replaces row-flat background infill and interpolates missing sky rows to reduce reconstruction boundaries. New offline interpolation self-test; full existing JVM, original-art integrity, emulator screen, six-world and viewport QA gates remain mandatory. Original supplied artwork, 10,001 real collectible goals, physics, shop, wallets and saved progress are unchanged. Debug APK, unsigned release APK/AAB and SHA-256 manifests included. Issue #44 remains open for manual screenshot review; no claim of pixel-perfect parity or physical-device validation.
           SKYPEEP_NOTES
           gh release create "$VERSION" \
             "${release_files[@]}" \
