@@ -751,7 +751,10 @@ class RebuildWorlds {
                     "Moon Glow original midground was erased again: retained="+fraction);
             // Preserve the real illustrated crescent and source scenery,
             // independently of the restored sky-field implementation.
-            for(int[] point:new int[][]{{115,345},{650,530},{620,670}}) {
+            // The photographed Moon Glow coin group occupies x=339..694,
+            // y=560..751 and has a separate intentional removal mask.
+            // Sample genuine moon/island pixels safely OUTSIDE both masks.
+            for(int[] point:new int[][]{{115,345},{650,400},{650,850}}) {
                 int x=point[0],y=point[1];
                 if((output.getRGB(x,y)&0x00ffffff)!=
                    (original.getRGB(x,y)&0x00ffffff))
