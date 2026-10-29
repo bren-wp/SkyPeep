@@ -66,6 +66,44 @@ class SkyPeepTextBoundsTest {
         }
     }
 
+    @Test fun reusableLayoutMatchesImmutablePositionForEveryMajorPanel() {
+        val shared=SkyPeepTextBounds.MutablePosition()
+        val panels=listOf(
+            SkyPeepUiTouch.Rect(137f,820f,313f,63f),  // victory caption
+            SkyPeepUiTouch.Rect(137f,892f,313f,68f),  // victory value
+            SkyPeepUiTouch.Rect(117f,185f,708f,122f), // shop header
+            SkyPeepUiTouch.Rect(132f,319f,677f,139f),// settings header
+            SkyPeepUiTouch.Rect(378f,19f,184f,116f),  // flying score
+            SkyPeepUiTouch.Rect(14f,205f,260f,50f)   // collected goal
+        )
+        for(panel in panels) for((w,h) in listOf(
+            30f to 18f,100f to 39f,155f to 41f)) {
+            val scaled=SkyPeepTextBounds.scaleLimit(w,h,panel)
+            val width=w*scaled
+            val height=h*scaled
+            val middle=panel.left+panel.width*.5f
+            val baseline=1672f-panel.top-panel.height*.5f
+            val original=SkyPeepTextBounds.position(
+                panel,middle,baseline,width,height)
+            SkyPeepTextBounds.positionInto(
+                panel,middle,baseline,width,height,shared)
+            assertEquals(original.centerX,shared.centerX,.001f)
+            assertEquals(original.baseline,shared.baseline,.001f)
+        }
+    }
+
+    @Test fun reusableLayoutRejectsInvalidGlyphDimensions() {
+        val rect=SkyPeepUiTouch.Rect(100f,200f,200f,100f)
+        val pos=SkyPeepTextBounds.MutablePosition()
+        for(width in listOf(Float.NaN,Float.POSITIVE_INFINITY,-1f)) {
+            try {
+                SkyPeepTextBounds.positionInto(rect,180f,1420f,
+                    width,26f,pos)
+                fail("Non-finite/negative glyph width accepted")
+            } catch (_:IllegalArgumentException) { }
+        }
+    }
+
     @Test fun shopAndSettingsHeadersDoNotSinkBelowTheirWoodPanels() {
         val shop=SkyPeepUiTouch.Rect(117f,185f,708f,122f)
         val h=84f
