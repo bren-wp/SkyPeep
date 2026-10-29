@@ -5,14 +5,66 @@ import android.content.Intent
 import android.widget.Toast
 import android.content.pm.ApplicationInfo
 import android.os.Bundle
+import android.os.Build
+import android.view.View
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import com.badlogic.gdx.backends.android.AndroidApplication
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration
 
 class MainActivity : AndroidApplication() {
+    private var game: SkyPeepGame? = null
+
+    // LibGDX's legacy immersive-mode implementation uses deprecated
+    // systemUiVisibility flags. We disable it in the configuration and
+    // restore fullscreen with WindowInsetsController on Android 11+.
+    @Suppress("DEPRECATION")
+    private fun applyImmersiveFullscreen() {
+        val decor = window.decorView
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            decor.windowInsetsController?.apply {
+                systemBarsBehavior =
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                hide(WindowInsets.Type.systemBars())
+            }
+        } else {
+            // Android 7-10 compatibility only; never run legacy flags on API 30+.
+            decor.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        }
+    }
+
+    private fun installSafeAreaListener() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
+        window.decorView.setOnApplyWindowInsetsListener { _, insets ->
+            val cutout = insets.displayCutout
+            val bars = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+                insets.getInsets(WindowInsets.Type.systemBars()) else null
+            game?.updateSafeInsets(SkyPeepScreenFrame.PixelInsets(
+                maxOf(cutout?.safeInsetLeft ?: 0, bars?.left ?: 0),
+                maxOf(cutout?.safeInsetTop ?: 0, bars?.top ?: 0),
+                maxOf(cutout?.safeInsetRight ?: 0, bars?.right ?: 0),
+                maxOf(cutout?.safeInsetBottom ?: 0, bars?.bottom ?: 0)
+            ))
+            // No inset consumption: system gestures and the GL surface retain
+            // normal Android dispatch; only game controls use the safe frame.
+            insets
+        }
+        window.decorView.requestApplyInsets()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) applyImmersiveFullscreen()
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val config = AndroidApplicationConfiguration().apply {
-            useImmersiveMode = true
+            useImmersiveMode = false
             // SkyPeep is a one-tap arcade game, not a motion-controlled app.
             // LibGDX enables accelerometer/compass by default on Android:
             // unregistering those unused sensors reduces idle battery use.
@@ -35,7 +87,7 @@ class MainActivity : AndroidApplication() {
             intent.getBooleanExtra("sky_peep_qa_background_motion", false) else false
         val qaDifficulty = if (debuggable)
             intent.getIntExtra("sky_peep_qa_difficulty", -1) else -1
-        initialize(SkyPeepGame(shareText = { result ->
+        val instance = SkyPeepGame(shareText = { result ->
             runOnUiThread {
                 // Android may destroy the activity while the system chooser opens.
                 if (isFinishing || isDestroyed) return@runOnUiThread
@@ -58,6 +110,10 @@ class MainActivity : AndroidApplication() {
             qaVictory = qaVictory, qaPillars = qaPillars,
             qaScore = qaScore, qaMapUnlocked = qaMapUnlocked,
             qaLoss = qaLoss, qaBackgroundMotion = qaBackgroundMotion,
-            qaDifficulty = qaDifficulty), config)
+            qaDifficulty = qaDifficulty)
+        game = instance
+        initialize(instance, config)
+        installSafeAreaListener()
+        applyImmersiveFullscreen()
     }
 }

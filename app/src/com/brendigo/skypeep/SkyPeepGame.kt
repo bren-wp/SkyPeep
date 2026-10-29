@@ -83,6 +83,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private lateinit var camera: OrthographicCamera
     private lateinit var viewport: ExtendViewport
     private var visibleFrame = SkyPeepScreenFrame.forPixels(941,1672)
+    @Volatile private var safeInsetsPx = SkyPeepScreenFrame.PixelInsets(0, 0, 0, 0)
     private lateinit var prefs: Preferences
     private val storageHealth = SkyPeepStorageHealth()
     private var lastSaveFailed = false
@@ -381,6 +382,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             "${visibleFrame.right},${visibleFrame.top}")
     }
 
+    /** The Android UI thread publishes safe insets; GL reads one immutable snapshot. */
+    fun updateSafeInsets(insets: SkyPeepScreenFrame.PixelInsets) {
+        safeInsetsPx = insets
+        Gdx.app?.postRunnable { Gdx.graphics.requestRendering() }
+    }
+
+    private fun safeHudFrame(): SkyPeepScreenFrame.Frame =
+        SkyPeepScreenFrame.hudSafeFrame(visibleFrame,
+            Gdx.graphics.width, Gdx.graphics.height, safeInsetsPx)
+
     override fun render() {
         val delta = SkyPeepPhysicsStep.boundedDelta(Gdx.graphics.deltaTime)
         animationTime += delta
@@ -548,7 +559,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             Screen.MENU -> clickMenu(x, yTop)
             Screen.MAP -> clickMap(x, yTop)
             Screen.PLAY -> {
-                if (SkyPeepHudLayout.pauseContains(visibleFrame,x,yTop)) {
+                if (SkyPeepHudLayout.pauseContains(safeHudFrame(),x,yTop)) {
                     screen = Screen.PAUSE
                     playSound("click")
                 }
@@ -1178,10 +1189,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // Exact cropped reference HUD layers. Dynamic figures replace reference mockup values.
         // On tall displays HUD art belongs to the PHYSICAL top of the
         // expanded world, never floating below an unused top inset.
-        val top=visibleFrame.top
-        val left = SkyPeepHudLayout.coinX(visibleFrame)
-        val right = SkyPeepHudLayout.gemX(visibleFrame)
-        val pause = SkyPeepHudLayout.pauseX(visibleFrame)
+        val hudFrame = safeHudFrame()
+        val top=hudFrame.top
+        val left = SkyPeepHudLayout.coinX(hudFrame)
+        val right = SkyPeepHudLayout.gemX(hudFrame)
+        val pause = SkyPeepHudLayout.pauseX(hudFrame)
         // Source-illustrated coin, gemstone, pause and winged score artwork.
         // The rebuilt score texture keeps its native ratio instead of a
         // vertically squashed banner; preserve its top position.
@@ -1201,8 +1213,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // They must never overlay the original central winged score ribbon.
         for (i in 0 until SkyPeepLives.MAX) {
             if (i >= lives) batch.color = EMPTY_HEART_TINT
-            drawHeart(SkyPeepHudLayout.heartCenterX(visibleFrame,i),
-                SkyPeepHudLayout.heartCenterY(visibleFrame),21f)
+            drawHeart(SkyPeepHudLayout.heartCenterX(hudFrame,i),
+                SkyPeepHudLayout.heartCenterY(hudFrame),21f)
             batch.color = Color.WHITE
         }
         // Flight HUD numbers are real pickups for THIS RUN, not spendable
@@ -1210,15 +1222,15 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // Preferences separately, with no migration or economy change.
         fitted(hudText.coins(flightHud.coinsCollected),top-52f,
             fontSmall,1.27f,108f,left+171f,
-            bounds=SkyPeepUiTouch.Rect(left+112f,-visibleFrame.extraY+14f,117f,82f))
+            bounds=SkyPeepUiTouch.Rect(left+112f,-hudFrame.extraY+14f,117f,82f))
         fitted(hudText.gems(flightHud.gemsCollected),top-51f,
             fontSmall,1.25f,70f,right+122f,
-            bounds=SkyPeepUiTouch.Rect(right+80f,-visibleFrame.extraY+14f,85f,82f))
+            bounds=SkyPeepUiTouch.Rect(right+80f,-hudFrame.extraY+14f,85f,82f))
         drawWingedScore()
         // Real collected pickups (not spendable wallet balance), now off
         // the banner and never competing with the centre score numerals.
-        val goalX=SkyPeepHudLayout.goalX(visibleFrame)
-        val goalY=SkyPeepHudLayout.goalBottom(visibleFrame)
+        val goalX=SkyPeepHudLayout.goalX(hudFrame)
+        val goalY=SkyPeepHudLayout.goalBottom(hudFrame)
         badge("dark",goalX,goalY,
             SkyPeepHudLayout.GOAL_WIDTH,SkyPeepHudLayout.GOAL_HEIGHT)
         fitted(hudText.progress(worldCoins[level-1]),
@@ -1230,20 +1242,21 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // longer safely readable or flush() failed. Only the failure state
         // adds this strip; ordinary gameplay stays source-art compatible.
         if (!storageHealth.canWrite || lastSaveFailed) {
-            badge("dark",W/2f-260f,visibleFrame.bottom+90f,520f,68f)
-            fitted("PROGRESS NOT SAVED",visibleFrame.bottom+138f,
+            badge("dark",W/2f-260f,hudFrame.bottom+90f,520f,68f)
+            fitted("PROGRESS NOT SAVED",hudFrame.bottom+138f,
                 fontSmall,.95f,495f,W/2f,
-                bounds=SkyPeepUiTouch.Rect(W/2f-260f,H-visibleFrame.bottom-158f,
+                bounds=SkyPeepUiTouch.Rect(W/2f-260f,H-hudFrame.bottom-158f,
                     520f,68f))
         }
     }
 
     private fun drawWingedScore() {
+        val hudFrame = safeHudFrame()
         val text=hudText.score(score)
         // The score is part of the bright illustrated winged HUD, not a
         // separate dark overlay. Keep the large reference-style outlined
         // numerals centred and automatically fit three-plus digit results.
-        val baseline=visibleFrame.top-54f
+        val baseline=hudFrame.top-54f
         val size=1.38f
         val available=160f
         val center=W/2f
@@ -1252,7 +1265,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // A score can exceed the two-digit concept mockup. The illustrated
         // winged score is bounded above the separate world-name ribbon.
         // Clamp BOTH text dimensions (and its outline) to that original face.
-        val face=SkyPeepUiTouch.Rect(378f,-visibleFrame.extraY+19f,184f,116f)
+        val face=SkyPeepUiTouch.Rect(378f,-hudFrame.extraY+19f,184f,116f)
         for (dx in SCORE_STROKE_OFFSETS)
             for (dy in SCORE_STROKE_OFFSETS)
                 if (dx!=0f || dy!=0f)

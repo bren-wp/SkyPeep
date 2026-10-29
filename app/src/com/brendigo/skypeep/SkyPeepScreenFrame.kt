@@ -19,6 +19,29 @@ internal object SkyPeepScreenFrame {
         val extraX: Float, val extraY: Float
     )
 
+
+    /**
+     * Native Android fullscreen still has unsafe pixels around camera cutouts
+     * and transient system bars. Move only HUD controls into this safe area;
+     * the background, camera, obstacle physics and original art remain full bleed.
+     */
+    internal data class PixelInsets(
+        val left: Int, val top: Int, val right: Int, val bottom: Int
+    )
+
+    fun hudSafeFrame(frame: Frame, widthPx: Int, heightPx: Int,
+                     inset: PixelInsets): Frame {
+        require(widthPx > 0 && heightPx > 0)
+        val xScale = (frame.right - frame.left) / widthPx
+        val yScale = (frame.top - frame.bottom) / heightPx
+        // Malformed OEM inset values cannot invert the visible viewport.
+        val l = frame.left + inset.left.coerceIn(0, widthPx / 3) * xScale
+        val r = frame.right - inset.right.coerceIn(0, widthPx / 3) * xScale
+        val b = frame.bottom + inset.bottom.coerceIn(0, heightPx / 3) * yScale
+        val t = frame.top - inset.top.coerceIn(0, heightPx / 3) * yScale
+        return Frame(l, r, b, t, -l, t - REFERENCE_HEIGHT)
+    }
+
     // Spawn outside the ACTUAL full-screen viewport, not just the legacy
     // 941px photo. Otherwise new pillars pop into view on wider tablets.
     fun pillarSpawnX(frame: Frame): Float = frame.right + 80f
