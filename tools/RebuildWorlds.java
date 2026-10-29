@@ -386,118 +386,6 @@ class RebuildWorlds {
         return field;
     }
 
-    /**
-     * Colour-constrain synthetic sky beside intact source sky at *each*
-     * removed obstacle boundary. The previous broad smooth donor grid did
-     * not match the original painted sky at its perimeter, causing long
-     * teal/blue stripe outlines around rectangular and capsule masks.
-     *
-     * Donors come strictly from unmasked SKY in the same original JPG. Four
-     * directional nearest-source indices are O(width*height), with no per-
-     * pixel allocation, external service or new graphical illustration.
-     * Only the replacement field is adjusted; output keeps all pixels with
-     * zero mask opacity 100% identical to the original source.
-     */
-    private static int[] boundaryMatchedSky(
-            BufferedImage source,int world,int[] field) {
-        final int w=source.getWidth(),h=source.getHeight(),n=w*h;
-        if(field.length!=n)throw new IllegalArgumentException("Bad source sky dimensions");
-        byte[] known=new byte[n];
-        for(int y=0;y<h;y++)for(int x=0;x<w;x++)
-            known[y*w+x]=(byte)(sourceSkyAt(source,world,x,y)?1:0);
-        int[] left=new int[n],right=new int[n],above=new int[n],below=new int[n];
-        for(int y=0;y<h;y++) {
-            int last=-1;
-            for(int x=0;x<w;x++){
-                int id=y*w+x;
-                if(known[id]!=0)last=id;
-                left[id]=last;
-            }
-            last=-1;
-            for(int x=w-1;x>=0;x--){
-                int id=y*w+x;
-                if(known[id]!=0)last=id;
-                right[id]=last;
-            }
-        }
-        for(int x=0;x<w;x++){
-            int last=-1;
-            for(int y=0;y<h;y++){
-                int id=y*w+x;
-                if(known[id]!=0)last=id;
-                above[id]=last;
-            }
-            last=-1;
-            for(int y=h-1;y>=0;y--){
-                int id=y*w+x;
-                if(known[id]!=0)last=id;
-                below[id]=last;
-            }
-        }
-        final int maxDistance=204;
-        // Nearest-source hue is dominant near the feather edge, but fades
-        // smoothly into the 2D source-derived field deep inside a large
-        // removed bird/pillar footprint.
-        for(int y=0;y<h;y++)for(int x=0;x<w;x++) {
-            int id=y*w+x;
-            if(known[id]!=0)continue;
-            double sr=0,sg=0,sb=0,weights=0;
-            int nearest=maxDistance+1;
-            for(int direction=0;direction<4;direction++) {
-                int candidate=switch(direction) {
-                    case 0 -> left[id];
-                    case 1 -> right[id];
-                    case 2 -> above[id];
-                    default -> below[id];
-                };
-                if(candidate<0)continue;
-                int d=(direction<2)?Math.abs(x-candidate%w):
-                      Math.abs(y-candidate/w);
-                if(d==0 || d>maxDistance)continue;
-                nearest=Math.min(nearest,d);
-                double weight=1.0/((d+14.0)*(d+14.0));
-                int rgb=source.getRGB(candidate%w,candidate/w);
-                sr+=((rgb>>>16)&255)*weight;
-                sg+=((rgb>>>8)&255)*weight;
-                sb+=(rgb&255)*weight;
-                weights+=weight;
-            }
-            if(weights==0)continue;
-            int originalField=field[id];
-            int r=(int)Math.round(sr/weights);
-            int g=(int)Math.round(sg/weights);
-            int b=(int)Math.round(sb/weights);
-            int donor=(Math.max(0,Math.min(255,r))<<16)|
-                      (Math.max(0,Math.min(255,g))<<8)|
-                       Math.max(0,Math.min(255,b));
-            double blend=.83*Math.pow(1.0-nearest/(maxDistance+1.0),1.4);
-            field[id]=mixRgb(originalField,donor,blend);
-        }
-        // Nearest donor rows can change abruptly where an original cloud or
-        // waterfall begins. Such changes are authentic *donor* pixels but
-        // should never create artificial scanline stripes inside a removed
-        // screenshot object. Bound only the replacement field's vertical
-        // per-channel derivative; all unmasked original JPG pixels are
-        // still preserved verbatim in rebuild().
-        final int MAX_SKY_ROW_JUMP=11;
-        for(int x=0;x<w;x++)for(int y=1;y<h;y++) {
-            int i=y*w+x,p=(y-1)*w+x;
-            // The field is diagnostic/used only inside masks; constrain
-            // even across known-sky to masked-sky transitions. The original
-            // unmasked JPG remains drawn untouched in rebuild(). Skipping
-            // these transitions previously left a new world-3 band at y=515.
-            int rgb=field[i],aboveRgb=field[p],bounded=0;
-            for(int shift:new int[]{0,8,16}) {
-                int value=(rgb>>>shift)&255;
-                int parent=(aboveRgb>>>shift)&255;
-                bounded|=(Math.max(parent-MAX_SKY_ROW_JUMP,
-                    Math.min(parent+MAX_SKY_ROW_JUMP,value))<<shift);
-            }
-            field[i]=bounded;
-        }
-        return field;
-    }
-
     /** Standalone, offline regression for source-derived 2D sky gradients. */
     private static void verifySkyReconstruction() {
         int w=706,h=1254;
@@ -539,21 +427,12 @@ class RebuildWorlds {
             int red=19+x/24,green=42+x/27,blue=120+x/10;
             night.setRGB(x,y,(red<<16)|(green<<8)|blue);
         }
-        int[] moon=boundaryMatchedSky(night,5,sourceMatchedSky(night,5));
+        int[] moon=sourceMatchedSky(night,5);
         int dark=moon[620*w+220];
         int moonBlue=dark&255,moonRed=(dark>>>16)&255;
         if(moonBlue<110 || moonBlue>205 || moonBlue-moonRed<45)
             throw new IllegalStateException(
                 "Moon Glow original indigo source field was flattened/brightened");
-        int[] stitched=boundaryMatchedSky(input,3,sourceMatchedSky(input,3));
-        for(int y=250;y<950;y+=53)for(int x=35;x<680;x+=53) {
-            int leftRgb=stitched[y*w+x],rightRgb=stitched[y*w+x+1];
-            for(int shift:new int[]{0,8,16})
-                if(Math.abs(((leftRgb>>>shift)&255)-
-                            ((rightRgb>>>shift)&255))>16)
-                    throw new IllegalStateException(
-                        "Boundary-stitched source sky band at "+x+","+y);
-        }
         System.out.println("PASS: original-source night sky, 2D continuity and seam-free boundary donors");
     }
     private static void rebuild(
@@ -667,8 +546,7 @@ class RebuildWorlds {
         // All six restored worlds now use their OWN original sky paint.
         // Moon Glow was the only remaining world filled with generic
         // procedural colours, leaving a flat blue rectangle beside the moon.
-        int[] matchedSky=boundaryMatchedSky(
-            original,world,sourceMatchedSky(original,world));
+        int[] matchedSky=sourceMatchedSky(original,world);
         if(matchedSky!=null)for(int y=1;y<h;y++){
             // Reject a hard horizontal colour seam in the reconstructed sky.
             // Original floating islands/clouds remain untouched outside masks.
