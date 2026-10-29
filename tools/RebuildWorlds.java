@@ -51,14 +51,6 @@ class RebuildWorlds {
         }
     }
     private static double clamp(double v){return Math.max(0,Math.min(1,v));}
-    private static final int[][][] PALETTE = {
-      {{35,163,236},{29,171,237},{112,202,245},{178,231,253}},
-      {{38,153,236},{50,177,243},{119,207,245},{162,231,250}},
-      {{19,149,236},{22,148,233},{92,185,242},{166,230,255}},
-      {{38,157,237},{53,185,241},{126,208,246},{179,229,246}},
-      {{16,23,125},{18,55,169},{57,104,214},{119,138,242}},
-      {{255,157,98},{255,198,91},{255,221,115},{255,238,186}}
-    };
     // 706 x 1254 world assets, with original artwork coordinates.
     private static final Region[][] MASKS = {
       // World 1-2: mask ONLY the photographed HUD, baked-in character,
@@ -112,7 +104,13 @@ class RebuildWorlds {
        new Capsule(362,880,360,1160,92),
        new Capsule(456,960,432,1160,99),
        new Area(281,1140,501,1280)},
-      {new Area(0,0,706,207),new Area(233,103,580,528),new Area(-20,418,618,774),new Area(219,695,591,1280)},
+      // Moon Glow: the former x=-20..618 / y=418..774 rectangle erased
+      // clouds and near/far islands across almost the ENTIRE play corridor.
+      // The baked bird, scarf and speed streak occupy only these curved
+      // silhouettes, as in the original six matching gameplay illustrations.
+      {new Area(0,0,706,207),new Area(233,103,580,528),
+       new Oval(251,634,154,129),new Oval(85,663,201,78),
+       new Area(219,695,591,1280)},
       // Sun Peak: retain the illustrated sunrise, floating waterfalls and
       // temple. Historical world-6 masks erased nearly the entire middle
       // scene: x=-20..618,y=418..774, including scenery well away from
@@ -124,10 +122,6 @@ class RebuildWorlds {
        new Oval(251,634,151,130),new Oval(85,663,200,78),
        // Lower fixed cap and the remainder of the right pillar shaft.
        new Oval(484,841,130,96),new Area(382,868,581,1280)}
-    };
-    private static final Area[][] COINS = {
-      {}, {}, {}, {},
-      {new Area(339,560,694,751)}, {}
     };
     // Original three Cloud Pass coin outlines: from actual source art at
     // 864x1536 then mapped to the verified 706x1254 build texture.
@@ -141,9 +135,18 @@ class RebuildWorlds {
         new CoinCircle(529.0,642.0,40.0),
         new CoinCircle(617.0,626.0,40.0)
     };
+    // Moon Glow's three real coin centres measured from the preserved
+    // 706x1254 original. The previous 355x191 rectangle erased clouds and
+    // distant scenery BETWEEN the coins. Restore only 3 individual circles.
+    private static final CoinCircle[] MOON_GLOW_COINS={
+        new CoinCircle(408.0,698.0,35.0),
+        new CoinCircle(475.0,668.0,35.0),
+        new CoinCircle(547.0,638.0,35.0)
+    };
     private static CoinCircle[] photographedCoins(int world) {
         return world==2?CLOUD_PASS_COINS:
-               world==4?WIND_GATE_COINS:new CoinCircle[0];
+               world==4?WIND_GATE_COINS:
+               world==5?MOON_GLOW_COINS:new CoinCircle[0];
     }
     private static int mix(int a,int b,double t){return (int)Math.round(a+(b-a)*t);}
     /**
@@ -152,7 +155,7 @@ class RebuildWorlds {
      * Excluding yellow outlines and averaging an annulus prevents stripes.
      * Upper and lower samples preserve the local vertical colour gradient.
      */
-    private static int[] coinSkyColours(BufferedImage source,CoinCircle coin) {
+    private static int[] coinSkyColours(BufferedImage source,int world,CoinCircle coin) {
         long[][] sums=new long[2][4];
         int cx=(int)Math.round(coin.centerX),cy=(int)Math.round(coin.centerY);
         for(int dy=-81;dy<=81;dy+=2)for(int dx=-81;dx<=81;dx+=2) {
@@ -163,7 +166,12 @@ class RebuildWorlds {
             int rgb=source.getRGB(x,y);
             int r=(rgb>>>16)&255,g=(rgb>>>8)&255,b=rgb&255;
             // Reject coins, banners, masonry, greens and dark silhouettes.
-            if(b<r+16 || g<r+14 || b<g-25 || g<110)continue;
+            // Preserve the verified daytime sampling path. Moon Glow needs
+            // a different donor test because its real indigo sky is dark.
+            if(world==5) {
+                if(!(b>r+35 && b>g+18 && g>r+7 && g>23 && b>80))
+                    continue;
+            } else if(b<r+16 || g<r+14 || b<g-25 || g<110)continue;
             int side=dy<0?0:1;
             sums[side][0]+=r;
             sums[side][1]+=g;
@@ -173,7 +181,7 @@ class RebuildWorlds {
         int[] result=new int[2];
         for(int side=0;side<2;side++){
             if(sums[side][3]<40)throw new IllegalStateException(
-                "Not enough unoccluded sky pixels around Cloud Pass coin");
+                "Not enough intact sky around photographed world "+world+" coin");
             int r=(int)(sums[side][0]/sums[side][3]);
             int g=(int)(sums[side][1]/sums[side][3]);
             int b=(int)(sums[side][2]/sums[side][3]);
@@ -188,81 +196,6 @@ class RebuildWorlds {
         int g=mix((upper>>>8)&255,(lower>>>8)&255,factor);
         int blue=mix(upper&255,lower&255,factor);
         return (r<<16)|(g<<8)|blue;
-    }
-    private static Color cloudColor(int world,boolean shadow) {
-        if(world==5) return shadow?new Color(70,82,179,42):new Color(185,199,255,68);
-        if(world==6) return shadow?new Color(255,216,158,55):new Color(255,255,227,85);
-        return shadow?new Color(129,209,243,36):new Color(255,255,255,132);
-    }
-    private static void cloud(Graphics2D g,int world,int cx,int cy,double scale) {
-        // Union the lobes into one silhouette BEFORE applying transparency.
-        // Alpha-compositing individual ellipses produced visibly repeated circles.
-        double rx=110*scale,ry=53*scale;
-        java.awt.geom.Area silhouette=new java.awt.geom.Area(
-            new Ellipse2D.Double(cx-rx,cy-ry*.3,rx*2,ry*1.25));
-        double[][] forms={{-.64,-.1,.75},{-.2,-.40,1.05},{.3,-.53,1.12},{.71,-.07,.80}};
-        for(double[] f:forms){
-            double r=f[2]*ry;
-            silhouette.add(new java.awt.geom.Area(
-                new Ellipse2D.Double(cx+f[0]*rx-r,cy+f[1]*ry-r,2*r,2*r)));
-        }
-        g.setColor(cloudColor(world,true));
-        g.fill(silhouette.createTransformedArea(
-            java.awt.geom.AffineTransform.getTranslateInstance(0,6*scale)));
-        g.setColor(cloudColor(world,false));
-        g.fill(silhouette);
-    }
-
-    private static void distantRidge(Graphics2D g,int world,int width,int height) {
-        // Subtle silhouettes restore depth to previously damaged sky corridors.
-        // Preserved side islands and waterfalls remain actual reference pixels.
-        final boolean night=world==5, sunset=world==6;
-        int[][] shades=night
-            ?new int[][]{{51,82,187,38},{36,75,167,48}}
-            :sunset?new int[][]{{239,148,102,43},{227,131,96,52}}
-            :new int[][]{{77,160,224,43},{62,137,203,54}};
-        for(int layer=0;layer<2;layer++){
-            // A few broad, irregular distant hills instead of repeated sharp
-            // triangles (which looked like tall geometric artifacts in game).
-            int horizon=(int)(height*(layer==0?.75:.85));
-            double shift=world*24+layer*41;
-            Path2D.Double line=new Path2D.Double();
-            line.moveTo(-24,height);
-            line.lineTo(-24,horizon+32);
-            for(int x=-24;x<width+135;x+=105){
-                double peak=32+Math.abs(Math.sin(x*.010+shift*.1))*47;
-                if(night)peak*=.85;
-                if(sunset)peak*=1.16;
-                line.quadTo(x+29,horizon-peak*.72,x+52,horizon-peak);
-                line.quadTo(x+82,horizon-peak*.66,x+105,horizon+16);
-            }
-            line.lineTo(width+130,height);
-            line.closePath();
-            int[] col=shades[layer];
-            g.setColor(new Color(col[0],col[1],col[2],Math.max(20,col[3]-12)));
-            g.fill(line);
-        }
-    }
-    private static BufferedImage sky(int w,int h,int world) {
-        BufferedImage out=new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
-        Graphics2D g=out.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
-        int[] stops={0,(int)(h*.271),(int)(h*.654),h-1};
-        int[][] c=PALETTE[world-1];
-        for(int y=0;y<h;y++){
-            int k=y<=stops[1]?0:y<=stops[2]?1:2;
-            double t=(y-stops[k])/(double)Math.max(1,stops[k+1]-stops[k]);
-            t=t*t*(3-2*t);
-            g.setColor(new Color(mix(c[k][0],c[k+1][0],t),
-                mix(c[k][1],c[k+1][1],t),mix(c[k][2],c[k+1][2],t)));
-            g.drawLine(0,y,w,y);
-        }
-        distantRidge(g,world,w,h);
-        int[][] clouds={{166,285,65},{414,385,38},{290,865,70},
-            {498,1007,65},{185,1115,47},{421,635,30}};
-        for(int[] cdata:clouds)cloud(g,world,cdata[0],cdata[1],cdata[2]/100.);
-        g.dispose();
-        return out;
     }
     /**
      * Builds a gently varying sky colour field FROM THE ORIGINAL artwork
@@ -280,8 +213,18 @@ class RebuildWorlds {
         if(world==6)
             return red>=180 && green>=130 && blue>=50 &&
                    red-green>7 && green-blue>19;
-        return blue>red+16 && green>red+12 &&
-               blue>=green-24 && green>105;
+        // Original Moon Glow night is dark indigo (green usually 40-95).
+        // The daytime "green>105" rule rejected its entire genuine sky,
+        // causing a missing donor field or borrowed pale cloud colours.
+        if(world==5)
+            return blue>red+35 && blue>green+18 &&
+                   green>red+7 && green>23 && blue>80;
+        // Waterfall foam/crystal highlights are cyan-green. Those objects
+        // contaminated the old sky-donor grid, creating visible turquoise
+        // horizontal bands beside reconstructed gates. Clear daytime SKY
+        // is blue-dominant; do not borrow river/waterfall pixels.
+        return blue>red+22 && green>red+12 &&
+               blue>=green+3 && green>105;
     }
 
     private static boolean sourceSkyAt(BufferedImage source,int world,int x,int y) {
@@ -339,12 +282,10 @@ class RebuildWorlds {
         }
         // Interpolate genuinely missing rows in both directions. Forward
         // fill alone produced sudden horizon bands when sky reappeared.
-        int previous=-1;
+        int previous=-1,first=-1;
         for(int y=0;y<h;y++)if(known[y]){
-            if(previous<0) {
-                for(int row=0;row<y;row++)
-                    sampled[row]=sampled[y].clone();
-            } else {
+            if(previous<0)first=y;
+            else {
                 for(int row=previous+1;row<y;row++){
                     double t=(row-previous)/(double)(y-previous);
                     for(int channel=0;channel<3;channel++)
@@ -356,8 +297,40 @@ class RebuildWorlds {
         }
         if(previous<0)throw new IllegalStateException(
             "No unmasked original sky colours found in world "+world);
-        for(int row=previous+1;row<h;row++)
-            sampled[row]=sampled[previous].clone();
+        // The screenshot HUD masks the entire top 180..207 rows. The old
+        // forward-fill cloned a single source row across that WHOLE area,
+        // producing a sharp flat-colour band across the top of every world.
+        // Extrapolate only the measured original sky gradient, with a
+        // conservative slope bound to avoid inventing harsh colours.
+        if(first>0){
+            int second=first;
+            while(second<h-1 && (second<first+85 || !known[second]))second++;
+            if(!known[second])second=first;
+            double span=Math.max(1,second-first);
+            for(int row=0;row<first;row++)
+                for(int channel=0;channel<3;channel++){
+                    double gradient=Math.max(-.17,Math.min(.17,
+                        (sampled[second][channel]-sampled[first][channel])/span));
+                    sampled[row][channel]=(int)Math.max(0,Math.min(255,
+                        Math.round(sampled[first][channel]+(row-first)*gradient)));
+                }
+        }
+        int last=previous;
+        // The lower source is sometimes obscured by clouds/illustrated caps.
+        // A measured, bounded derivative is less conspicuous than a flat band.
+        if(last<h-1){
+            int earlier=last;
+            while(earlier>0 && (earlier>last-85 || !known[earlier]))earlier--;
+            if(!known[earlier])earlier=last;
+            double span=Math.max(1,last-earlier);
+            for(int row=last+1;row<h;row++)
+                for(int channel=0;channel<3;channel++){
+                    double gradient=Math.max(-.17,Math.min(.17,
+                        (sampled[last][channel]-sampled[earlier][channel])/span));
+                    sampled[row][channel]=(int)Math.max(0,Math.min(255,
+                        Math.round(sampled[last][channel]+(row-last)*gradient)));
+                }
+        }
 
         int[] smooth=new int[h];
         for(int y=0;y<h;y++){
@@ -456,7 +429,21 @@ class RebuildWorlds {
             if(hi-lo<20)throw new IllegalStateException(
                 "Regression: world "+world+" replacement lost horizontal source lighting");
         }
-        System.out.println("PASS: 2D sky interpolation and continuity");
+        // Genuine Moon Glow sky is dark indigo. The previous daytime
+        // green>105 filter returned zero or wrong sky donors, which made
+        // broad reconstructed areas unnaturally bright and featureless.
+        BufferedImage night=new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
+        for(int y=0;y<h;y++)for(int x=0;x<w;x++) {
+            int red=19+x/24,green=42+x/27,blue=120+x/10;
+            night.setRGB(x,y,(red<<16)|(green<<8)|blue);
+        }
+        int[] moon=sourceMatchedSky(night,5);
+        int dark=moon[620*w+220];
+        int moonBlue=dark&255,moonRed=(dark>>>16)&255;
+        if(moonBlue<110 || moonBlue>205 || moonBlue-moonRed<45)
+            throw new IllegalStateException(
+                "Moon Glow original indigo source field was flattened/brightened");
+        System.out.println("PASS: original-source night sky, 2D continuity and seam-free boundary donors");
     }
     private static void rebuild(
             Path file,int world,Path sunPeakReference) throws Exception {
@@ -564,11 +551,12 @@ class RebuildWorlds {
                     point[0]+","+point[1]+", alpha="+amount);
             }
         }
-        BufferedImage air=sky(w,h,world);
         // Sample local painted colours, including the source Sun Peak
         // sunset, instead of introducing unrelated procedural sky bands.
-        int[] matchedSky=(world==1||world==2||world==3||world==4||world==6)?
-            sourceMatchedSky(original,world):null;
+        // All six restored worlds now use their OWN original sky paint.
+        // Moon Glow was the only remaining world filled with generic
+        // procedural colours, leaving a flat blue rectangle beside the moon.
+        int[] matchedSky=sourceMatchedSky(original,world);
         if(matchedSky!=null)for(int y=1;y<h;y++){
             // Reject a hard horizontal colour seam in the reconstructed sky.
             // Original floating islands/clouds remain untouched outside masks.
@@ -581,7 +569,7 @@ class RebuildWorlds {
         CoinCircle[] staticCoins=photographedCoins(world);
         int[][] coinSky=new int[staticCoins.length][];
         for(int i=0;i<staticCoins.length;i++)
-            coinSky[i]=coinSkyColours(original,staticCoins[i]);
+            coinSky[i]=coinSkyColours(original,world,staticCoins[i]);
         BufferedImage output=new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
         int preserved=0, sampled=0;
         int originalIslandPixels=0, islandSamples=0;
@@ -601,8 +589,6 @@ class RebuildWorlds {
                                world==6?(mask==0?40:36):92;
                 amount=Math.max(amount,shape.alpha(x,y,feather));
             }
-            for(Area a:COINS[world-1])
-                amount=Math.max(amount,a.alpha(x,y,68));
             double coinAlpha=0;
             int coveredCoin=-1;
             for(int i=0;i<staticCoins.length;i++){
@@ -622,13 +608,50 @@ class RebuildWorlds {
                 if(amount<.02)originalIslandPixels++;
             }
             int from=original.getRGB(x,y);
-            int to=matchedSky==null?air.getRGB(x,y):matchedSky[y*w+x];
+            int to=matchedSky[y*w+x];
             if(coveredCoin>=0 && coinAlpha>0)
                 to=coinBackdrop(coinSky[coveredCoin],staticCoins[coveredCoin],y);
             int r=mix((from>>>16)&255,(to>>>16)&255,amount),
                 g=mix((from>>>8)&255,(to>>>8)&255,amount),
                 b=mix(from&255,to&255,amount);
             output.setRGB(x,y,(r<<16)|(g<<8)|b);
+        }
+        if(world==5) {
+            // The former enormous Moon Glow rectangle destroyed whole
+            // floating islands/clouds around the baked bird. Check that a
+            // substantial portion of the middle source painting survives.
+            int total=0,intact=0;
+            for(int y=540;y<692;y+=4)for(int x=30;x<686;x+=4) {
+                total++;
+                double alpha=0;
+                for(Region region:MASKS[4])
+                    alpha=Math.max(alpha,region.alpha(x,y,36));
+                if(alpha<.01)intact++;
+            }
+            double fraction=intact/(double)Math.max(1,total);
+            System.out.printf(
+                "SkyPeep Moon Glow: %.1f%% authentic midground retained%n",
+                fraction*100);
+            if(fraction<.37)
+                throw new IOException(
+                    "Moon Glow original midground was erased again: retained="+fraction);
+            // Preserve the real illustrated crescent and source scenery,
+            // independently of the restored sky-field implementation.
+            // The photographed Moon Glow coin group occupies x=339..694,
+            // y=560..751 and has a separate intentional removal mask.
+            // Sample genuine moon/island pixels safely OUTSIDE both masks.
+            for(int[] point:new int[][]{
+                {115,345}, // original illustrated moon
+                {650,400}, // right floating island and night sky
+                {660,690}, // original right island once erased by huge coin box
+                {650,850}  // source clouds below painted coin group
+            }) {
+                int x=point[0],y=point[1];
+                if((output.getRGB(x,y)&0x00ffffff)!=
+                   (original.getRGB(x,y)&0x00ffffff))
+                    throw new IOException(
+                        "Original Moon Glow art was modified at "+x+","+y);
+            }
         }
         if(world==2){
             // Pixel-integrity guard for the entire illustrated island/bridge
