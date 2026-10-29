@@ -26,10 +26,41 @@ adb shell am start -W -n com.brendigo.skypeep/.MainActivity
 screen_size="$(adb shell wm size | grep -oE '[0-9]+x[0-9]+' | tail -n 1)"
 screen_w="${screen_size%x*}"
 screen_h="${screen_size#*x}"
+
+# The API 36 emulator occasionally boots with System UI unresponsive while
+# SkyPeep itself is alive. Its native "System UI isn't responding" dialog
+# steals ALL taps, causing a false "SPLASH did not enter MENU" failure.
+# Only recover the *system* ANR dialog, never an ANR/crash of SkyPeep.
+# A genuine failure to deliver touch/navigation still fails below.
+recover_emulator_system_ui_anr() {
+  local focused attempt
+  focused="$(adb shell dumpsys window | grep 'mCurrentFocus=' | tail -n 1 || true)"
+  if [[ "$focused" != *"Application Not Responding: com.android.systemui"* ]]; then
+    return 0
+  fi
+  echo "CI emulator System UI ANR is covering the game (not SkyPeep): $focused"
+  adb exec-out screencap -p > smoke-results/emulator-system-ui-anr.png || true
+  for attempt in 1 2 3; do
+    # On the standard English API 36 ANR dialog, "Wait" is the lower row.
+    # Choose WAIT, never "Close app", so the OS can recover its UI process.
+    adb shell input tap "$((screen_w * 34 / 100))" "$((screen_h * 55 / 100))"
+    sleep 3
+    focused="$(adb shell dumpsys window | grep 'mCurrentFocus=' | tail -n 1 || true)"
+    if [[ "$focused" != *"Application Not Responding: com.android.systemui"* ]]; then
+      echo "CI emulator System UI recovered; continuing real SkyPeep touch QA"
+      return 0
+    fi
+  done
+  echo "FAIL: persistent Android emulator System UI ANR obscures SkyPeep"
+  exit 1
+}
+
 # Android may present the immersive-mode tutorial several seconds AFTER launch.
 sleep 7
+recover_emulator_system_ui_anr
 adb shell input tap "$((screen_w * 85 / 100))" "$((screen_h * 26 / 100))" || true
 sleep 3
+recover_emulator_system_ui_anr
 
 if ! adb shell pidof com.brendigo.skypeep >/dev/null; then
   echo "FAIL: SkyPeep process crashed during launch"
@@ -47,6 +78,7 @@ h="${size#*x}"
 # system immersive help overlay rather than receiving the first touch.
 menu_ready=false
 for attempt in 1 2 3 4 5; do
+  recover_emulator_system_ui_anr
   adb shell input tap "$((w / 2))" "$((h * 82 / 100))"
   sleep 2
   last="$(adb logcat -d -s SkyPeepNav:I '*:S' | grep 'screen=' | tail -n 1 || true)"
