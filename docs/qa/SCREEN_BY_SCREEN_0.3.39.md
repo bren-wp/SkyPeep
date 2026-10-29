@@ -46,3 +46,9 @@ In 0.3.39 the positioning guard now requires `textBottom = y - glyphHeight` to r
 ## Limits
 
 The 0.3.39 text baseline fix does not recreate original layers obscured by bird/pillars/HUD in world backgrounds 1–5. Issue #44 remains open. Passing automated tests is not certification of 1:1 visual identity or 60/90/120Hz performance on physical Android devices.
+
+## Verification of published 0.3.39-preview.790 and follow-up correction
+
+Actual API 35 emulator screenshots from successful CI #790 show the Shop **FLIGHT TRAILS** and Settings **SETTINGS** headers fully inside their original wood panels after the LibGDX top-origin fix, rather than spilling below them as in #772. The Menu/Levels/Skins reference diagnostics also improved marginally (4.92, 6.93, 5.06 RGB MAE/255 respectively); Sun Peak remains non-identical at 30.40.
+
+A specific remaining problem was visible in that release's **Victory** screenshot: the SCORE and BEST captions intersected the large numeric values inside the same 146px blue badges, and long coin progress touched its header. Fixed the *next revision* by allocating separate non-overlapping header/number subrectangles within each existing illustrated card in `SkyPeepVictoryLayout`, with direct JVM tests. Do not mark this second correction visually verified until a new emulator screenshot from the latest commit confirms the result; do not silently reuse the original published #790 screenshots as after evidence.
