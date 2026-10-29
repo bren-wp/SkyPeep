@@ -295,6 +295,7 @@ class RebuildWorlds {
         if(first>0){
             int second=first;
             while(second<h-1 && (second<first+85 || !known[second]))second++;
+            if(!known[second])second=first;
             double span=Math.max(1,second-first);
             for(int row=0;row<first;row++)
                 for(int channel=0;channel<3;channel++){
@@ -310,6 +311,7 @@ class RebuildWorlds {
         if(last<h-1){
             int earlier=last;
             while(earlier>0 && (earlier>last-85 || !known[earlier]))earlier--;
+            if(!known[earlier])earlier=last;
             double span=Math.max(1,last-earlier);
             for(int row=last+1;row<h;row++)
                 for(int channel=0;channel<3;channel++){
