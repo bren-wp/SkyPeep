@@ -121,6 +121,17 @@ tap_ui 470 1360
 capture shop-back MENU
 tap_ui 660 1400
 capture settings SETTINGS
+# Actual Settings VIBRATION row must change only when its visible switch is tapped.
+tap_ui 680 875
+capture settings-vibration-enabled SETTINGS
+adb logcat -d -s SkyPeepSettings:I '*:S' | grep -q 'vibration=true' || {
+  echo "FAIL: Settings vibration switch did not enable haptics"; exit 1;
+}
+tap_ui 680 875
+capture settings-vibration-disabled SETTINGS
+adb logcat -d -s SkyPeepSettings:I '*:S' | grep -q 'vibration=false' || {
+  echo "FAIL: Settings vibration switch did not disable haptics"; exit 1;
+}
 tap_ui 465 1380
 capture settings-back MENU
 tap_ui 470 1000

@@ -17,7 +17,7 @@ class CompareSkyPeepScreens {
         {"menu", "menu.png", "menu.jpg"},
         {"levels", "levels.png", "levels.jpg"},
         {"skins", "skins.png", "skins.jpg"},
-        {"world-1", "world-1.png", "gameplay.jpg"}
+        {"world-6", "world-6.png", "gameplay.jpg"}
     };
     private static BufferedImage load(Path path) throws IOException {
         if (!Files.isRegularFile(path)) throw new IOException("Missing screenshot/reference: " + path);
@@ -54,9 +54,8 @@ class CompareSkyPeepScreens {
         }
         return difference / (double) count;
     }
-    // Sample a fixed, unoccluded illustrated island in Sky Start. The old
-    // overwide pillar mask erased this region despite no bird or pillar being
-    // present there. This is reference-to-real-emulator evidence, not an image.
+    // Source gameplay reference is SUN PEAK (world 6) only. Never compare
+    // Sky Start or another world against this differently coloured painting.
     private static double regionMAE(
         BufferedImage actual, BufferedImage reference,
         double left, double top, double right, double bottom) {
@@ -74,7 +73,26 @@ class CompareSkyPeepScreens {
         }
         return diff/(double)Math.max(1,count);
     }
+    /** Guard against accidentally comparing SUN PEAK concept art with Sky Start. */
+    private static void verifyReferenceMappings() {
+        int count = 0;
+        for (String[] scene : SCENES) {
+            if ("gameplay.jpg".equals(scene[2])) {
+                if (!"world-6".equals(scene[0]) ||
+                    !"world-6.png".equals(scene[1]))
+                    throw new IllegalStateException(
+                        "Gameplay concept is Sun Peak, not "+scene[0]);
+                count++;
+            }
+        }
+        if (count != 1) throw new IllegalStateException(
+            "Expected exactly one matching gameplay reference, got "+count);
+        System.out.println("PASS: Sun Peak gameplay screenshot/reference mapping");
+    }
+
     public static void main(String[] args) throws Exception {
+        verifyReferenceMappings();
+        if (args.length == 1 && "--verify-mappings".equals(args[0])) return;
         Path output = Path.of("smoke-results/visual-comparison.txt");
         StringBuilder report = new StringBuilder();
         report.append("SkyPeep reference-vs-emulator diagnostic (current Android CI build)\n")
@@ -87,6 +105,18 @@ class CompareSkyPeepScreens {
             BufferedImage reference = load(Path.of("assets/previews", scene[2]));
             BufferedImage adjusted = fit(screenshot, reference.getWidth(), reference.getHeight());
             double error = meanAbsoluteError(adjusted, reference);
+            // Report three independent vertical regions to reveal where
+            // screenshot UI and photographed artwork deviate. These are
+            // DIAGNOSTICS, not automatic pixel-perfect certification.
+            for (int band = 0; band < 3; band++) {
+                double upper = band / 3.0;
+                double lower = (band + 1) / 3.0;
+                double detail = regionMAE(adjusted, reference,
+                    0.08, upper, 0.92, lower);
+                report.append(String.format(java.util.Locale.ROOT,
+                    "%s | region-%d MAE=%.2f/255%n",
+                    scene[0], band + 1, detail));
+            }
             report.append(String.format(java.util.Locale.ROOT,
                 "%s | MAE=%.2f/255 | screenshot=%dx%d | reference=%dx%d%n",
                 scene[0], error, screenshot.getWidth(), screenshot.getHeight(),
@@ -100,13 +130,33 @@ class CompareSkyPeepScreens {
             if(error > maxMae) throw new IOException(
                 scene[0]+" illustration regressed: MAE="+error+
                 ", permitted="+maxMae);
-            if("world-1".equals(scene[0])){
+            if("world-6".equals(scene[0])){
                 double islandError=regionMAE(adjusted,reference,.33,.23,.45,.35);
                 report.append(String.format(java.util.Locale.ROOT,
-                    "sky-start-original-midground-island | ROI MAE=%.2f/255%n",
+                    "sun-peak-midground-diagnostic | ROI MAE=%.2f/255%n",
                     islandError));
-                // This metric is diagnostic until the revised masks are
-                // verified against the actual emulator capture.
+                // Separate genuine HUD areas from the animated flight
+                // corridor. Scores/wallet amounts change by design, but these
+                // values locate oversized plates and clipped titles.
+                double[][] hudRois={
+                    {.02,.01,.29,.15},  // live coins and three-life row
+                    {.30,.00,.69,.21},  // score and original title ribbon
+                    {.69,.01,1.00,.15}, // live gems and pause button
+                    {.02,.15,.30,.29}   // collected-coin goal, left lane
+                };
+                String[] hudNames={
+                    "coin-and-lives","winged-score","gems-and-pause",
+                    "goal-left-lane"
+                };
+                for (int zone=0;zone<hudRois.length;zone++) {
+                    double[] p=hudRois[zone];
+                    report.append(String.format(java.util.Locale.ROOT,
+                        "sun-peak-%s | ROI MAE=%.2f/255%n",
+                        hudNames[zone],
+                        regionMAE(adjusted,reference,p[0],p[1],p[2],p[3])));
+                }
+                // Diagnostic only: live HUD and moving gameplay are not a
+                // screenshot of the static original reference painting.
             }
         }
         // Compact score face moved. Dark Wind Gate and Moon Glow scenery are
@@ -139,6 +189,27 @@ class CompareSkyPeepScreens {
                 throw new IOException("Insufficient score contrast in world "+world+
                     " (min="+minimum+", max="+maximum+"). Check screenshot.");
         }
+        // The former dark "TAP TO FLY" banner covered this empty sky
+        // region in the original Sun Peak concept painting. A real preflight
+        // emulator screenshot MUST show scenery, not that opaque blue plate.
+        // Inspect only the central corridor, away from the bird and pillars.
+        BufferedImage sun=load(Path.of("smoke-results","world-6.png"));
+        int dark=0, sampled=0;
+        for(int y=(int)(sun.getHeight()*.73);y<(int)(sun.getHeight()*.79);y+=2)
+            for(int x=(int)(sun.getWidth()*.35);x<(int)(sun.getWidth()*.65);x+=2) {
+                int rgb=sun.getRGB(x,y);
+                int r=(rgb>>>16)&255,g=(rgb>>>8)&255,b=rgb&255;
+                if(r<80&&g<110&&b<155)dark++;
+                sampled++;
+            }
+        double bluePlateFraction=dark/(double)Math.max(1,sampled);
+        report.append(String.format(java.util.Locale.ROOT,
+            "sun-peak-preflight-empty-sky | navy-fraction=%.3f%n",
+            bluePlateFraction));
+        if(bluePlateFraction>.25)
+            throw new IOException(
+                "Opaque TAP TO FLY banner is visible in Sun Peak: dark fraction "+
+                bluePlateFraction);
         Files.writeString(output, report.toString(), StandardCharsets.UTF_8);
         System.out.print(report);
     }

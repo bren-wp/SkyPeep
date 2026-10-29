@@ -40,4 +40,43 @@ class SkyPeepHudLayoutTest {
                 frame,paintedMiddleX,156f-frame.extraY))
         }
     }
+    @Test fun wingedScoreNeverOverlapsWalletGoalOrLifeIndicators() {
+        for ((w,h) in listOf(360 to 640, 720 to 1280, 1080 to 1920,
+                1080 to 2400, 1200 to 1920, 1600 to 2000)) {
+            val f = SkyPeepScreenFrame.forPixels(w,h)
+            val goalLeft = SkyPeepHudLayout.goalX(f)
+            val goalRight = goalLeft + SkyPeepHudLayout.GOAL_WIDTH
+            val goalTop = f.top - (SkyPeepHudLayout.goalBottom(f) +
+                    SkyPeepHudLayout.GOAL_HEIGHT)
+            val heartTop = f.top - SkyPeepHudLayout.heartCenterY(f)
+            // The centre score ribbon occupies x=313..628 and
+            // top-down y=8..188. Goal stays left AND below it.
+            assertTrue(goalRight < SkyPeepHudLayout.SCORE_LEFT)
+            assertTrue(goalTop > SkyPeepHudLayout.SCORE_BOTTOM_TOP_DOWN)
+            assertTrue(heartTop + 21f <
+                    SkyPeepHudLayout.SCORE_BOTTOM_TOP_DOWN)
+            for (i in 0 until SkyPeepLives.MAX) {
+                val centre = SkyPeepHudLayout.heartCenterX(f,i)
+                assertTrue(centre - 21f > f.left)
+                assertTrue(centre + 21f < goalRight)
+                assertTrue(centre + 21f < SkyPeepHudLayout.SCORE_LEFT)
+            }
+            // Main score and pause glyph remain visibly separated.
+            assertTrue(SkyPeepHudLayout.SCORE_RIGHT <
+                    SkyPeepHudLayout.pauseX(f))
+        }
+    }
+
+    @Test fun illustratedWalletAndScorePlatesMaintainNativePixelRatios() {
+        assertEquals(269f/113f,
+            SkyPeepHudLayout.COIN_PLATE_WIDTH /
+                SkyPeepHudLayout.COIN_PLATE_HEIGHT, .015f)
+        assertEquals(191f/115f,
+            SkyPeepHudLayout.GEM_PLATE_WIDTH /
+                SkyPeepHudLayout.GEM_PLATE_HEIGHT, .015f)
+        assertEquals(367f/210f,
+            SkyPeepHudLayout.SCORE_WIDTH /
+                SkyPeepHudLayout.SCORE_HEIGHT, .015f)
+    }
+
 }

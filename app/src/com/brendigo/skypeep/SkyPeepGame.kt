@@ -50,9 +50,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             "Wind Gate","Moon Glow","Sun Peak")
         private val SCORE_STROKE_OFFSETS = floatArrayOf(-2.8f,0f,2.8f)
         private val SCORE_OUTLINE = Color.valueOf("10264B")
-        private val SCORE_OUTLINE_GOLD = Color.valueOf("603217")
-        private val SCORE_INK = arrayOf("159DE8","164F9C","FFE45C",
-            "C6EEFF","A9C1FF","FFBE31").map(Color::valueOf)
+        // Original winged source badge shows white digits with a navy edge.
+        private val SCORE_INK = Color.WHITE
         private val TRAIL_TINTS = arrayOf(Color.WHITE, Color.valueOf("43DBFF"),
             Color.valueOf("FFD145"), Color.valueOf("C078FF"))
         private val SHOP_SHADE = Color(.04f,.13f,.30f,.72f)
@@ -107,6 +106,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private val tmp = GlyphLayout()
     private val fontColorScratch = Color()
     private val hudText = SkyPeepHudTextCache()
+    private val flightHud = SkyPeepFlightHudState()
     private val backgroundCrop = SkyPeepBackgroundMotion.MutableCrop()
     private val touch = Vector2()
     private var lastContinuousRendering: Boolean? = null
@@ -681,10 +681,15 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             return
         }
         if (SkyPeepUiTouch.defaultEquipAt(x,y)) {
+            if (selectedSkin != 0 && !ensurePurchaseStorageReady()) return
             playSound("click")
             if (selectedSkin != 0) {
                 selectedSkin = 0
                 save()
+                if (lastSaveFailed) {
+                    toast("EQUIP CHANGE NOT SAVED")
+                    return
+                }
             }
             Gdx.app.log("SkyPeepSkin", "equipped=0")
             toast("DEFAULT EQUIPPED")
@@ -692,6 +697,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         }
         // Card art and prices are informational, only the BUY/EQUIP control is actionable.
         val skin = SkyPeepUiTouch.skinPurchaseAt(x,y) ?: return
+        if (!ensurePurchaseStorageReady()) return
         playSound("click")
         // Single-charge wallet operation, including repeated EQUIP taps.
         val choice = SkyPeepSkinCatalog.get(skin)
@@ -706,6 +712,10 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         ownedSkins[skin] = true
         selectedSkin = skin
         save()
+        if (lastSaveFailed) {
+            toast("PURCHASE NOT SAVED - CHECK STORAGE")
+            return
+        }
         Gdx.app.log("SkyPeepSkin", "equipped=$skin")
         toast(if (purchase.alreadyOwned) "${skinName(skin)} EQUIPPED"
               else "${skinName(skin)} UNLOCKED")
@@ -721,6 +731,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         }
         // A purchase must originate from the visible BUY/EQUIP badge.
         val offerId = SkyPeepUiTouch.shopPurchaseAt(x,yTop) ?: return
+        if (!ensurePurchaseStorageReady()) return
         val offer = SkyPeepTrailCatalog.all[offerId]
         val purchased=SkyPeepTrailCatalog.purchase(
             offer.id,ownedTrails[offer.id],coins,gems)
@@ -734,11 +745,28 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         ownedTrails[offer.id]=true
         selectedTrail=offer.id
         save()
+        if (lastSaveFailed) {
+            toast("PURCHASE NOT SAVED - CHECK STORAGE")
+            return
+        }
         toast(if(purchased.alreadyOwned) "${offer.name} EQUIPPED"
               else "${offer.name} UNLOCKED")
         // Avoid writing wallet balances into globally accessible diagnostic logs.
         Gdx.app.log("SkyPeepShop","selected=${offer.name}")
         playSound(if(purchased.alreadyOwned) "click" else "win")
+    }
+
+    /**
+     * Do not charge the wallet or change ownership when existing stored data
+     * was unreadable or a previous full snapshot may not have reached disk.
+     * Retry the complete known in-memory state before any new transaction.
+     */
+    private fun ensurePurchaseStorageReady(): Boolean {
+        if (storageHealth.canWrite && storageHealth.needsFullSnapshot) save()
+        if (storageHealth.purchaseReady && !lastSaveFailed) return true
+        toast("SAVE UNAVAILABLE - PURCHASE BLOCKED")
+        Gdx.app.error("SkyPeepStorage", "Blocked cosmetic change until storage recovers")
+        return false
     }
 
     private fun clickSettings(x: Float, y: Float) {
@@ -755,7 +783,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         when (row) {
             0 -> setMusic(!musicEnabled)
             1 -> { effectsEnabled=!effectsEnabled; save() }
-            2 -> { vibrationEnabled=!vibrationEnabled; save() }
+            2 -> {
+                vibrationEnabled = !vibrationEnabled
+                save()
+                Gdx.app.log("SkyPeepSettings", "vibration=$vibrationEnabled")
+            }
             3 -> {
                 difficulty = difficulty.next()
                 save()
@@ -797,6 +829,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         screen = Screen.PLAY
         score=0
         earnedCoins=0
+        flightHud.reset()
         resultWon=false
         precisionPasses=0
         earnedStars=0
@@ -926,6 +959,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 // Spending wallet currency cannot reduce world progress.
                 coins = SkyPeepEconomy.credit(coins,5)
                 earnedCoins = SkyPeepEconomy.credit(earnedCoins,5)
+                flightHud.collectCoin()
                 val beforePickup=worldCoins[level-1]
                 worldCoins[level-1] = SkyPeepCoinGoal.increment(beforePickup)
                 playSound("coin")
@@ -945,6 +979,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                     SkyPeepPickup.GEM_RADIUS)) {
                 gate.gemTaken=true
                 gems = SkyPeepEconomy.credit(gems,1)
+                flightHud.collectGem()
                 playSound("coin")
                 savePickup() // Durably commit the actual gem pickup.
             }
@@ -1083,10 +1118,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         if (healingFeedback > 0f)
             fitted("+1 LIFE",(birdY+BIRD_H+52f).coerceAtMost(H-236f),
                 fontSmall,1.0f,202f,BIRD_X+BIRD_W*.5f)
-        if (readyForFirstTap) {
-            badge("dark",290f,355f,360f,88f)
-            fitted("TAP TO FLY",412f,fontSmall,1.5f,331f)
-        }
+
     }
 
     private fun drawStoneStem(x:Float,width:Float,start:Float,end:Float) {
@@ -1147,29 +1179,46 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         val left = SkyPeepHudLayout.coinX(visibleFrame)
         val right = SkyPeepHudLayout.gemX(visibleFrame)
         val pause = SkyPeepHudLayout.pauseX(visibleFrame)
-        // Reduced visual weight of numeric badges (the pause target stays
-        // full-size and accessible); hearts sit in the freed left-hand space.
-        image("hud_left_$level", left, top-106f, 235f, 96f)
-        image("hud_right_$level", right, top-108f, 170f, 99f)
+        // Source-illustrated coin, gemstone, pause and winged score artwork.
+        // The rebuilt score texture keeps its native ratio instead of a
+        // vertically squashed banner; preserve its top position.
+        // Match reconstructed original PNG proportions (269:113 and
+        // 191:115) while preserving their previous top-edge anchors.
+        image("hud_left_$level", left, top-109f,
+            SkyPeepHudLayout.COIN_PLATE_WIDTH,
+            SkyPeepHudLayout.COIN_PLATE_HEIGHT)
+        image("hud_right_$level", right, top-111f,
+            SkyPeepHudLayout.GEM_PLATE_WIDTH,
+            SkyPeepHudLayout.GEM_PLATE_HEIGHT)
         image("hud_pause_$level", pause, top-129f, 125f, 122f)
-        image("hud_score_$level", 313f, top-182f, 315f, 174f)
+        image("hud_score_$level", 313f, top-188f,
+            SkyPeepHudLayout.SCORE_WIDTH,
+            SkyPeepHudLayout.SCORE_HEIGHT)
+        // Three lives and the per-world goal occupy the LEFT status lane.
+        // They must never overlay the original central winged score ribbon.
         for (i in 0 until SkyPeepLives.MAX) {
             if (i >= lives) batch.color = EMPTY_HEART_TINT
-            drawHeart(visibleFrame.left+48f+i*57f,top-165f,25f)
+            drawHeart(SkyPeepHudLayout.heartCenterX(visibleFrame,i),
+                SkyPeepHudLayout.heartCenterY(visibleFrame),21f)
             batch.color = Color.WHITE
         }
-        // The original six wallet plates are now cleaned at build time.
-        // Keep illustrated gemstone, coin and edge strokes 1:1; no generic
-        // overlay pills that hide the original decorative cyan borders.
-        fitted(hudText.coins(coins),top-50f,fontSmall,1.50f,104f,left+150f)
-        fitted(hudText.gems(gems),top-49f,fontSmall,1.48f,64f,right+117f)
-        // Keep the original score face and button positions untouched.
+        // Flight HUD numbers are real pickups for THIS RUN, not spendable
+        // wallet totals from Menu/Skins/Shop. Preserve wallet and progress
+        // Preferences separately, with no migration or economy change.
+        fitted(hudText.coins(flightHud.coinsCollected),top-52f,
+            fontSmall,1.27f,108f,left+171f)
+        fitted(hudText.gems(flightHud.gemsCollected),top-51f,
+            fontSmall,1.25f,70f,right+122f)
         drawWingedScore()
-        // A single restrained goal pill replaces cluttered precision/bonus
-        // indicators. Never conflate spendable wallet coins and world pickups.
-        badge("dark",W/2f-137f,top-247f,274f,55f)
-        fitted(SkyPeepCoinGoal.label(worldCoins[level-1]),
-            top-211f,fontSmall,.86f,258f,W/2f)
+        // Real collected pickups (not spendable wallet balance), now off
+        // the banner and never competing with the centre score numerals.
+        val goalX=SkyPeepHudLayout.goalX(visibleFrame)
+        val goalY=SkyPeepHudLayout.goalBottom(visibleFrame)
+        badge("dark",goalX,goalY,
+            SkyPeepHudLayout.GOAL_WIDTH,SkyPeepHudLayout.GOAL_HEIGHT)
+        fitted(hudText.progress(worldCoins[level-1]),
+            goalY+35f,fontSmall,.84f,SkyPeepHudLayout.GOAL_WIDTH-14f,
+            goalX+SkyPeepHudLayout.GOAL_WIDTH/2f)
         // Never silently show a healthy wallet when local storage is no
         // longer safely readable or flush() failed. Only the failure state
         // adds this strip; ordinary gameplay stays source-art compatible.
@@ -1186,11 +1235,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // separate dark overlay. Keep the large reference-style outlined
         // numerals centred and automatically fit three-plus digit results.
         val baseline=visibleFrame.top-54f
-        val size=1.08f
-        val available=154f
+        val size=1.38f
+        val available=160f
         val center=W/2f
-        val outline=if(level==6) SCORE_OUTLINE_GOLD else SCORE_OUTLINE
-        val ink=SCORE_INK[(level-1).coerceIn(0,SCORE_INK.lastIndex)]
+        val outline=SCORE_OUTLINE
+        val ink=SCORE_INK
         for (dx in SCORE_STROKE_OFFSETS)
             for (dy in SCORE_STROKE_OFFSETS)
                 if (dx!=0f || dy!=0f)
@@ -1531,18 +1580,30 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
      * save remains mandatory for settings, scores, stars and shop ownership.
      * On I/O failure, the in-memory state is retained for the next retry.
      */
-    private fun persist(write: () -> Unit) {
-        if (!::prefs.isInitialized || !storageHealth.canWrite || !SkyPeepQaSession.shouldPersist(
+    private fun persist(fullSnapshot: Boolean = false, write: () -> Unit) {
+        if (!::prefs.isInitialized || !SkyPeepQaSession.shouldPersist(
                 world = qaWorld, mapUnlocked = qaMapUnlocked,
                 skin = qaSkin, victory = qaVictory, pillars = qaPillars,
                 score = qaScore, loss = qaLoss,
                 backgroundMotion = qaBackgroundMotion,
                 difficulty = qaDifficulty)) return
+        if (!storageHealth.canWrite) {
+            lastSaveFailed = true
+            return
+        }
+        // Partial pickup/record writes cannot repair an earlier failed full
+        // save that also included costume ownership, stars and preferences.
+        if (!fullSnapshot && storageHealth.needsFullSnapshot) {
+            save()
+            return
+        }
         try {
             write()
             prefs.flush()
-            lastSaveFailed = false
+            storageHealth.onFlushSuccess(fullSnapshot)
+            lastSaveFailed = storageHealth.needsFullSnapshot
         } catch (e: RuntimeException) {
+            storageHealth.onFlushFailure()
             lastSaveFailed = true
             // A full-storage/permission fault should not crash Android
             // during a flight, onPause or dispose. Do not claim it saved.
@@ -1552,7 +1613,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     private fun save() {
-        persist {
+        persist(fullSnapshot = true) {
             prefs.putInteger("best",best)
             prefs.putInteger("difficulty",difficulty.ordinal)
             for (mode in SkyDifficulty.entries) {

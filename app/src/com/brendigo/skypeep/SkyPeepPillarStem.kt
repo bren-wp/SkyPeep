@@ -28,7 +28,30 @@ internal object PillarGeometry {
     }
 }
 
-/** Compact repeatable 2D shaft; original foliage, banners and caps stay in PNG artwork. */
+/**
+ * The extension tile repeats vertically hundreds of times. Any horizontal
+ * stroke across a single tile is a visible seam in flight. Its shade therefore
+ * depends ONLY on x, so row 0 and row 143 are bit-identical.
+ */
+internal object PillarStemProfile {
+    const val WIDTH = 128
+    const val HEIGHT = 144
+
+    /** Per-column brightness (percentage of the original world's stone). */
+    fun brightness(x: Int): Int {
+        require(x in 0 until WIDTH)
+        return when {
+            x < 6 || x >= 122 -> 72  // illustrated outer edge
+            x < 12 -> 98
+            x < 26 -> 116           // narrow illuminated bevel
+            x < 101 -> 100          // continuous stone face
+            x < 117 -> 84           // shaded bevel
+            else -> 92
+        }
+    }
+}
+
+/** Repeatable, vertically continuous extension below original illustrated caps. */
 internal object SkyPeepPillarStem {
     private fun theme(world:Int):Color=when(world) {
         2 -> Color.valueOf("E7DCBA")
@@ -38,34 +61,21 @@ internal object SkyPeepPillarStem {
         6 -> Color.valueOf("F5D78A")
         else -> Color.valueOf("E6D7B4")
     }
+
     fun create(world:Int):Texture {
         require(world in 1..6)
-        val pix=Pixmap(128,144,Pixmap.Format.RGBA8888)
+        val pix=Pixmap(PillarStemProfile.WIDTH,PillarStemProfile.HEIGHT,
+            Pixmap.Format.RGBA8888)
         val base=theme(world)
-        val dark=Color(base).mul(.72f)
-        val shadow=Color(base).mul(.84f)
-        val light=Color(base).lerp(Color.WHITE,.18f)
-        pix.setColor(dark)
-        pix.fill()
-        pix.setColor(base)
-        pix.fillRectangle(6,0,116,144)
-        pix.setColor(light)
-        pix.fillRectangle(12,0,14,144)
-        pix.setColor(shadow)
-        pix.fillRectangle(102,0,15,144)
-        pix.setColor(dark)
-        pix.fillRectangle(6,69,115,5)
-        pix.fillRectangle(6,140,115,4)
-        pix.setColor(light)
-        pix.fillRectangle(8,74,108,4)
-        pix.fillRectangle(8,1,108,3)
-        pix.setColor(shadow)
-        pix.drawLine(79,6,79,65)
-        pix.drawLine(42,80,42,139)
-        pix.drawLine(80,94,97,109)
-        pix.drawLine(97,109,91,120)
-        pix.drawLine(40,25,33,33)
-        pix.drawLine(33,33,44,45)
+        val tint=Color()
+        // One vertical line per x, with no y-dependent decoration. Keeping
+        // the last and first rows identical eliminates the old 144px stripe.
+        for(x in 0 until PillarStemProfile.WIDTH) {
+            tint.set(base).mul(PillarStemProfile.brightness(x)/100f)
+            tint.a=1f
+            pix.setColor(tint)
+            pix.drawLine(x,0,x,PillarStemProfile.HEIGHT-1)
+        }
         val tex=SkyPeepManagedTexture.fromPixmap(pix)
         tex.setFilter(Texture.TextureFilter.Linear,Texture.TextureFilter.Linear)
         return tex

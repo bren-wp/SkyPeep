@@ -797,88 +797,137 @@ class RebuildWorlds {
     }
 
 
+    /** Source blue pixels sampled around the numerals on the real winged badge. */
+    private record BadgeSkySample(int x,int y,int red,int green,int blue) { }
+
+    /** Match the ORIGINAL score-shield paint for each illustrated world.
+     * Some sky badges are PALE (Cloud Drift) or NAVY (Wind Gate, Sun Peak),
+     * not bright cyan. A one-palette rule destroyed the actual world design.
+     */
+    private static boolean originalBadgeBackground(int rgb,int world) {
+        int r=(rgb>>>16)&255,g=(rgb>>>8)&255,b=rgb&255;
+        return switch(world) {
+            case 1 -> r<125 && g>90 && g<230 && b>155 && b>g+8;
+            case 2 -> r>180 && r<246 && g>215 && b>236 && b-r>8;
+            case 3 -> r<154 && g>155 && b>215 && b>g+9;
+            case 4 -> r>=8 && r<70 && g>28 && g<117 &&
+                      b>60 && b<160 && b>g+20;
+            case 5 -> r<90 && g>112 && g<235 && b>175 && b>g+12;
+            case 6 -> r<185 && g>105 && b>190 && b>=g+5 && b>r+50;
+            default -> false;
+        };
+    }
+
     /**
-     * Render a blank, world-matched score face onto the original winged header.
-     * Unlike the prior generic in-game badge, the six faces are built once and
-     * retain all untouched illustration pixels (wings, ribbons, level names).
-     * Source PNGs remain immutable: only Gradle's generated assets are changed.
+     * Round mask with a 9px feather, never a new rectangular HUD plate.
+     * Its small border overlaps remove the source score's dark antialiasing,
+     * but the surrounding wing/cloud outlines remain original source pixels.
+     */
+    private static double badgeMask(int x,int y,
+                                    int x1,int y1,int x2,int y2) {
+        double radius=31.0;
+        double cx=(x1+x2)/2.0,cy=(y1+y2)/2.0;
+        double qx=Math.abs(x-cx)-(x2-x1)/2.0+radius;
+        double qy=Math.abs(y-cy)-(y2-y1)/2.0+radius;
+        double d=Math.hypot(Math.max(0,qx),Math.max(0,qy))
+                 +Math.min(Math.max(qx,qy),0)-radius;
+        return clamp(.5-d/14.0);
+    }
+
+    /**
+     * Replace only the numeral in the ORIGINAL illustrated badge, borrowing colour
+     * from its unoccluded blue brush strokes. No new illustration, cream
+     * rectangle, or third-party inpainting library is involved.
      */
     private static void cleanScoreHeader(Path assets,int world) throws IOException {
         Path file=assets.resolve("hud_score_"+world+".png");
         BufferedImage original=ImageIO.read(file.toFile());
         if(original==null || original.getWidth()!=367 || original.getHeight()!=210)
             throw new IOException("Unexpected illustrated score header: "+file);
-        BufferedImage cleaned=new BufferedImage(367,210,BufferedImage.TYPE_INT_ARGB);
-        // Graphics2D.drawImage() composites semi-transparent source pixels,
-        // changing exact ARGB values even outside the painted score region.
-        // A literal copy preserves those original edge/wing pixels bit-for-bit.
-        for(int yy=0;yy<210;yy++)for(int xx=0;xx<367;xx++)
-            cleaned.setRGB(xx,yy,original.getRGB(xx,yy));
-        Graphics2D g=cleaned.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+        final int width=367,height=210;
+        BufferedImage cleaned=new BufferedImage(width,height,
+                                                 BufferedImage.TYPE_INT_ARGB);
+        for(int y=0;y<height;y++)for(int x=0;x<width;x++)
+            cleaned.setRGB(x,y,original.getRGB(x,y));
+
+        // For the six supplied source PNGs, the illustrated cloud/wings and
+        // title ribbon MUST remain untouched. Only a feathered numeral
+        // interior, bounded by that world's old score-replacement envelope,
+        // may be reconstituted.
         final int[][] bounds={
             {91,27,276,150},{106,28,264,143},{106,31,267,135},
             {108,29,261,122},{120,27,257,116},{105,24,272,146}
         };
-        // The supplied reference HUD uses a bright winged/cloud score face,
-        // not a dark cyan/blue rectangle. Keep the reference's original wings
-        // and ribbon pixels untouched, and replace only the baked-in score area.
-        final int[][] top={
-            {254,255,255},{255,255,255},{250,255,255},
-            {246,255,255},{245,241,255},{255,254,239}
+        int[] b=bounds[world-1];
+        // Each score illustration has its OWN inner shield silhouette.
+        // These feathered insets follow the underlying winged artwork
+        // rather than painting a single rectangular patch over every world.
+        final int[][] scoreInsets={
+            {112,40,271,144},{121,42,251,141},{119,34,255,129},
+            {128,37,246,124},{125,27,251,120},{118,35,254,131}
         };
-        final int[][] bottom={
-            {200,238,255},{222,248,255},{191,232,255},
-            {212,240,255},{213,215,255},{255,226,164}
-        };
-        final int[][] edges={
-            {12,69,125},{15,71,128},{8,66,139},
-            {15,75,128},{46,41,127},{143,74,33}
-        };
-        int[] b=bounds[world-1], a=top[world-1], c=bottom[world-1], e=edges[world-1];
-        int x=b[0],y=b[1],w=b[2]-b[0],h=b[3]-b[1];
-        RoundRectangle2D.Float face=new RoundRectangle2D.Float(x,y,w,h,36,36);
-        g.setPaint(new GradientPaint(x,y,new Color(a[0],a[1],a[2]),x,y+h,
-            new Color(c[0],c[1],c[2])));
-        g.fill(face);
-        g.setStroke(new BasicStroke(3.5f,BasicStroke.CAP_ROUND,BasicStroke.JOIN_ROUND));
-        g.setColor(new Color(e[0],e[1],e[2]));
-        g.draw(face);
-        // Low-opacity cloud crowns on the light surface give the score the
-        // rounded reference treatment without redrawing any outside pixels.
-        g.setColor(new Color(255,255,255,135));
-        g.fill(new Ellipse2D.Float(x+10,y+11,w*.41f,h*.47f));
-        g.fill(new Ellipse2D.Float(x+w*.33f,y+6,w*.40f,h*.55f));
-        g.fill(new Ellipse2D.Float(x+w*.63f,y+14,w*.28f,h*.42f));
-        g.setColor(new Color(255,255,255,195));
-        g.setStroke(new BasicStroke(1.8f,BasicStroke.CAP_ROUND,BasicStroke.JOIN_ROUND));
-        g.draw(new Arc2D.Float(x+11,y+8,w-22,52,192,155,Arc2D.OPEN));
-        g.dispose();
-        // Regression guard: validate the base fill BELOW the decorative white
-        // cloud crowns. A single bright centre pixel inside a crown can hide a
-        // dark-slab regression; six samples spread across the lower face cannot.
-        int faceMinimum=255,faceTotal=0,faceCount=0;
-        for(double sx:new double[]{.25,.50,.75})
-            for(double sy:new double[]{.70,.82}) {
-                int sampleRgb=cleaned.getRGB(x+(int)(w*sx),y+(int)(h*sy));
-                int luminance=(((sampleRgb>>>16)&255)*299
-                    +((sampleRgb>>>8)&255)*587+(sampleRgb&255)*114)/1000;
-                faceMinimum=Math.min(faceMinimum,luminance);
-                faceTotal+=luminance;
-                faceCount++;
+        int[] v=scoreInsets[world-1];
+        int mx1=v[0],my1=v[1],mx2=v[2],my2=v[3];
+
+        java.util.ArrayList<BadgeSkySample> samples=new java.util.ArrayList<>();
+        for(int y=18;y<139;y+=3)for(int x=76;x<300;x+=3) {
+            int rgb=original.getRGB(x,y);
+            if(originalBadgeBackground(rgb,world))
+                samples.add(new BadgeSkySample(x,y,
+                    (rgb>>>16)&255,(rgb>>>8)&255,rgb&255));
+        }
+        if(samples.size()<24)throw new IOException(
+            "Insufficient original cyan badge pixels in world "+world+
+            ": "+samples.size());
+
+        // Some original world badges have sparse cyan around the numerals;
+        // look across the whole illustrated shield, not only a 66px core.
+        final int distance=130,sigma=22;
+        double[] weight=new double[distance*distance*2+1];
+        for(int d2=0;d2<weight.length;d2++)
+            weight[d2]=Math.exp(-d2/(2.0*sigma*sigma));
+
+        for(int y=Math.max(0,my1-12);y<Math.min(height,my2+13);y++)
+            for(int x=Math.max(0,mx1-12);x<Math.min(width,mx2+13);x++) {
+                // The old replacement allowed changes only in this rectangle.
+                // Protect source artwork and title outside it bit-for-bit.
+                if(x<b[0]-3 || x>b[2]+3 ||
+                   y<b[1]-3 || y>b[3]+3)continue;
+                double alpha=badgeMask(x,y,mx1,my1,mx2,my2);
+                if(alpha<=0)continue;
+                double rs=0,gs=0,bs=0,total=0;
+                for(BadgeSkySample sample:samples) {
+                    int dx=x-sample.x,dy=y-sample.y;
+                    if(Math.abs(dx)>distance||Math.abs(dy)>distance)continue;
+                    double w=weight[dx*dx+dy*dy];
+                    rs+=sample.red*w;
+                    gs+=sample.green*w;
+                    bs+=sample.blue*w;
+                    total+=w;
+                }
+                if(total<.00001)continue;
+                int base=original.getRGB(x,y);
+                int red=mix((base>>>16)&255,(int)Math.round(rs/total),alpha);
+                int green=mix((base>>>8)&255,(int)Math.round(gs/total),alpha);
+                int blue=mix(base&255,(int)Math.round(bs/total),alpha);
+                cleaned.setRGB(x,y,(base&0xff000000)|
+                                  (red<<16)|(green<<8)|blue);
             }
-        int faceAverage=faceTotal/faceCount;
-        if(faceMinimum<180 || faceAverage<200)throw new IOException(
-            "Score face too dark in world "+world+
-            ": minimum="+faceMinimum+" average="+faceAverage);
-        // Safety invariant: changing any part of the original wings, ribbon,
-        // level-name art or transparent crop OUTSIDE this inset fails the build.
-        for(int yy=0;yy<210;yy++)for(int xx=0;xx<367;xx++)
-            if((xx<x-3 || xx>b[2]+3 || yy<y-3 || yy>b[3]+3) &&
-                original.getRGB(xx,yy)!=cleaned.getRGB(xx,yy))
-                throw new IOException("Score header changed outside inset: "+file);
-        if(!ImageIO.write(cleaned,"png",file.toFile()) || Files.size(file)<28000)
-            throw new IOException("Invalid generated score header: "+file);
+
+        // An opaque beige/white rectangle is not part of the original
+        // reference. Confirm the rebuilt centre is still a blue sky badge.
+        int middle=cleaned.getRGB((mx1+mx2)/2,(my1+my2)/2);
+        if(!originalBadgeBackground(middle,world))throw new IOException(
+            "Score badge no longer matches its original sky colour in world "+world);
+        for(int y=0;y<height;y++)for(int x=0;x<width;x++)
+            if((x<b[0]-3 || x>b[2]+3 || y<b[1]-3 || y>b[3]+3) &&
+               original.getRGB(x,y)!=cleaned.getRGB(x,y))
+                throw new IOException("Protected wing or ribbon changed: "+file);
+        if(!ImageIO.write(cleaned,"png",file.toFile()) ||
+           Files.size(file)<18000)
+            throw new IOException("Invalid original-art score badge: "+file);
+        System.out.println("PASS: source-matched illustrated badge world "+world+
+                           " ("+samples.size()+" original sky samples)");
     }
 
     public static void main(String[] args) throws Exception {

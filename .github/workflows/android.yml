@@ -34,8 +34,39 @@ jobs:
         run: python3 tools/check_release_shell.py .github/workflows/android.yml
       - name: Validate source-derived world sky interpolation
         run: java -Djava.awt.headless=true tools/RebuildWorlds.java --self-test
+      - name: Verify each screenshot uses the correct original-world reference
+        run: java -Djava.awt.headless=true tools/CompareSkyPeepScreens.java --verify-mappings
+      - name: Extract original score headers for independent visual QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p smoke-results/original-score-art
+          cat assets/pack/part-* > "$RUNNER_TEMP/skypeep-original.zip"
+          for world in 1 2 3 4 5 6; do
+            unzip -p "$RUNNER_TEMP/skypeep-original.zip" "hud_score_${world}.png" > "smoke-results/original-score-art/world-${world}.png"
+            file "smoke-results/original-score-art/world-${world}.png" | grep -q 'PNG image data'
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SkyPeep-Original-Score-QA-${{ github.run_number }}
+          path: smoke-results/original-score-art/
+          if-no-files-found: error
       - name: Build debug APK, unsigned release APK and unsigned AAB
         run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:bundleRelease --stacktrace
+      - name: Preserve original and rebuilt source score art for 1:1 QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p smoke-results/score-art
+          cat assets/pack/part-* > "$RUNNER_TEMP/skypeep-original-art.zip"
+          unzip -p "$RUNNER_TEMP/skypeep-original-art.zip" hud_score_6.png > smoke-results/score-art/original-hud-score-6.png
+          cp app/build/generated/skypeep-assets/hud_score_6.png smoke-results/score-art/rebuilt-hud-score-6.png
+          file smoke-results/score-art/*.png | grep -q 'PNG image data'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SkyPeep-Score-Source-QA-${{ github.run_number }}
+          path: smoke-results/score-art/
+          if-no-files-found: error
       - name: Verify offline and local-only Android manifest
         run: |
           grep -q 'android:allowBackup="false"' app/AndroidManifest.xml
@@ -43,6 +74,8 @@ jobs:
           if grep -Eq 'android.permission.(INTERNET|ACCESS_FINE_LOCATION|ACCESS_COARSE_LOCATION|READ_CONTACTS|READ_SMS)' app/AndroidManifest.xml; then
             echo "Unexpected sensitive Android permission"; exit 1
           fi
+      - name: Confirm optional feedback vibration permission
+        run: grep -Fq 'android.permission.VIBRATE' app/AndroidManifest.xml
       - name: Validate effective merged Android permissions (debug and release)
         run: |
           # Dependencies and build-variant manifests can introduce permissions
@@ -64,13 +97,16 @@ jobs:
               grep -E 'android.permission.' "$merged" || true
               exit 1
             fi
+            grep -Fq 'android.permission.VIBRATE' "$merged" || {
+              echo "FAIL: optional haptic feedback permission missing in $variant"; exit 1;
+            }
             echo "PASS: $variant merged manifest remains offline and local-only"
           done
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+49" app/build.gradle
-          grep -Fq "versionName '0.3.37'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+50" app/build.gradle
+          grep -Fq "versionName '0.3.38'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/apk/release/app-release-unsigned.apk
           test -s app/build/outputs/bundle/release/app-release.aab
@@ -186,7 +222,7 @@ jobs:
   release:
     name: Publish verified preview
     needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.37-hud-saves-real-screens'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v0.3.38-storage-ui-qa'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -227,7 +263,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.37-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.38-preview.${GITHUB_RUN_NUMBER}"
           for pattern in '*-debug.apk' '*-release-unsigned.apk' '*-play-upload-unsigned.aab' 'SHA256SUMS.txt' '*-fdroid-metadata.yml'; do
             test -n "$(find release-artifacts -type f -name "$pattern" -print -quit)" || {
               echo "Required release asset missing: $pattern"; exit 1;
@@ -242,7 +278,7 @@ jobs:
           # A quoted heredoc treats release notes as literal text: apostrophes
           # and other punctuation cannot accidentally break Bash parsing.
           cat > "$RUNNER_TEMP/skypeep-release-notes.md" <<'SKYPEEP_NOTES'
-          0.3.37: Improves preservation of offline progress if saved preferences cannot be read, source-matches reconstructed Sky Start and Cloud Drift sky regions, and expands the real Android screenshot gallery. Minimum SDK 24 for Google Play automatic protection compatibility (target 36), while original artwork and flight physics remain unchanged. Includes 16 real emulator screenshots, debug APK, unsigned release APK/AAB, checksums and source metadata. Visual reconstruction Issue #44 remains open until reviewed against original reference images.
+          0.3.38: Removes TAP TO FLY graphic while preserving first-tap input; displays real per-flight coins/gems on the HUD while retaining the same durable wallet and 10,001-pickup goals. Aligns the original six winged score plates and isolates life/goal indicators. Fixes VIBRATE permission, guards cosmetic purchases and requires full save recovery after a failed flush. Original artwork, physics and progress keys unchanged. Includes 16 genuine emulator captures, test APK, unsigned release APK/AAB, SHA-256 and F-Droid metadata. Issue #44 remains open for manual review; no false pixel-perfect certification.
           SKYPEEP_NOTES
           gh release create "$VERSION" \
             "${release_files[@]}" "${screenshot_files[@]}" \
