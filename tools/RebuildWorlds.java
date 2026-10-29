@@ -272,12 +272,10 @@ class RebuildWorlds {
         }
         // Interpolate genuinely missing rows in both directions. Forward
         // fill alone produced sudden horizon bands when sky reappeared.
-        int previous=-1;
+        int previous=-1,first=-1;
         for(int y=0;y<h;y++)if(known[y]){
-            if(previous<0) {
-                for(int row=0;row<y;row++)
-                    sampled[row]=sampled[y].clone();
-            } else {
+            if(previous<0)first=y;
+            else {
                 for(int row=previous+1;row<y;row++){
                     double t=(row-previous)/(double)(y-previous);
                     for(int channel=0;channel<3;channel++)
@@ -289,8 +287,38 @@ class RebuildWorlds {
         }
         if(previous<0)throw new IllegalStateException(
             "No unmasked original sky colours found in world "+world);
-        for(int row=previous+1;row<h;row++)
-            sampled[row]=sampled[previous].clone();
+        // The screenshot HUD masks the entire top 180..207 rows. The old
+        // forward-fill cloned a single source row across that WHOLE area,
+        // producing a sharp flat-colour band across the top of every world.
+        // Extrapolate only the measured original sky gradient, with a
+        // conservative slope bound to avoid inventing harsh colours.
+        if(first>0){
+            int second=first;
+            while(second<h-1 && (second<first+85 || !known[second]))second++;
+            double span=Math.max(1,second-first);
+            for(int row=0;row<first;row++)
+                for(int channel=0;channel<3;channel++){
+                    double gradient=Math.max(-.17,Math.min(.17,
+                        (sampled[second][channel]-sampled[first][channel])/span));
+                    sampled[row][channel]=(int)Math.max(0,Math.min(255,
+                        Math.round(sampled[first][channel]+(row-first)*gradient)));
+                }
+        }
+        int last=previous;
+        // The lower source is sometimes obscured by clouds/illustrated caps.
+        // A measured, bounded derivative is less conspicuous than a flat band.
+        if(last<h-1){
+            int earlier=last;
+            while(earlier>0 && (earlier>last-85 || !known[earlier]))earlier--;
+            double span=Math.max(1,last-earlier);
+            for(int row=last+1;row<h;row++)
+                for(int channel=0;channel<3;channel++){
+                    double gradient=Math.max(-.17,Math.min(.17,
+                        (sampled[last][channel]-sampled[earlier][channel])/span));
+                    sampled[row][channel]=(int)Math.max(0,Math.min(255,
+                        Math.round(sampled[last][channel]+(row-last)*gradient)));
+                }
+        }
 
         int[] smooth=new int[h];
         for(int y=0;y<h;y++){
