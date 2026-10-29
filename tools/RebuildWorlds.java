@@ -720,7 +720,11 @@ class RebuildWorlds {
             writer.setOutput(stream);
             ImageWriteParam options=writer.getDefaultWriteParam();
             options.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-            options.setCompressionQuality(.91f);
+            // Final runtime scenery is decoded/scaled again by OpenGL.
+            // Preserve source-paint edges and waterfalls instead of applying
+            // another visibly lossy 91% JPEG pass to already-authored JPG art.
+            // This cannot recover source pixels that were already occluded.
+            options.setCompressionQuality(.98f);
             writer.write(null,new IIOImage(output,null,null),options);
         } finally {writer.dispose();}
         if(Files.size(file)<20000)throw new IOException("Invalid clean art size: "+file);
