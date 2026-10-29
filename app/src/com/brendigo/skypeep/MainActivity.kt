@@ -45,13 +45,23 @@ class MainActivity : AndroidApplication() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
         window.decorView.setOnApplyWindowInsetsListener { _, insets ->
             val cutout = insets.displayCutout
-            val bars = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
-                insets.getInsets(WindowInsets.Type.systemBars()) else null
+            // Android framework Insets and its four fields are API 29+.
+            // Materialize values inside the API 30+ branch so Android Lint
+            // can prove that older devices never access those fields.
+            val bars = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val systemBars = insets.getInsets(WindowInsets.Type.systemBars())
+                SkyPeepScreenFrame.PixelInsets(
+                    systemBars.left, systemBars.top,
+                    systemBars.right, systemBars.bottom
+                )
+            } else {
+                SkyPeepScreenFrame.PixelInsets(0, 0, 0, 0)
+            }
             game?.updateSafeInsets(SkyPeepScreenFrame.PixelInsets(
-                maxOf(cutout?.safeInsetLeft ?: 0, bars?.left ?: 0),
-                maxOf(cutout?.safeInsetTop ?: 0, bars?.top ?: 0),
-                maxOf(cutout?.safeInsetRight ?: 0, bars?.right ?: 0),
-                maxOf(cutout?.safeInsetBottom ?: 0, bars?.bottom ?: 0)
+                maxOf(cutout?.safeInsetLeft ?: 0, bars.left),
+                maxOf(cutout?.safeInsetTop ?: 0, bars.top),
+                maxOf(cutout?.safeInsetRight ?: 0, bars.right),
+                maxOf(cutout?.safeInsetBottom ?: 0, bars.bottom)
             ))
             // No inset consumption: system gestures and the GL surface retain
             // normal Android dispatch; only game controls use the safe frame.
