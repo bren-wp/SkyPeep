@@ -227,6 +227,19 @@ class RebuildWorlds {
                blue>=green+3 && green>105;
     }
 
+    /**
+     * One source-art mask feather contract; Moon Glow keeps the repaired,
+     * narrower blend around photographed objects to avoid 92px blur halos.
+     */
+    private static double maskFeather(int world,int index) {
+        if(world<1 || world>6 || index<0)
+            throw new IllegalArgumentException("Invalid world/mask");
+        return world<=2?(index==0?72:27):
+               world<=4?(index==0?72:32):
+               world==5?(index==0?72:36):
+               (index==0?40:36);
+    }
+
     private static boolean sourceSkyAt(BufferedImage source,int world,int x,int y) {
         if(x<0||y<0||x>=source.getWidth()||y>=source.getHeight())
             return false;
@@ -398,6 +411,14 @@ class RebuildWorlds {
 
     /** Standalone, offline regression for source-derived 2D sky gradients. */
     private static void verifySkyReconstruction() {
+        // Keep world 5's repaired short feather from silently regressing
+        // to the old 92px source-smearing radius. Protect every other
+        // world's previously validated geometry.
+        if(maskFeather(5,0)!=72 || maskFeather(5,1)!=36 ||
+           maskFeather(1,1)!=27 || maskFeather(3,1)!=32 ||
+           maskFeather(6,1)!=36)
+            throw new IllegalStateException(
+                "World-art mask feather regression (Issue #44)");
         int w=706,h=1254;
         BufferedImage input=new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
         for(int y=0;y<h;y++)for(int x=0;x<w;x++){
@@ -584,14 +605,8 @@ class RebuildWorlds {
                 // broad fade to avoid a sharp horizontal cut across clouds.
                 // Keep v0.3.13 masks byte-for-byte consistent for worlds 1-2.
                 // Only the newly reconstructed worlds 3-4 use 32px fades.
-                // Moon Glow previously used a 92px feather for EVERY
-                // object, blurring entire islands around the bird and coins.
-                // Match Crystal Drop/Wind Gate's tighter illustrated-edge
-                // feather and preserve original unmasked night scenery.
-                double feather=world<=2?(mask==0?72:27):
-                               world<=4?(mask==0?72:32):
-                               world==5?(mask==0?72:36):
-                               (mask==0?40:36);
+                // Preserve original landmarks outside a compact feather.
+                double feather=maskFeather(world,mask);
                 amount=Math.max(amount,shape.alpha(x,y,feather));
             }
             double coinAlpha=0;
