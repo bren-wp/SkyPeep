@@ -27,7 +27,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.14.6'
+          gradle-version: '9.6.0'
       - name: Audit unused Kotlin/Java code
         run: python3 tools/dead_code_audit.py
       - name: Validate release job Bash syntax
@@ -68,7 +68,7 @@ jobs:
           path: smoke-results/artwork-source/source-original.zip
           if-no-files-found: error
       - name: Build debug APK, unsigned release APK and unsigned AAB
-        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:bundleRelease --stacktrace
+        run: gradle :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease :app:bundleRelease --stacktrace
       - name: Preserve original and rebuilt source score art for 1:1 QA
         shell: bash
         run: |
@@ -121,8 +121,8 @@ jobs:
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+51" app/build.gradle
-          grep -Fq "versionName '0.3.39'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+52" app/build.gradle
+          grep -Fq "versionName '0.3.40'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/apk/release/app-release-unsigned.apk
           test -s app/build/outputs/bundle/release/app-release.aab
