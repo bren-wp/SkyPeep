@@ -1355,20 +1355,22 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             bounds=SkyPeepUiTouch.Rect(99f,H-999f,743f,551f))
         badge("dark",137f,706f,313f,146f)
         badge("dark",492f,706f,311f,146f)
+        // Do NOT put title and value in the same full-height clipping box:
+        // their independent lines overlapped in the real #790 Victory PNG.
         fitted("SCORE",826f,fontSmall,1.30f,275f,294f,
-            bounds=SkyPeepUiTouch.Rect(137f,H-852f,313f,146f))
+            bounds=SkyPeepVictoryLayout.heading(137f,313f))
         fitted("BEST",826f,fontSmall,1.30f,275f,648f,
-            bounds=SkyPeepUiTouch.Rect(492f,H-852f,311f,146f))
+            bounds=SkyPeepVictoryLayout.heading(492f,311f))
         fitted(score.toString(),781f,fontLarge,1.12f,272f,294f,
-            bounds=SkyPeepUiTouch.Rect(137f,H-852f,313f,146f))
+            bounds=SkyPeepVictoryLayout.value(137f,313f))
         fitted(routeBests[difficulty.ordinal].toString(),781f,fontLarge,1.12f,272f,648f,
-            bounds=SkyPeepUiTouch.Rect(492f,H-852f,311f,146f))
+            bounds=SkyPeepVictoryLayout.value(492f,311f))
         badge("wood",137f,508f,666f,156f)
         fitted("COINS COLLECTED",643f,fontSmall,1.28f,608f,
-            bounds=SkyPeepUiTouch.Rect(137f,H-664f,666f,156f))
+            bounds=SkyPeepVictoryLayout.coinHeading)
         fitted(SkyPeepCoinGoal.label(worldCoins[level-1]),
             586f,fontLarge,.96f,608f,W/2f,Color.WHITE,
-            bounds=SkyPeepUiTouch.Rect(137f,H-664f,666f,156f))
+            bounds=SkyPeepVictoryLayout.coinValue)
         // Touch zones match the illustrated arcade buttons, not the card.
         SkyPeepResultTouch.victoryButtons.forEach { button ->
             val surface = when (button.action) {
