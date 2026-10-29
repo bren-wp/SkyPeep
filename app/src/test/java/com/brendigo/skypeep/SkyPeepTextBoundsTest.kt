@@ -54,6 +54,18 @@ class SkyPeepTextBoundsTest {
         }
     }
 
+    @Test fun liveScoreStaysInsideWingedBadgeAndClearOfWorldName() {
+        for (digits in listOf(1,2,3,4,5,7,10)) {
+            val face=SkyPeepUiTouch.Rect(378f,19f,184f,116f)
+            // large stroke/font metrics become wider at high scores
+            val measuredWidth=digits*62f
+            val measuredHeight=115f
+            assertInside(face,1672f-54f,471f,
+                measuredWidth,measuredHeight)
+            assertTrue(face.top+face.height<188f)
+        }
+    }
+
     @Test fun shopAndSettingsHeadersDoNotSinkBelowTheirWoodPanels() {
         val shop=SkyPeepUiTouch.Rect(117f,185f,708f,122f)
         val h=84f
