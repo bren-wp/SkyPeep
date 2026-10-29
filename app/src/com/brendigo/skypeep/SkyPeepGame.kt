@@ -1247,11 +1247,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         val center=W/2f
         val outline=SCORE_OUTLINE
         val ink=SCORE_INK
+        // A score can exceed the two-digit concept mockup. The illustrated
+        // winged score is bounded above the separate world-name ribbon.
+        // Clamp BOTH text dimensions (and its outline) to that original face.
+        val face=SkyPeepUiTouch.Rect(378f,-visibleFrame.extraY+19f,184f,116f)
         for (dx in SCORE_STROKE_OFFSETS)
             for (dy in SCORE_STROKE_OFFSETS)
                 if (dx!=0f || dy!=0f)
-                    fitted(text,baseline+dy,fontLarge,size,available,center+dx,outline)
-        fitted(text,baseline,fontLarge,size,available,center,ink)
+                    fitted(text,baseline+dy,fontLarge,size,available,
+                        center+dx,outline,bounds=face)
+        fitted(text,baseline,fontLarge,size,available,center,ink,bounds=face)
     }
 
     private fun drawCoin(x:Float,y:Float,r:Float) {
