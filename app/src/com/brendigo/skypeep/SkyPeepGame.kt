@@ -1207,9 +1207,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // wallet totals from Menu/Skins/Shop. Preserve wallet and progress
         // Preferences separately, with no migration or economy change.
         fitted(hudText.coins(flightHud.coinsCollected),top-52f,
-            fontSmall,1.27f,108f,left+171f)
+            fontSmall,1.27f,108f,left+171f,
+            bounds=SkyPeepUiTouch.Rect(left+112f,-visibleFrame.extraY+14f,117f,82f))
         fitted(hudText.gems(flightHud.gemsCollected),top-51f,
-            fontSmall,1.25f,70f,right+122f)
+            fontSmall,1.25f,70f,right+122f,
+            bounds=SkyPeepUiTouch.Rect(right+80f,-visibleFrame.extraY+14f,85f,82f))
         drawWingedScore()
         // Real collected pickups (not spendable wallet balance), now off
         // the banner and never competing with the centre score numerals.
@@ -1228,7 +1230,9 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         if (!storageHealth.canWrite || lastSaveFailed) {
             badge("dark",W/2f-260f,visibleFrame.bottom+90f,520f,68f)
             fitted("PROGRESS NOT SAVED",visibleFrame.bottom+138f,
-                fontSmall,.95f,495f,W/2f)
+                fontSmall,.95f,495f,W/2f,
+                bounds=SkyPeepUiTouch.Rect(W/2f-260f,H-visibleFrame.bottom-158f,
+                    520f,68f))
         }
     }
 
