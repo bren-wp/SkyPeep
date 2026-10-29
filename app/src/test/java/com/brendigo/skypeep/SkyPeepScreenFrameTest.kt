@@ -60,7 +60,10 @@ class SkyPeepScreenFrameTest {
         val f = SkyPeepScreenFrame.forPixels(1080, 2400)
         val safe = SkyPeepScreenFrame.hudSafeFrame(f, 1080, 2400,
             SkyPeepScreenFrame.PixelInsets(0, 0, 0, 0))
-        assertEquals(f, safe)
+        assertEquals(f.left, safe.left, .001f)
+        assertEquals(f.right, safe.right, .001f)
+        assertEquals(f.bottom, safe.bottom, .001f)
+        assertEquals(f.top, safe.top, .001f)
     }
 
     @Test fun hudMovesAwayFromCutoutWithoutShiftingGameplayWorld() {

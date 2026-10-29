@@ -9,11 +9,14 @@ import android.os.Build
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
 import com.badlogic.gdx.backends.android.AndroidApplication
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration
 
 class MainActivity : AndroidApplication() {
     private var game: SkyPeepGame? = null
+    private var backCallback: OnBackInvokedCallback? = null
 
     // LibGDX's legacy immersive-mode implementation uses deprecated
     // systemUiVisibility flags. We disable it in the configuration and
@@ -115,5 +118,22 @@ class MainActivity : AndroidApplication() {
         initialize(instance, config)
         installSafeAreaListener()
         applyImmersiveFullscreen()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13-16 predictive-back gesture: commit navigates once,
+            // using the same state transition as the physical Back key.
+            val callback = OnBackInvokedCallback { game?.requestSystemBack() }
+            onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                OnBackInvokedDispatcher.PRIORITY_DEFAULT, callback)
+            backCallback = callback
+        }
+    }
+
+    override fun onDestroy() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            backCallback?.let { onBackInvokedDispatcher.unregisterOnBackInvokedCallback(it) }
+            backCallback = null
+        }
+        game = null
+        super.onDestroy()
     }
 }

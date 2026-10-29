@@ -84,6 +84,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private lateinit var viewport: ExtendViewport
     private var visibleFrame = SkyPeepScreenFrame.forPixels(941,1672)
     @Volatile private var safeInsetsPx = SkyPeepScreenFrame.PixelInsets(0, 0, 0, 0)
+    @Volatile private var pendingSystemBack = false
     private lateinit var prefs: Preferences
     private val storageHealth = SkyPeepStorageHealth()
     private var lastSaveFailed = false
@@ -383,6 +384,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     /** The Android UI thread publishes safe insets; GL reads one immutable snapshot. */
+    internal fun requestSystemBack() {
+        pendingSystemBack = true
+        Gdx.app?.postRunnable { Gdx.graphics.requestRendering() }
+    }
+
     internal fun updateSafeInsets(insets: SkyPeepScreenFrame.PixelInsets) {
         safeInsetsPx = insets
         Gdx.app?.postRunnable { Gdx.graphics.requestRendering() }
@@ -532,7 +538,10 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     private fun handleInput() {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.BACK) || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        val systemBack = pendingSystemBack
+        if (systemBack) pendingSystemBack = false
+        if (systemBack || Gdx.input.isKeyJustPressed(Input.Keys.BACK) ||
+            Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             when (screen) {
                 Screen.PLAY -> screen = Screen.PAUSE
                 Screen.PAUSE -> screen = Screen.PLAY

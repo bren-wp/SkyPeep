@@ -90,7 +90,7 @@ Install Android SDK API 36, Java 17 and Gradle 9.6.0 (Android Gradle Plugin 9.5.
 
 ```sh
 python3 tools/dead_code_audit.py
-gradle :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease :app:bundleRelease
+./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease :app:bundleRelease
 bash tools/package-android-release.sh
 cd release-packages && sha256sum --check SHA256SUMS.txt
 ```
