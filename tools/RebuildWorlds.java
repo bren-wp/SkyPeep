@@ -482,7 +482,10 @@ class RebuildWorlds {
         final int MAX_SKY_ROW_JUMP=11;
         for(int x=0;x<w;x++)for(int y=1;y<h;y++) {
             int i=y*w+x,p=(y-1)*w+x;
-            if(known[i]!=0 || known[p]!=0)continue;
+            // The field is diagnostic/used only inside masks; constrain
+            // even across known-sky to masked-sky transitions. The original
+            // unmasked JPG remains drawn untouched in rebuild(). Skipping
+            // these transitions previously left a new world-3 band at y=515.
             int rgb=field[i],aboveRgb=field[p],bounded=0;
             for(int shift:new int[]{0,8,16}) {
                 int value=(rgb>>>shift)&255;
