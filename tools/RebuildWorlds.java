@@ -292,8 +292,12 @@ class RebuildWorlds {
         if(world==5)
             return blue>red+35 && blue>green+18 &&
                    green>red+7 && green>23 && blue>80;
-        return blue>red+16 && green>red+12 &&
-               blue>=green-24 && green>105;
+        // Waterfall foam/crystal highlights are cyan-green. Those objects
+        // contaminated the old sky-donor grid, creating visible turquoise
+        // horizontal bands beside reconstructed gates. Clear daytime SKY
+        // is blue-dominant; do not borrow river/waterfall pixels.
+        return blue>red+22 && green>red+12 &&
+               blue>=green+3 && green>105;
     }
 
     private static boolean sourceSkyAt(BufferedImage source,int world,int x,int y) {
