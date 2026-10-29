@@ -123,10 +123,6 @@ class RebuildWorlds {
        // Lower fixed cap and the remainder of the right pillar shaft.
        new Oval(484,841,130,96),new Area(382,868,581,1280)}
     };
-    private static final Area[][] COINS = {
-      {}, {}, {}, {},
-      {new Area(339,560,694,751)}, {}
-    };
     // Original three Cloud Pass coin outlines: from actual source art at
     // 864x1536 then mapped to the verified 706x1254 build texture.
     private static final CoinCircle[] CLOUD_PASS_COINS={
@@ -139,9 +135,18 @@ class RebuildWorlds {
         new CoinCircle(529.0,642.0,40.0),
         new CoinCircle(617.0,626.0,40.0)
     };
+    // Moon Glow's three real coin centres measured from the preserved
+    // 706x1254 original. The previous 355x191 rectangle erased clouds and
+    // distant scenery BETWEEN the coins. Restore only 3 individual circles.
+    private static final CoinCircle[] MOON_GLOW_COINS={
+        new CoinCircle(408.0,698.0,35.0),
+        new CoinCircle(475.0,668.0,35.0),
+        new CoinCircle(547.0,638.0,35.0)
+    };
     private static CoinCircle[] photographedCoins(int world) {
         return world==2?CLOUD_PASS_COINS:
-               world==4?WIND_GATE_COINS:new CoinCircle[0];
+               world==4?WIND_GATE_COINS:
+               world==5?MOON_GLOW_COINS:new CoinCircle[0];
     }
     private static int mix(int a,int b,double t){return (int)Math.round(a+(b-a)*t);}
     /**
@@ -150,7 +155,7 @@ class RebuildWorlds {
      * Excluding yellow outlines and averaging an annulus prevents stripes.
      * Upper and lower samples preserve the local vertical colour gradient.
      */
-    private static int[] coinSkyColours(BufferedImage source,CoinCircle coin) {
+    private static int[] coinSkyColours(BufferedImage source,int world,CoinCircle coin) {
         long[][] sums=new long[2][4];
         int cx=(int)Math.round(coin.centerX),cy=(int)Math.round(coin.centerY);
         for(int dy=-81;dy<=81;dy+=2)for(int dx=-81;dx<=81;dx+=2) {
@@ -161,7 +166,12 @@ class RebuildWorlds {
             int rgb=source.getRGB(x,y);
             int r=(rgb>>>16)&255,g=(rgb>>>8)&255,b=rgb&255;
             // Reject coins, banners, masonry, greens and dark silhouettes.
-            if(b<r+16 || g<r+14 || b<g-25 || g<110)continue;
+            // Preserve the verified daytime sampling path. Moon Glow needs
+            // a different donor test because its real indigo sky is dark.
+            if(world==5) {
+                if(!(b>r+35 && b>g+18 && g>r+7 && g>23 && b>80))
+                    continue;
+            } else if(b<r+16 || g<r+14 || b<g-25 || g<110)continue;
             int side=dy<0?0:1;
             sums[side][0]+=r;
             sums[side][1]+=g;
@@ -171,7 +181,7 @@ class RebuildWorlds {
         int[] result=new int[2];
         for(int side=0;side<2;side++){
             if(sums[side][3]<40)throw new IllegalStateException(
-                "Not enough unoccluded sky pixels around Cloud Pass coin");
+                "Not enough intact sky around photographed world "+world+" coin");
             int r=(int)(sums[side][0]/sums[side][3]);
             int g=(int)(sums[side][1]/sums[side][3]);
             int b=(int)(sums[side][2]/sums[side][3]);
@@ -559,7 +569,7 @@ class RebuildWorlds {
         CoinCircle[] staticCoins=photographedCoins(world);
         int[][] coinSky=new int[staticCoins.length][];
         for(int i=0;i<staticCoins.length;i++)
-            coinSky[i]=coinSkyColours(original,staticCoins[i]);
+            coinSky[i]=coinSkyColours(original,world,staticCoins[i]);
         BufferedImage output=new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
         int preserved=0, sampled=0;
         int originalIslandPixels=0, islandSamples=0;
@@ -579,8 +589,6 @@ class RebuildWorlds {
                                world==6?(mask==0?40:36):92;
                 amount=Math.max(amount,shape.alpha(x,y,feather));
             }
-            for(Area a:COINS[world-1])
-                amount=Math.max(amount,a.alpha(x,y,68));
             double coinAlpha=0;
             int coveredCoin=-1;
             for(int i=0;i<staticCoins.length;i++){
