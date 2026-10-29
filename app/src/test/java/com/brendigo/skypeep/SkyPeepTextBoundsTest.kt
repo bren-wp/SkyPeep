@@ -16,8 +16,10 @@ class SkyPeepTextBoundsTest {
         val top=bottom+rect.height
         assertTrue("text outside left edge",final.centerX-width*.5f >= rect.left+6.9f)
         assertTrue("text outside right edge",final.centerX+width*.5f <= rect.left+rect.width-6.9f)
-        assertTrue("text below button",final.baseline >= bottom+6.9f)
-        assertTrue("text above button",final.baseline+height <= top-6.9f)
+        assertTrue("glyphs below illustrated panel",
+            final.baseline-height >= bottom+6.9f)
+        assertTrue("glyphs above illustrated panel",
+            final.baseline <= top-6.9f)
     }
 
     @Test fun liveWalletTotalsCannotRiseAboveTheirIllustratedPanels() {
@@ -50,6 +52,29 @@ class SkyPeepTextBoundsTest {
             val r=SkyPeepUiTouch.Rect(button.left,button.top,button.width,button.height)
             assertInside(r,303f,button.left+button.width/2f,380f,170f)
         }
+    }
+
+    @Test fun shopAndSettingsHeadersDoNotSinkBelowTheirWoodPanels() {
+        val shop=SkyPeepUiTouch.Rect(117f,185f,708f,122f)
+        val h=84f
+        val result=SkyPeepTextBounds.position(
+            shop,471f,1444f,442f,h)
+        // Shop title stays within y=1365..1487 (game bottom-up pixels).
+        assertTrue(result.baseline-h>=1365f+7f)
+        assertTrue(result.baseline<=1487f-7f)
+        val settings=SkyPeepUiTouch.Rect(132f,319f,677f,139f)
+        val label=SkyPeepTextBounds.position(
+            settings,471f,1340f,380f,98f)
+        assertTrue(label.baseline-98f>=1214f+7f)
+        assertTrue(label.baseline<=1353f-7f)
+    }
+
+    @Test fun clampingUsesActualGlyphDownwardExtentNotIncorrectUpwardExtent() {
+        val panel=SkyPeepUiTouch.Rect(100f,200f,300f,100f)
+        val bottom=1672f-200f-100f
+        val p=SkyPeepTextBounds.position(
+            panel,250f,bottom+3f,150f,58f)
+        assertEquals(bottom+58f+7f,p.baseline,.01f)
     }
 
     @Test fun alreadyFittingTextKeepsItsPositionAndScale() {
