@@ -678,6 +678,35 @@ class RebuildWorlds {
                 b=mix(from&255,to&255,amount);
             output.setRGB(x,y,(r<<16)|(g<<8)|b);
         }
+        if(world==5) {
+            // The former enormous Moon Glow rectangle destroyed whole
+            // floating islands/clouds around the baked bird. Check that a
+            // substantial portion of the middle source painting survives.
+            int total=0,intact=0;
+            for(int y=540;y<692;y+=4)for(int x=30;x<686;x+=4) {
+                total++;
+                double alpha=0;
+                for(Region region:MASKS[4])
+                    alpha=Math.max(alpha,region.alpha(x,y,36));
+                if(alpha<.01)intact++;
+            }
+            double fraction=intact/(double)Math.max(1,total);
+            System.out.printf(
+                "SkyPeep Moon Glow: %.1f%% authentic midground retained%n",
+                fraction*100);
+            if(fraction<.37)
+                throw new IOException(
+                    "Moon Glow original midground was erased again: retained="+fraction);
+            // Preserve the real illustrated crescent and source scenery,
+            // independently of the restored sky-field implementation.
+            for(int[] point:new int[][]{{115,345},{650,530},{620,670}}) {
+                int x=point[0],y=point[1];
+                if((output.getRGB(x,y)&0x00ffffff)!=
+                   (original.getRGB(x,y)&0x00ffffff))
+                    throw new IOException(
+                        "Original Moon Glow art was modified at "+x+","+y);
+            }
+        }
         if(world==2){
             // Pixel-integrity guard for the entire illustrated island/bridge
             // landscape, not only the five individual landmarks. The previous
