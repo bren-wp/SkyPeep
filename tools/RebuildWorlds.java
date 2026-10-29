@@ -473,6 +473,25 @@ class RebuildWorlds {
             double blend=.83*Math.pow(1.0-nearest/(maxDistance+1.0),1.4);
             field[id]=mixRgb(originalField,donor,blend);
         }
+        // Nearest donor rows can change abruptly where an original cloud or
+        // waterfall begins. Such changes are authentic *donor* pixels but
+        // should never create artificial scanline stripes inside a removed
+        // screenshot object. Bound only the replacement field's vertical
+        // per-channel derivative; all unmasked original JPG pixels are
+        // still preserved verbatim in rebuild().
+        final int MAX_SKY_ROW_JUMP=11;
+        for(int x=0;x<w;x++)for(int y=1;y<h;y++) {
+            int i=y*w+x,p=(y-1)*w+x;
+            if(known[i]!=0 || known[p]!=0)continue;
+            int rgb=field[i],aboveRgb=field[p],bounded=0;
+            for(int shift:new int[]{0,8,16}) {
+                int value=(rgb>>>shift)&255;
+                int parent=(aboveRgb>>>shift)&255;
+                bounded|=(Math.max(parent-MAX_SKY_ROW_JUMP,
+                    Math.min(parent+MAX_SKY_ROW_JUMP,value))<<shift);
+            }
+            field[i]=bounded;
+        }
         return field;
     }
 
