@@ -51,6 +51,22 @@ jobs:
           name: SkyPeep-Original-Score-QA-${{ github.run_number }}
           path: smoke-results/original-score-art/
           if-no-files-found: error
+      # Issue #44 forensic QA: expose the repository's already-tracked
+      # immutable source pack in CI artifacts (not published in Releases).
+      # This enables precise identification of photographed birds, coins,
+      # pillars, original clouds and protected scenery in all six worlds.
+      - name: Preserve immutable source artwork for issue 44 inspection
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p smoke-results/artwork-source
+          cat assets/pack/part-* > smoke-results/artwork-source/source-original.zip
+          unzip -t smoke-results/artwork-source/source-original.zip > /dev/null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SkyPeep-Issue44-Source-Art-${{ github.run_number }}
+          path: smoke-results/artwork-source/source-original.zip
+          if-no-files-found: error
       - name: Build debug APK, unsigned release APK and unsigned AAB
         run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:bundleRelease --stacktrace
       - name: Preserve original and rebuilt source score art for 1:1 QA
