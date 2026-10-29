@@ -479,7 +479,30 @@ class RebuildWorlds {
             if(hi-lo<20)throw new IllegalStateException(
                 "Regression: world "+world+" replacement lost horizontal source lighting");
         }
-        System.out.println("PASS: 2D sky interpolation and continuity");
+        // Genuine Moon Glow sky is dark indigo. The previous daytime
+        // green>105 filter returned zero or wrong sky donors, which made
+        // broad reconstructed areas unnaturally bright and featureless.
+        BufferedImage night=new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
+        for(int y=0;y<h;y++)for(int x=0;x<w;x++) {
+            int red=19+x/24,green=42+x/27,blue=120+x/10;
+            night.setRGB(x,y,(red<<16)|(green<<8)|blue);
+        }
+        int[] moon=boundaryMatchedSky(night,5,sourceMatchedSky(night,5));
+        int dark=moon[620*w+220];
+        int moonBlue=dark&255,moonRed=(dark>>>16)&255;
+        if(moonBlue<110 || moonBlue>205 || moonBlue-moonRed<45)
+            throw new IllegalStateException(
+                "Moon Glow original indigo source field was flattened/brightened");
+        int[] stitched=boundaryMatchedSky(input,3,sourceMatchedSky(input,3));
+        for(int y=250;y<950;y+=53)for(int x=35;x<680;x+=53) {
+            int leftRgb=stitched[y*w+x],rightRgb=stitched[y*w+x+1];
+            for(int shift:new int[]{0,8,16})
+                if(Math.abs(((leftRgb>>>shift)&255)-
+                            ((rightRgb>>>shift)&255))>16)
+                    throw new IllegalStateException(
+                        "Boundary-stitched source sky band at "+x+","+y);
+        }
+        System.out.println("PASS: original-source night sky, 2D continuity and seam-free boundary donors");
     }
     private static void rebuild(
             Path file,int world,Path sunPeakReference) throws Exception {
