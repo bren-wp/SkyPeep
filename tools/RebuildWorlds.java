@@ -51,14 +51,6 @@ class RebuildWorlds {
         }
     }
     private static double clamp(double v){return Math.max(0,Math.min(1,v));}
-    private static final int[][][] PALETTE = {
-      {{35,163,236},{29,171,237},{112,202,245},{178,231,253}},
-      {{38,153,236},{50,177,243},{119,207,245},{162,231,250}},
-      {{19,149,236},{22,148,233},{92,185,242},{166,230,255}},
-      {{38,157,237},{53,185,241},{126,208,246},{179,229,246}},
-      {{16,23,125},{18,55,169},{57,104,214},{119,138,242}},
-      {{255,157,98},{255,198,91},{255,221,115},{255,238,186}}
-    };
     // 706 x 1254 world assets, with original artwork coordinates.
     private static final Region[][] MASKS = {
       // World 1-2: mask ONLY the photographed HUD, baked-in character,
@@ -194,81 +186,6 @@ class RebuildWorlds {
         int g=mix((upper>>>8)&255,(lower>>>8)&255,factor);
         int blue=mix(upper&255,lower&255,factor);
         return (r<<16)|(g<<8)|blue;
-    }
-    private static Color cloudColor(int world,boolean shadow) {
-        if(world==5) return shadow?new Color(70,82,179,42):new Color(185,199,255,68);
-        if(world==6) return shadow?new Color(255,216,158,55):new Color(255,255,227,85);
-        return shadow?new Color(129,209,243,36):new Color(255,255,255,132);
-    }
-    private static void cloud(Graphics2D g,int world,int cx,int cy,double scale) {
-        // Union the lobes into one silhouette BEFORE applying transparency.
-        // Alpha-compositing individual ellipses produced visibly repeated circles.
-        double rx=110*scale,ry=53*scale;
-        java.awt.geom.Area silhouette=new java.awt.geom.Area(
-            new Ellipse2D.Double(cx-rx,cy-ry*.3,rx*2,ry*1.25));
-        double[][] forms={{-.64,-.1,.75},{-.2,-.40,1.05},{.3,-.53,1.12},{.71,-.07,.80}};
-        for(double[] f:forms){
-            double r=f[2]*ry;
-            silhouette.add(new java.awt.geom.Area(
-                new Ellipse2D.Double(cx+f[0]*rx-r,cy+f[1]*ry-r,2*r,2*r)));
-        }
-        g.setColor(cloudColor(world,true));
-        g.fill(silhouette.createTransformedArea(
-            java.awt.geom.AffineTransform.getTranslateInstance(0,6*scale)));
-        g.setColor(cloudColor(world,false));
-        g.fill(silhouette);
-    }
-
-    private static void distantRidge(Graphics2D g,int world,int width,int height) {
-        // Subtle silhouettes restore depth to previously damaged sky corridors.
-        // Preserved side islands and waterfalls remain actual reference pixels.
-        final boolean night=world==5, sunset=world==6;
-        int[][] shades=night
-            ?new int[][]{{51,82,187,38},{36,75,167,48}}
-            :sunset?new int[][]{{239,148,102,43},{227,131,96,52}}
-            :new int[][]{{77,160,224,43},{62,137,203,54}};
-        for(int layer=0;layer<2;layer++){
-            // A few broad, irregular distant hills instead of repeated sharp
-            // triangles (which looked like tall geometric artifacts in game).
-            int horizon=(int)(height*(layer==0?.75:.85));
-            double shift=world*24+layer*41;
-            Path2D.Double line=new Path2D.Double();
-            line.moveTo(-24,height);
-            line.lineTo(-24,horizon+32);
-            for(int x=-24;x<width+135;x+=105){
-                double peak=32+Math.abs(Math.sin(x*.010+shift*.1))*47;
-                if(night)peak*=.85;
-                if(sunset)peak*=1.16;
-                line.quadTo(x+29,horizon-peak*.72,x+52,horizon-peak);
-                line.quadTo(x+82,horizon-peak*.66,x+105,horizon+16);
-            }
-            line.lineTo(width+130,height);
-            line.closePath();
-            int[] col=shades[layer];
-            g.setColor(new Color(col[0],col[1],col[2],Math.max(20,col[3]-12)));
-            g.fill(line);
-        }
-    }
-    private static BufferedImage sky(int w,int h,int world) {
-        BufferedImage out=new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
-        Graphics2D g=out.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
-        int[] stops={0,(int)(h*.271),(int)(h*.654),h-1};
-        int[][] c=PALETTE[world-1];
-        for(int y=0;y<h;y++){
-            int k=y<=stops[1]?0:y<=stops[2]?1:2;
-            double t=(y-stops[k])/(double)Math.max(1,stops[k+1]-stops[k]);
-            t=t*t*(3-2*t);
-            g.setColor(new Color(mix(c[k][0],c[k+1][0],t),
-                mix(c[k][1],c[k+1][1],t),mix(c[k][2],c[k+1][2],t)));
-            g.drawLine(0,y,w,y);
-        }
-        distantRidge(g,world,w,h);
-        int[][] clouds={{166,285,65},{414,385,38},{290,865,70},
-            {498,1007,65},{185,1115,47},{421,635,30}};
-        for(int[] cdata:clouds)cloud(g,world,cdata[0],cdata[1],cdata[2]/100.);
-        g.dispose();
-        return out;
     }
     /**
      * Builds a gently varying sky colour field FROM THE ORIGINAL artwork
@@ -670,7 +587,6 @@ class RebuildWorlds {
                     point[0]+","+point[1]+", alpha="+amount);
             }
         }
-        BufferedImage air=sky(w,h,world);
         // Sample local painted colours, including the source Sun Peak
         // sunset, instead of introducing unrelated procedural sky bands.
         // All six restored worlds now use their OWN original sky paint.
@@ -731,7 +647,7 @@ class RebuildWorlds {
                 if(amount<.02)originalIslandPixels++;
             }
             int from=original.getRGB(x,y);
-            int to=matchedSky==null?air.getRGB(x,y):matchedSky[y*w+x];
+            int to=matchedSky[y*w+x];
             if(coveredCoin>=0 && coinAlpha>0)
                 to=coinBackdrop(coinSky[coveredCoin],staticCoins[coveredCoin],y);
             int r=mix((from>>>16)&255,(to>>>16)&255,amount),
