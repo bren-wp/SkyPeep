@@ -640,7 +640,12 @@ class RebuildWorlds {
             // The photographed Moon Glow coin group occupies x=339..694,
             // y=560..751 and has a separate intentional removal mask.
             // Sample genuine moon/island pixels safely OUTSIDE both masks.
-            for(int[] point:new int[][]{{115,345},{650,400},{650,850}}) {
+            for(int[] point:new int[][]{
+                {115,345}, // original illustrated moon
+                {650,400}, // right floating island and night sky
+                {660,690}, // original right island once erased by huge coin box
+                {650,850}  // source clouds below painted coin group
+            }) {
                 int x=point[0],y=point[1];
                 if((output.getRGB(x,y)&0x00ffffff)!=
                    (original.getRGB(x,y)&0x00ffffff))
