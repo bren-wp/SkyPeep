@@ -286,6 +286,12 @@ class RebuildWorlds {
         if(world==6)
             return red>=180 && green>=130 && blue>=50 &&
                    red-green>7 && green-blue>19;
+        // Original Moon Glow night is dark indigo (green usually 40-95).
+        // The daytime "green>105" rule rejected its entire genuine sky,
+        // causing a missing donor field or borrowed pale cloud colours.
+        if(world==5)
+            return blue>red+35 && blue>green+18 &&
+                   green>red+7 && green>23 && blue>80;
         return blue>red+16 && green>red+12 &&
                blue>=green-24 && green>105;
     }
