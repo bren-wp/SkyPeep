@@ -106,6 +106,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     private val tmp = GlyphLayout()
     private val fontColorScratch = Color()
     private val hudText = SkyPeepHudTextCache()
+    // Reused across serial render calls, never shared outside GL thread.
+    private val fittedPosition = SkyPeepTextBounds.MutablePosition()
     private val flightHud = SkyPeepFlightHudState()
     private val backgroundCrop = SkyPeepBackgroundMotion.MutableCrop()
     private val touch = Vector2()
@@ -1591,12 +1593,13 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 tmp.setText(font,value)
             }
         }
-        val placement=if(bounds==null) null else SkyPeepTextBounds.position(
-            bounds,centerX,baseline,tmp.width,tmp.height,H)
+        if(bounds!=null)
+            SkyPeepTextBounds.positionInto(bounds,centerX,baseline,
+                tmp.width,tmp.height,fittedPosition,H)
         font.color=tint
         font.draw(batch,value,
-            (placement?.centerX ?: centerX)-tmp.width/2f,
-            placement?.baseline ?: baseline)
+            (if(bounds==null) centerX else fittedPosition.centerX)-tmp.width/2f,
+            if(bounds==null) baseline else fittedPosition.baseline)
         font.color=fontColorScratch
         font.data.setScale(savedScale)
     }
