@@ -439,6 +439,92 @@ class RebuildWorlds {
         return field;
     }
 
+    /**
+     * Colour-constrain synthetic sky beside intact source sky at *each*
+     * removed obstacle boundary. The previous broad smooth donor grid did
+     * not match the original painted sky at its perimeter, causing long
+     * teal/blue stripe outlines around rectangular and capsule masks.
+     *
+     * Donors come strictly from unmasked SKY in the same original JPG. Four
+     * directional nearest-source indices are O(width*height), with no per-
+     * pixel allocation, external service or new graphical illustration.
+     * Only the replacement field is adjusted; output keeps all pixels with
+     * zero mask opacity 100% identical to the original source.
+     */
+    private static int[] boundaryMatchedSky(
+            BufferedImage source,int world,int[] field) {
+        final int w=source.getWidth(),h=source.getHeight(),n=w*h;
+        if(field.length!=n)throw new IllegalArgumentException("Bad source sky dimensions");
+        byte[] known=new byte[n];
+        for(int y=0;y<h;y++)for(int x=0;x<w;x++)
+            known[y*w+x]=(byte)(sourceSkyAt(source,world,x,y)?1:0);
+        int[] left=new int[n],right=new int[n],above=new int[n],below=new int[n];
+        for(int y=0;y<h;y++) {
+            int last=-1;
+            for(int x=0;x<w;x++){
+                int id=y*w+x;
+                if(known[id]!=0)last=id;
+                left[id]=last;
+            }
+            last=-1;
+            for(int x=w-1;x>=0;x--){
+                int id=y*w+x;
+                if(known[id]!=0)last=id;
+                right[id]=last;
+            }
+        }
+        for(int x=0;x<w;x++){
+            int last=-1;
+            for(int y=0;y<h;y++){
+                int id=y*w+x;
+                if(known[id]!=0)last=id;
+                above[id]=last;
+            }
+            last=-1;
+            for(int y=h-1;y>=0;y--){
+                int id=y*w+x;
+                if(known[id]!=0)last=id;
+                below[id]=last;
+            }
+        }
+        final int maxDistance=204;
+        // Nearest-source hue is dominant near the feather edge, but fades
+        // smoothly into the 2D source-derived field deep inside a large
+        // removed bird/pillar footprint.
+        for(int y=0;y<h;y++)for(int x=0;x<w;x++) {
+            int id=y*w+x;
+            if(known[id]!=0)continue;
+            int[] candidates={left[id],right[id],above[id],below[id]};
+            long[] sums=new long[3];
+            double weights=0;
+            int nearest=maxDistance+1;
+            for(int candidate:candidates) {
+                if(candidate<0)continue;
+                int d=(candidate/w==y)?
+                    Math.abs(x-candidate%w):Math.abs(y-candidate/w);
+                if(d==0 || d>maxDistance)continue;
+                nearest=Math.min(nearest,d);
+                double weight=1.0/((d+14.0)*(d+14.0));
+                int rgb=source.getRGB(candidate%w,candidate/w);
+                sums[0]+=(long)(((rgb>>>16)&255)*weight*1000000);
+                sums[1]+=(long)(((rgb>>>8)&255)*weight*1000000);
+                sums[2]+=(long)((rgb&255)*weight*1000000);
+                weights+=weight;
+            }
+            if(weights==0)continue;
+            int originalField=field[id];
+            int r=(int)Math.round(sums[0]/(weights*1000000));
+            int g=(int)Math.round(sums[1]/(weights*1000000));
+            int b=(int)Math.round(sums[2]/(weights*1000000));
+            int donor=(Math.max(0,Math.min(255,r))<<16)|
+                      (Math.max(0,Math.min(255,g))<<8)|
+                       Math.max(0,Math.min(255,b));
+            double blend=.83*Math.pow(1.0-nearest/(maxDistance+1.0),1.4);
+            field[id]=mixRgb(originalField,donor,blend);
+        }
+        return field;
+    }
+
     /** Standalone, offline regression for source-derived 2D sky gradients. */
     private static void verifySkyReconstruction() {
         int w=706,h=1254;
@@ -586,7 +672,8 @@ class RebuildWorlds {
         // All six restored worlds now use their OWN original sky paint.
         // Moon Glow was the only remaining world filled with generic
         // procedural colours, leaving a flat blue rectangle beside the moon.
-        int[] matchedSky=sourceMatchedSky(original,world);
+        int[] matchedSky=boundaryMatchedSky(
+            original,world,sourceMatchedSky(original,world));
         if(matchedSky!=null)for(int y=1;y<h;y++){
             // Reject a hard horizontal colour seam in the reconstructed sky.
             // Original floating islands/clouds remain untouched outside masks.
