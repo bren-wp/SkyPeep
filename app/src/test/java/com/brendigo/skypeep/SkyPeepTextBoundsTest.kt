@@ -16,8 +16,10 @@ class SkyPeepTextBoundsTest {
         val top=bottom+rect.height
         assertTrue("text outside left edge",final.centerX-width*.5f >= rect.left+6.9f)
         assertTrue("text outside right edge",final.centerX+width*.5f <= rect.left+rect.width-6.9f)
-        assertTrue("text below button",final.baseline >= bottom+6.9f)
-        assertTrue("text above button",final.baseline+height <= top-6.9f)
+        assertTrue("glyphs below illustrated panel",
+            final.baseline-height >= bottom+6.9f)
+        assertTrue("glyphs above illustrated panel",
+            final.baseline <= top-6.9f)
     }
 
     @Test fun liveWalletTotalsCannotRiseAboveTheirIllustratedPanels() {
@@ -50,6 +52,79 @@ class SkyPeepTextBoundsTest {
             val r=SkyPeepUiTouch.Rect(button.left,button.top,button.width,button.height)
             assertInside(r,303f,button.left+button.width/2f,380f,170f)
         }
+    }
+
+    @Test fun liveScoreStaysInsideWingedBadgeAndClearOfWorldName() {
+        for (digits in listOf(1,2,3,4,5,7,10)) {
+            val face=SkyPeepUiTouch.Rect(378f,19f,184f,116f)
+            // large stroke/font metrics become wider at high scores
+            val measuredWidth=digits*62f
+            val measuredHeight=115f
+            assertInside(face,1672f-54f,471f,
+                measuredWidth,measuredHeight)
+            assertTrue(face.top+face.height<188f)
+        }
+    }
+
+    @Test fun reusableLayoutMatchesImmutablePositionForEveryMajorPanel() {
+        val shared=SkyPeepTextBounds.MutablePosition()
+        val panels=listOf(
+            SkyPeepUiTouch.Rect(137f,820f,313f,63f),  // victory caption
+            SkyPeepUiTouch.Rect(137f,892f,313f,68f),  // victory value
+            SkyPeepUiTouch.Rect(117f,185f,708f,122f), // shop header
+            SkyPeepUiTouch.Rect(132f,319f,677f,139f),// settings header
+            SkyPeepUiTouch.Rect(378f,19f,184f,116f),  // flying score
+            SkyPeepUiTouch.Rect(14f,205f,260f,50f)   // collected goal
+        )
+        for(panel in panels) for((w,h) in listOf(
+            30f to 18f,100f to 39f,155f to 41f)) {
+            val scaled=SkyPeepTextBounds.scaleLimit(w,h,panel)
+            val width=w*scaled
+            val height=h*scaled
+            val middle=panel.left+panel.width*.5f
+            val baseline=1672f-panel.top-panel.height*.5f
+            val original=SkyPeepTextBounds.position(
+                panel,middle,baseline,width,height)
+            SkyPeepTextBounds.positionInto(
+                panel,middle,baseline,width,height,shared)
+            assertEquals(original.centerX,shared.centerX,.001f)
+            assertEquals(original.baseline,shared.baseline,.001f)
+        }
+    }
+
+    @Test fun reusableLayoutRejectsInvalidGlyphDimensions() {
+        val rect=SkyPeepUiTouch.Rect(100f,200f,200f,100f)
+        val pos=SkyPeepTextBounds.MutablePosition()
+        for(width in listOf(Float.NaN,Float.POSITIVE_INFINITY,-1f)) {
+            try {
+                SkyPeepTextBounds.positionInto(rect,180f,1420f,
+                    width,26f,pos)
+                fail("Non-finite/negative glyph width accepted")
+            } catch (_:IllegalArgumentException) { }
+        }
+    }
+
+    @Test fun shopAndSettingsHeadersDoNotSinkBelowTheirWoodPanels() {
+        val shop=SkyPeepUiTouch.Rect(117f,185f,708f,122f)
+        val h=84f
+        val result=SkyPeepTextBounds.position(
+            shop,471f,1444f,442f,h)
+        // Shop title stays within y=1365..1487 (game bottom-up pixels).
+        assertTrue(result.baseline-h>=1365f+7f)
+        assertTrue(result.baseline<=1487f-7f)
+        val settings=SkyPeepUiTouch.Rect(132f,319f,677f,139f)
+        val label=SkyPeepTextBounds.position(
+            settings,471f,1340f,380f,98f)
+        assertTrue(label.baseline-98f>=1214f+7f)
+        assertTrue(label.baseline<=1353f-7f)
+    }
+
+    @Test fun clampingUsesActualGlyphDownwardExtentNotIncorrectUpwardExtent() {
+        val panel=SkyPeepUiTouch.Rect(100f,200f,300f,100f)
+        val bottom=1672f-200f-100f
+        val p=SkyPeepTextBounds.position(
+            panel,250f,bottom+3f,150f,58f)
+        assertEquals(bottom+58f+7f,p.baseline,.01f)
     }
 
     @Test fun alreadyFittingTextKeepsItsPositionAndScale() {

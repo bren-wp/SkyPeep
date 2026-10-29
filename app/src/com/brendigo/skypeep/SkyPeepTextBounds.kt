@@ -2,8 +2,11 @@ package com.brendigo.skypeep
 
 /**
  * Pure UI geometry. LibGDX BitmapFont.draw uses a bottom-up baseline, with
- * glyphs rising above that baseline. Keeping only a maximum text WIDTH is
- * insufficient: live wallet totals and EQUIPPED/REPLAY can protrude above
+ * glyphs extending DOWNWARDS from the draw y (font top-line baseline).
+ * The older upper-edge formula treated the glyphs as extending upwards,
+ * pushing shop titles, settings labels and result values BELOW their panels.
+ * Keeping only a maximum text WIDTH is also insufficient: live wallet
+ * totals and EQUIPPED/REPLAY can protrude beyond
  * their illustrated panels. This helper bounds both text dimensions while
  * preserving the original desired alignment whenever it already fits.
  */
@@ -19,22 +22,43 @@ internal object SkyPeepTextBounds {
         return minOf(1f, x, y).coerceAtLeast(.001f)
     }
 
+    /** Reusable output for the animated HUD; avoids a new Position per glyph. */
+    internal class MutablePosition(
+        var centerX: Float = 0f,
+        var baseline: Float = 0f
+    )
+
+    fun positionInto(frame: SkyPeepUiTouch.Rect, requestedCenterX: Float,
+                     requestedBaseline: Float, textWidth: Float, textHeight: Float,
+                     output: MutablePosition,
+                     canvasHeight: Float = SkyPeepScreenFrame.REFERENCE_HEIGHT,
+                     padding: Float = 7f) {
+        require(textWidth.isFinite() && textHeight.isFinite() &&
+                textWidth >= 0f && textHeight >= 0f)
+        val minCenter = frame.left + padding + textWidth / 2f
+        val maxCenter = frame.left + frame.width - padding - textWidth / 2f
+        val bottom = canvasHeight - frame.top - frame.height
+        // BitmapFont.draw's y is the top origin for the glyph layout:
+        // the text occupies [y-height,y], not [y,y+height].
+        val minBaseline = bottom + padding + textHeight
+        val maxBaseline = bottom + frame.height - padding
+        require(minCenter <= maxCenter + .01f && minBaseline <= maxBaseline + .01f) {
+            "Text size must be fitted into the button before positioning"
+        }
+        output.centerX = requestedCenterX.coerceIn(
+            minCenter, maxOf(minCenter,maxCenter))
+        output.baseline = requestedBaseline.coerceIn(
+            minBaseline, maxOf(minBaseline,maxBaseline))
+    }
+
+    /** Immutable snapshot for JVM tests and infrequent layout calculations. */
     fun position(frame: SkyPeepUiTouch.Rect, requestedCenterX: Float,
                  requestedBaseline: Float, textWidth: Float, textHeight: Float,
                  canvasHeight: Float = SkyPeepScreenFrame.REFERENCE_HEIGHT,
                  padding: Float = 7f): Position {
-        require(textWidth >= 0f && textHeight >= 0f)
-        val minCenter = frame.left + padding + textWidth / 2f
-        val maxCenter = frame.left + frame.width - padding - textWidth / 2f
-        val bottom = canvasHeight - frame.top - frame.height
-        val minBaseline = bottom + padding
-        val maxBaseline = bottom + frame.height - padding - textHeight
-        require(minCenter <= maxCenter + .01f && minBaseline <= maxBaseline + .01f) {
-            "Text size must be fitted into the button before positioning"
-        }
-        return Position(
-            requestedCenterX.coerceIn(minCenter, maxOf(minCenter,maxCenter)),
-            requestedBaseline.coerceIn(minBaseline, maxOf(minBaseline,maxBaseline))
-        )
+        val out = MutablePosition()
+        positionInto(frame,requestedCenterX,requestedBaseline,
+            textWidth,textHeight,out,canvasHeight,padding)
+        return Position(out.centerX,out.baseline)
     }
 }
