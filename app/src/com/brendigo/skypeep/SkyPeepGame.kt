@@ -415,7 +415,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         }
         if (messageTimer > 0 && screen != Screen.PLAY) {
             badge("dark",110f,1375f,W-220f,103f)
-            fitted(message,1437f,fontSmall,1.4f,W-290f)
+            fitted(message,1437f,fontSmall,1.4f,W-290f,
+                bounds=SkyPeepUiTouch.Rect(110f,H-1478f,W-220f,103f))
         }
         batch.end()
         updateRenderingPolicy()
@@ -1206,9 +1207,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // wallet totals from Menu/Skins/Shop. Preserve wallet and progress
         // Preferences separately, with no migration or economy change.
         fitted(hudText.coins(flightHud.coinsCollected),top-52f,
-            fontSmall,1.27f,108f,left+171f)
+            fontSmall,1.27f,108f,left+171f,
+            bounds=SkyPeepUiTouch.Rect(left+112f,-visibleFrame.extraY+14f,117f,82f))
         fitted(hudText.gems(flightHud.gemsCollected),top-51f,
-            fontSmall,1.25f,70f,right+122f)
+            fontSmall,1.25f,70f,right+122f,
+            bounds=SkyPeepUiTouch.Rect(right+80f,-visibleFrame.extraY+14f,85f,82f))
         drawWingedScore()
         // Real collected pickups (not spendable wallet balance), now off
         // the banner and never competing with the centre score numerals.
@@ -1218,14 +1221,18 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             SkyPeepHudLayout.GOAL_WIDTH,SkyPeepHudLayout.GOAL_HEIGHT)
         fitted(hudText.progress(worldCoins[level-1]),
             goalY+35f,fontSmall,.84f,SkyPeepHudLayout.GOAL_WIDTH-14f,
-            goalX+SkyPeepHudLayout.GOAL_WIDTH/2f)
+            goalX+SkyPeepHudLayout.GOAL_WIDTH/2f,
+            bounds=SkyPeepUiTouch.Rect(goalX,H-goalY-SkyPeepHudLayout.GOAL_HEIGHT,
+                SkyPeepHudLayout.GOAL_WIDTH,SkyPeepHudLayout.GOAL_HEIGHT))
         // Never silently show a healthy wallet when local storage is no
         // longer safely readable or flush() failed. Only the failure state
         // adds this strip; ordinary gameplay stays source-art compatible.
         if (!storageHealth.canWrite || lastSaveFailed) {
             badge("dark",W/2f-260f,visibleFrame.bottom+90f,520f,68f)
             fitted("PROGRESS NOT SAVED",visibleFrame.bottom+138f,
-                fontSmall,.95f,495f,W/2f)
+                fontSmall,.95f,495f,W/2f,
+                bounds=SkyPeepUiTouch.Rect(W/2f-260f,H-visibleFrame.bottom-158f,
+                    520f,68f))
         }
     }
 
@@ -1266,11 +1273,13 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // Preserve those exact pixels until genuine saved balances differ.
         if (SkyPeepReferenceWallet.menuNeedsCoinOverlay(coins)) {
             badge("dark",119f,H-103f,136f,65f)
-            fitted(SkyPeepHudNumbers.compact(coins),H-54f,fontSmall,1.70f,127f,186f)
+            fitted(SkyPeepHudNumbers.compact(coins),H-54f,fontSmall,1.70f,127f,186f,
+                bounds=SkyPeepUiTouch.Rect(119f,38f,136f,65f))
         }
         if (SkyPeepReferenceWallet.menuNeedsGemOverlay(gems)) {
             badge("dark",743f,H-103f,76f,65f)
-            fitted(SkyPeepHudNumbers.compact(gems),H-54f,fontSmall,1.70f,69f,781f)
+            fitted(SkyPeepHudNumbers.compact(gems),H-54f,fontSmall,1.70f,69f,781f,
+                bounds=SkyPeepUiTouch.Rect(743f,38f,76f,65f))
         }
     }
 
@@ -1292,7 +1301,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                     chip.left, H-chip.top-chip.height, chip.width, chip.height)
                 fitted(SkyPeepMapUi.status(world,level,worldCoins[world-1]),
                     H-chip.top-chip.height/2f+12f, fontSmall, .90f,
-                    chip.width-8f, chip.left+chip.width/2f)
+                    chip.width-8f, chip.left+chip.width/2f,bounds=chip)
             }
             if(world==2) {
                 // The supplied illustrated map has CLOUD PASS printed
@@ -1300,7 +1309,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 // obsolete letters, not the world number, art or star row.
                 badge("cream",marker.x-119f,H-marker.y-89f,238f,49f)
                 fitted("CLOUD DRIFT",H-marker.y-56f,fontSmall,.93f,
-                    218f,marker.x,TEXT_ON_CREAM)
+                    218f,marker.x,TEXT_ON_CREAM,
+                    bounds=SkyPeepUiTouch.Rect(marker.x-119f,marker.y+40f,238f,49f))
             }
             val earned=routeStars[difficulty.ordinal][world-1].coerceIn(0,3)
             if(earned>0) {
@@ -1323,7 +1333,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             batch.draw(it,412f,1468f,120f,72f)
         }
         badge("wood",120f,1180f,701f,155f)
-        fitted("LEVEL COMPLETE",1284f,fontLarge,1.32f,644f)
+        fitted("LEVEL COMPLETE",1284f,fontLarge,1.32f,644f,
+            bounds=SkyPeepUiTouch.Rect(120f,H-1335f,701f,155f))
         fitted(levelTitle(level).uppercase(Locale.ROOT),1190f,fontSmall,1.55f,580f)
         // Difficulty is already selected in Settings and shown in sharing;
         // putting it here overlapped the large world name on real emulator.
@@ -1335,17 +1346,24 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             batch.color=Color.WHITE
         }
         badge("cream",99f,448f,743f,551f)
-        fitted("FLIGHT COMPLETED",924f,fontSmall,1.55f,675f,W/2f,VICTORY_HEADLINE_COLOR)
+        fitted("FLIGHT COMPLETED",924f,fontSmall,1.55f,675f,W/2f,VICTORY_HEADLINE_COLOR,
+            bounds=SkyPeepUiTouch.Rect(99f,H-999f,743f,551f))
         badge("dark",137f,706f,313f,146f)
         badge("dark",492f,706f,311f,146f)
-        fitted("SCORE",826f,fontSmall,1.30f,275f,294f)
-        fitted("BEST",826f,fontSmall,1.30f,275f,648f)
-        fitted(score.toString(),781f,fontLarge,1.12f,272f,294f)
-        fitted(routeBests[difficulty.ordinal].toString(),781f,fontLarge,1.12f,272f,648f)
+        fitted("SCORE",826f,fontSmall,1.30f,275f,294f,
+            bounds=SkyPeepUiTouch.Rect(137f,H-852f,313f,146f))
+        fitted("BEST",826f,fontSmall,1.30f,275f,648f,
+            bounds=SkyPeepUiTouch.Rect(492f,H-852f,311f,146f))
+        fitted(score.toString(),781f,fontLarge,1.12f,272f,294f,
+            bounds=SkyPeepUiTouch.Rect(137f,H-852f,313f,146f))
+        fitted(routeBests[difficulty.ordinal].toString(),781f,fontLarge,1.12f,272f,648f,
+            bounds=SkyPeepUiTouch.Rect(492f,H-852f,311f,146f))
         badge("wood",137f,508f,666f,156f)
-        fitted("COINS COLLECTED",643f,fontSmall,1.28f,608f)
+        fitted("COINS COLLECTED",643f,fontSmall,1.28f,608f,
+            bounds=SkyPeepUiTouch.Rect(137f,H-664f,666f,156f))
         fitted(SkyPeepCoinGoal.label(worldCoins[level-1]),
-            586f,fontLarge,.96f,608f,W/2f,Color.WHITE)
+            586f,fontLarge,.96f,608f,W/2f,Color.WHITE,
+            bounds=SkyPeepUiTouch.Rect(137f,H-664f,666f,156f))
         // Touch zones match the illustrated arcade buttons, not the card.
         SkyPeepResultTouch.victoryButtons.forEach { button ->
             val surface = when (button.action) {
@@ -1356,9 +1374,13 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
             badge(surface, button.left, H - button.top - button.height,
                 button.width, button.height)
         }
-        fitted("HOME",303f,fontSmall,1.72f,231f,185f)
-        fitted(if(level<MAX_LEVEL) "NEXT" else "REPLAY",303f,fontSmall,1.72f,251f,471f)
-        fitted("SHARE",303f,fontSmall,1.72f,232f,757f)
+        val victoryButtons=SkyPeepResultTouch.victoryButtons
+        fitted("HOME",303f,fontSmall,1.72f,231f,185f,
+            bounds=victoryButtons[0].let { SkyPeepUiTouch.Rect(it.left,it.top,it.width,it.height) })
+        fitted(if(level<MAX_LEVEL) "NEXT" else "REPLAY",303f,fontSmall,1.72f,251f,471f,
+            bounds=victoryButtons[1].let { SkyPeepUiTouch.Rect(it.left,it.top,it.width,it.height) })
+        fitted("SHARE",303f,fontSmall,1.72f,232f,757f,
+            bounds=victoryButtons[2].let { SkyPeepUiTouch.Rect(it.left,it.top,it.width,it.height) })
     }
 
     private fun drawResult() {
@@ -1366,17 +1388,22 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         badge("cream",201f,H-947f,153f,90f)
         badge("cream",402f,H-947f,160f,90f)
         badge("cream",665f,H-947f,122f,90f)
-        fitted(score.toString(),H-874f,fontLarge,1f,142f,277f,RESULT_VALUE_COLOR)
-        fitted(routeBests[difficulty.ordinal].toString(),H-874f,fontLarge,1f,148f,483f,RESULT_VALUE_COLOR)
-        fitted(earnedCoins.toString(),H-874f,fontLarge,1f,112f,726f,RESULT_VALUE_COLOR)
+        fitted(score.toString(),H-874f,fontLarge,1f,142f,277f,RESULT_VALUE_COLOR,
+            bounds=SkyPeepUiTouch.Rect(201f,857f,153f,90f))
+        fitted(routeBests[difficulty.ordinal].toString(),H-874f,fontLarge,1f,148f,483f,RESULT_VALUE_COLOR,
+            bounds=SkyPeepUiTouch.Rect(402f,857f,160f,90f))
+        fitted(earnedCoins.toString(),H-874f,fontLarge,1f,112f,726f,RESULT_VALUE_COLOR,
+            bounds=SkyPeepUiTouch.Rect(665f,857f,122f,90f))
         val progress=SkyPeepCoinGoal.fraction(worldCoins[level-1])
         badge("dark",293f,H-1100f,463f,57f)
         if(progress>.02f) badge("blue",299f,H-1095f,450f*progress,47f)
         fitted(SkyPeepCoinGoal.label(worldCoins[level-1]),
-            H-1058f,fontSmall,1.28f,409f,526f)
+            H-1058f,fontSmall,1.28f,409f,526f,
+            bounds=SkyPeepUiTouch.Rect(293f,1043f,463f,57f))
         if(resultWon) {
             badge("green",315f,H-1432f,316f,176f)
-            fitted(if(level<MAX_LEVEL) "NEXT" else "REPLAY",H-1350f,fontSmall,1.65f,300f,475f)
+            fitted(if(level<MAX_LEVEL) "NEXT" else "REPLAY",H-1350f,fontSmall,1.65f,300f,475f,
+                bounds=SkyPeepUiTouch.Rect(315f,1256f,316f,176f))
         }
     }
 
@@ -1392,11 +1419,13 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // when actual saved data differs from the corresponding illustration.
         if (SkyPeepReferenceWallet.skinsNeedsCoinOverlay(coins)) {
             badge("wallet",120f,H-103f,164f,65f)
-            fitted(SkyPeepHudNumbers.compact(coins),H-35f,fontSmall,1.28f,153f,199f)
+            fitted(SkyPeepHudNumbers.compact(coins),H-35f,fontSmall,1.28f,153f,199f,
+                bounds=SkyPeepUiTouch.Rect(120f,38f,164f,65f))
         }
         if (SkyPeepReferenceWallet.skinsNeedsGemOverlay(gems)) {
             badge("wallet",733f,H-103f,111f,65f)
-            fitted(SkyPeepHudNumbers.compact(gems),H-35f,fontSmall,1.28f,104f,788f)
+            fitted(SkyPeepHudNumbers.compact(gems),H-35f,fontSmall,1.28f,104f,788f,
+                bounds=SkyPeepUiTouch.Rect(733f,38f,111f,65f))
         }
         // DEFAULT labels the illustrated default bird, not the currently worn
         // costume. Preserve the painted plaque. When another skin is worn,
@@ -1407,7 +1436,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 H-button.top-button.height, button.width, button.height)
             fitted("EQUIP", H-button.top-button.height/2f+13f,
                 fontSmall,1.14f,button.width-10f,
-                button.left+button.width/2f,Color.WHITE)
+                button.left+button.width/2f,Color.WHITE,bounds=button)
         }
         for (i in 1..4) {
             val caption = SkyPeepSkinUi.dynamicCaption(
@@ -1421,7 +1450,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 button.left,H-button.top-button.height,button.width,button.height)
             fitted(caption,
                 H-button.top-button.height/2f+13f,fontSmall,1.14f,
-                button.width-12f,button.left+button.width/2f,Color.WHITE)
+                button.width-12f,button.left+button.width/2f,Color.WHITE,bounds=button)
         }
     }
 
@@ -1451,11 +1480,14 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         // Native bird illustration gives the SHOP its own SkyPeep identity,
         // as in the supplied PAUSE/SKINS design rather than a generic dialog.
         drawMenuMascot(383f,1481f,175f)
-        fitted("FLIGHT TRAILS",1444f,fontLarge,1.28f,657f)
+        fitted("FLIGHT TRAILS",1444f,fontLarge,1.28f,657f,
+            bounds=SkyPeepUiTouch.Rect(117f,H-1487f,708f,122f))
         badge("dark",118f,1252f,338f,90f)
         badge("dark",483f,1252f,338f,90f)
-        fitted("COINS  ${SkyPeepHudNumbers.compact(coins)}",1312f,fontSmall,1.38f,305f,288f)
-        fitted("GEMS  ${SkyPeepHudNumbers.compact(gems)}",1312f,fontSmall,1.38f,305f,653f)
+        fitted("COINS  ${SkyPeepHudNumbers.compact(coins)}",1312f,fontSmall,1.38f,305f,288f,
+            bounds=SkyPeepUiTouch.Rect(118f,H-1342f,338f,90f))
+        fitted("GEMS  ${SkyPeepHudNumbers.compact(gems)}",1312f,fontSmall,1.38f,305f,653f,
+            bounds=SkyPeepUiTouch.Rect(483f,H-1342f,338f,90f))
         val tx=trailTexture
         for(offer in SkyPeepTrailCatalog.all) {
             val y=1060f-offer.id*195f
@@ -1466,9 +1498,11 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 batch.draw(tx,132f,y+48f,90f,74f)
                 batch.color=Color.WHITE
             }
-            fitted(offer.name.uppercase(Locale.ROOT),y+121f,fontSmall,1.10f,322f,410f,SHOP_NAME_COLOR)
+            fitted(offer.name.uppercase(Locale.ROOT),y+121f,fontSmall,1.10f,322f,410f,SHOP_NAME_COLOR,
+                bounds=SkyPeepUiTouch.Rect(240f,H-y-174f,334f,174f))
             fitted(SkyPeepTrailCatalog.priceLabel(offer),y+66f,
-                fontSmall,1.05f,322f,410f,SHOP_PRICE_COLOR)
+                fontSmall,1.05f,322f,410f,SHOP_PRICE_COLOR,
+                bounds=SkyPeepUiTouch.Rect(240f,H-y-174f,334f,174f))
             val buyButton = SkyPeepUiTouch.shopPurchaseRect(offer.id)
             // All active offers use a bright green legible control; state is
             // expressed in its BUY/EQUIP/EQUIPPED caption, not low contrast.
@@ -1479,7 +1513,8 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                 ownedTrails[offer.id] -> "EQUIP"
                 else -> "BUY"
             }
-            fitted(caption,y+103f,fontSmall,1.18f,207f,706f,Color.WHITE)
+            fitted(caption,y+103f,fontSmall,1.18f,207f,706f,Color.WHITE,
+                bounds=buyButton)
         }
         badge("green",279f,245f,384f,137f)
         fitted("BACK",337f,fontLarge,1.22f,340f)
@@ -1491,12 +1526,14 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
         badge("cream",91f,348f,759f,1020f)
         badge("wood",132f,1214f,677f,139f)
         drawMenuMascot(381f,1350f,179f)
-        fitted("SETTINGS",1340f,fontLarge,1.55f,627f)
+        fitted("SETTINGS",1340f,fontLarge,1.55f,627f,
+            bounds=SkyPeepUiTouch.Rect(132f,H-1353f,677f,139f))
         for(i in SETTINGS_NAMES.indices) {
             val yy=1010f-i*143f
             badge("wood",137f,yy,666f,119f)
             fitted(SETTINGS_NAMES[i],yy+77f,fontSmall,1.12f,
-                362f,350f,Color.WHITE)
+                362f,350f,Color.WHITE,
+                bounds=SkyPeepUiTouch.Rect(137f,H-yy-119f,666f,119f))
             if(i<3) {
                 toggle(657f,yy+28f,when(i) {
                     0 -> musicEnabled
@@ -1504,14 +1541,16 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
                     else -> vibrationEnabled
                 })
             } else fitted(difficulty.title,yy+77f,fontSmall,.94f,
-                214f,686f,Color.WHITE)
+                214f,686f,Color.WHITE,
+                bounds=SkyPeepUiTouch.Rect(137f,H-yy-119f,666f,119f))
         }
         badge("blue",137f,421f,310f,116f)
         fitted("BEST " + routeBests[difficulty.ordinal],494f,fontSmall,1.1f,285f,292f)
         badge("green",492f,421f,313f,116f)
         fitted("WORLDS 6/6",494f,fontSmall,1.3f,290f,649f)
         badge("green",185f,243f,575f,129f)
-        fitted("BACK",352f,fontLarge,1.30f,531f)
+        fitted("BACK",352f,fontLarge,1.30f,531f,
+            bounds=SkyPeepUiTouch.Rect(185f,H-372f,575f,129f))
     }
 
     /** Rounded, antialiased-like gradient chrome rendered once, reused on each screen. */
@@ -1527,15 +1566,30 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     private fun fitted(value:String,baseline:Float,font:BitmapFont,size:Float,
-                       available:Float,centerX:Float=W/2f,tint:Color=Color.WHITE) {
+                       available:Float,centerX:Float=W/2f,tint:Color=Color.WHITE,
+                       bounds:SkyPeepUiTouch.Rect?=null) {
         val savedScale=font.data.scaleX
         fontColorScratch.set(font.color)
         font.data.setScale(size)
         tmp.setText(font,value)
-        if(tmp.width>available) font.data.setScale(size*available/tmp.width)
+        if(tmp.width>available && tmp.width>0f)
+            font.data.setScale(size*available/tmp.width)
         tmp.setText(font,value)
+        if(bounds!=null) {
+            // Button artwork has BOTH horizontal and vertical boundaries.
+            // Width-only fitting let tall captions overflow wallet panels.
+            val factor=SkyPeepTextBounds.scaleLimit(tmp.width,tmp.height,bounds)
+            if(factor<1f) {
+                font.data.setScale(font.data.scaleX*factor)
+                tmp.setText(font,value)
+            }
+        }
+        val placement=if(bounds==null) null else SkyPeepTextBounds.position(
+            bounds,centerX,baseline,tmp.width,tmp.height,H)
         font.color=tint
-        font.draw(batch,value,centerX-tmp.width/2f,baseline)
+        font.draw(batch,value,
+            (placement?.centerX ?: centerX)-tmp.width/2f,
+            placement?.baseline ?: baseline)
         font.color=fontColorScratch
         font.data.setScale(savedScale)
     }
