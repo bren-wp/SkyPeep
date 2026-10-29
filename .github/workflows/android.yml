@@ -287,8 +287,10 @@ jobs:
           target: default
           arch: x86_64
           profile: pixel_2
-          cores: 2
-          ram-size: 3072M
+          # Android 16's System UI needs headroom during a fresh emulator boot.
+          # Previous 2-core/3-GB run showed a System UI ANR overlay over SkyPeep.
+          cores: 4
+          ram-size: 4096M
           heap-size: 512M
           disable-animations: true
           emulator-options: -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect
