@@ -22,26 +22,43 @@ internal object SkyPeepTextBounds {
         return minOf(1f, x, y).coerceAtLeast(.001f)
     }
 
-    fun position(frame: SkyPeepUiTouch.Rect, requestedCenterX: Float,
-                 requestedBaseline: Float, textWidth: Float, textHeight: Float,
-                 canvasHeight: Float = SkyPeepScreenFrame.REFERENCE_HEIGHT,
-                 padding: Float = 7f): Position {
-        require(textWidth >= 0f && textHeight >= 0f)
+    /** Reusable output for the animated HUD; avoids a new Position per glyph. */
+    internal class MutablePosition(
+        var centerX: Float = 0f,
+        var baseline: Float = 0f
+    )
+
+    fun positionInto(frame: SkyPeepUiTouch.Rect, requestedCenterX: Float,
+                     requestedBaseline: Float, textWidth: Float, textHeight: Float,
+                     output: MutablePosition,
+                     canvasHeight: Float = SkyPeepScreenFrame.REFERENCE_HEIGHT,
+                     padding: Float = 7f) {
+        require(textWidth.isFinite() && textHeight.isFinite() &&
+                textWidth >= 0f && textHeight >= 0f)
         val minCenter = frame.left + padding + textWidth / 2f
         val maxCenter = frame.left + frame.width - padding - textWidth / 2f
         val bottom = canvasHeight - frame.top - frame.height
         // BitmapFont.draw's y is the top origin for the glyph layout:
-        // the text occupies [y - height, y], NOT [y, y + height].
-        // Constraining the wrong side caused the actual rendered captions
-        // to protrude below the illustrated wood and cream rectangles.
+        // the text occupies [y-height,y], not [y,y+height].
         val minBaseline = bottom + padding + textHeight
         val maxBaseline = bottom + frame.height - padding
         require(minCenter <= maxCenter + .01f && minBaseline <= maxBaseline + .01f) {
             "Text size must be fitted into the button before positioning"
         }
-        return Position(
-            requestedCenterX.coerceIn(minCenter, maxOf(minCenter,maxCenter)),
-            requestedBaseline.coerceIn(minBaseline, maxOf(minBaseline,maxBaseline))
-        )
+        output.centerX = requestedCenterX.coerceIn(
+            minCenter, maxOf(minCenter,maxCenter))
+        output.baseline = requestedBaseline.coerceIn(
+            minBaseline, maxOf(minBaseline,maxBaseline))
+    }
+
+    /** Immutable snapshot for JVM tests and infrequent layout calculations. */
+    fun position(frame: SkyPeepUiTouch.Rect, requestedCenterX: Float,
+                 requestedBaseline: Float, textWidth: Float, textHeight: Float,
+                 canvasHeight: Float = SkyPeepScreenFrame.REFERENCE_HEIGHT,
+                 padding: Float = 7f): Position {
+        val out = MutablePosition()
+        positionInto(frame,requestedCenterX,requestedBaseline,
+            textWidth,textHeight,out,canvasHeight,padding)
+        return Position(out.centerX,out.baseline)
     }
 }
