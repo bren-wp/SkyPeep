@@ -584,9 +584,14 @@ class RebuildWorlds {
                 // broad fade to avoid a sharp horizontal cut across clouds.
                 // Keep v0.3.13 masks byte-for-byte consistent for worlds 1-2.
                 // Only the newly reconstructed worlds 3-4 use 32px fades.
+                // Moon Glow previously used a 92px feather for EVERY
+                // object, blurring entire islands around the bird and coins.
+                // Match Crystal Drop/Wind Gate's tighter illustrated-edge
+                // feather and preserve original unmasked night scenery.
                 double feather=world<=2?(mask==0?72:27):
                                world<=4?(mask==0?72:32):
-                               world==6?(mask==0?40:36):92;
+                               world==5?(mask==0?72:36):
+                               (mask==0?40:36);
                 amount=Math.max(amount,shape.alpha(x,y,feather));
             }
             double coinAlpha=0;
