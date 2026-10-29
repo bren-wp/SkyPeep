@@ -86,11 +86,11 @@ visually reviewed; existing assets/previews images are **concept references**.
 
 ## Rebuild and verify on a trusted machine
 
-Install Android SDK API 36, Java 17 and Gradle 8.14.6, then:
+Install Android SDK API 36, Java 17 and Gradle 9.6.0 (Android Gradle Plugin 9.5.0), then:
 
 ```sh
 python3 tools/dead_code_audit.py
-gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:bundleRelease
+./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease :app:bundleRelease
 bash tools/package-android-release.sh
 cd release-packages && sha256sum --check SHA256SUMS.txt
 ```

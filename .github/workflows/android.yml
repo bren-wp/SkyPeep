@@ -27,7 +27,12 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.14.6'
+          gradle-version: '9.6.0'
+      - name: Verify official pinned Gradle Wrapper
+        run: |
+          test -s gradle/wrapper/gradle-wrapper.jar
+          grep -q 'gradle-9.6.0-bin.zip' gradle/wrapper/gradle-wrapper.properties
+          ./gradlew --version | grep 'Gradle 9.6.0'
       - name: Audit unused Kotlin/Java code
         run: python3 tools/dead_code_audit.py
       - name: Validate release job Bash syntax
@@ -68,7 +73,7 @@ jobs:
           path: smoke-results/artwork-source/source-original.zip
           if-no-files-found: error
       - name: Build debug APK, unsigned release APK and unsigned AAB
-        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:bundleRelease --stacktrace
+        run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease :app:bundleRelease --stacktrace
       - name: Preserve original and rebuilt source score art for 1:1 QA
         shell: bash
         run: |
@@ -121,8 +126,8 @@ jobs:
       - name: Verify build outputs
         run: |
           # Guard against a release tag advertising the wrong packaged version.
-          grep -Eq "versionCode[[:space:]]+51" app/build.gradle
-          grep -Fq "versionName '0.3.39'" app/build.gradle
+          grep -Eq "versionCode[[:space:]]+52" app/build.gradle
+          grep -Fq "versionName '0.3.40'" app/build.gradle
           test -s app/build/outputs/apk/debug/app-debug.apk
           test -s app/build/outputs/apk/release/app-release-unsigned.apk
           test -s app/build/outputs/bundle/release/app-release.aab
@@ -233,12 +238,77 @@ jobs:
           path: smoke-results/
           if-no-files-found: warn
 
+  emulator-smoke-android16:
+    name: Boot and launch on Android 16 / API 36
+    needs: android
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify runner Android SDK
+        run: test -d "$ANDROID_HOME/platforms" && echo "Android SDK available"
+      - uses: actions/download-artifact@v4
+        with:
+          name: SkyPeep-Android-${{ github.run_number }}
+          path: smoke-artifacts
+      - name: Enable KVM acceleration
+        run: |
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+      - name: Prepare Android emulator image with retries
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="system-images;android-36;default;x86_64"
+          path="$ANDROID_HOME/system-images/android-36/default/x86_64"
+          sdkmanager_bin="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          test -x "$sdkmanager_bin" || {
+            echo "Android command-line tools not found under $ANDROID_HOME/cmdline-tools"
+            exit 1
+          }
+          for attempt in 1 2 3; do
+            if "$sdkmanager_bin" --install "$image" && test -s "$path/system.img"; then
+              echo "Android 36 emulator image verified"
+              exit 0
+            fi
+            echo "Android SDK image install attempt $attempt failed; cleaning corrupt download"
+            rm -rf "$path"
+            sleep $((attempt * 5))
+          done
+          echo "Android SDK image unavailable after three attempts"
+          exit 1
+      - name: Android emulator startup smoke
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: default
+          arch: x86_64
+          profile: pixel_2
+          # Android 16's System UI needs headroom during a fresh emulator boot.
+          # Previous 2-core/3-GB run showed a System UI ANR overlay over SkyPeep.
+          cores: 4
+          ram-size: 4096M
+          heap-size: 512M
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect
+          script: bash .github/scripts/android-emulator-smoke.sh
+      - name: Upload emulator logs and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SkyPeep-Android16-Emulator-Smoke-${{ github.run_number }}
+          path: smoke-results/
+          if-no-files-found: warn
+
   # Build/test jobs always have READ-ONLY repository permissions. Only a
   # successful, trusted-branch push obtains an elevated token to publish.
   release:
     name: Publish verified preview
-    needs: [android, emulator-smoke]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-v039-ui-baselines-release'
+    needs: [android, emulator-smoke, emulator-smoke-android16]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/fix/skypeep-android16-gradle95'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -279,7 +349,7 @@ jobs:
             echo "Skipping stale preview at $GITHUB_SHA; branch head is $current_head"
             exit 0
           fi
-          VERSION="v0.3.39-preview.${GITHUB_RUN_NUMBER}"
+          VERSION="v0.3.40-preview.${GITHUB_RUN_NUMBER}"
           for pattern in '*-debug.apk' '*-release-unsigned.apk' '*-play-upload-unsigned.aab' 'SHA256SUMS.txt' '*-fdroid-metadata.yml'; do
             test -n "$(find release-artifacts -type f -name "$pattern" -print -quit)" || {
               echo "Required release asset missing: $pattern"; exit 1;
@@ -294,7 +364,7 @@ jobs:
           # A quoted heredoc treats release notes as literal text: apostrophes
           # and other punctuation cannot accidentally break Bash parsing.
           cat > "$RUNNER_TEMP/skypeep-release-notes.md" <<'SKYPEEP_NOTES'
-          SkyPeep 0.3.39 preview: fixes the LibGDX text-top-origin error causing Shop, Settings, Victory and Game Over captions to fall outside original illustrated panels. Also separates Victory SCORE/BEST headings from numeric values with independent artwork-constrained rows. All ten core screens and six gameplay worlds are tested through the Android API 35 emulator; screens are compared to the four provided reference illustrations. Preserves the native SkyPeep icons, flight physics, all six worlds, saved player progress, and the 10,001 real coin target. Original source artwork is untouched. Graphics restoration Issue #44 remains open: some first-five-world JPGs already contain missing/blurred image regions. The release includes the debug-signed test APK, explicitly unsigned release APK/AAB, SHA-256, F-Droid metadata, signing instructions and 16 actual emulator screenshots. No blanket pixel-perfect or real-device certification is claimed.
+          SkyPeep 0.3.40 preview: migrates to AGP 9.5.0 and Gradle 9.6.0 with built-in Kotlin; replaces Gradle 9-removed Project.exec, introduces Android 16/API 36 immersive system bars, predictive Back and cutout-safe HUD positions, and validates on API 35 and API 36 emulators. The previous 0.3.39 release fixes the LibGDX text-top-origin error causing Shop, Settings, Victory and Game Over captions to fall outside original illustrated panels. Also separates Victory SCORE/BEST headings from numeric values with independent artwork-constrained rows. All ten core screens and six gameplay worlds are smoke-tested through Android API 35 and API 36 emulators; screens are compared to the four provided reference illustrations. Preserves the native SkyPeep icons, flight physics, all six worlds, saved player progress, and the 10,001 real coin target. Original source artwork is untouched. Graphics restoration Issue #44 remains open: some first-five-world JPGs already contain missing/blurred image regions. The release includes the debug-signed test APK, explicitly unsigned release APK/AAB, SHA-256, F-Droid metadata, signing instructions and 16 actual emulator screenshots. No blanket pixel-perfect or real-device certification is claimed.
           SKYPEEP_NOTES
           gh release create "$VERSION" \
             "${release_files[@]}" "${screenshot_files[@]}" \

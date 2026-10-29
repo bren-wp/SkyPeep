@@ -55,6 +55,38 @@ class SkyPeepScreenFrameTest {
         }
     }
 
+
+    @Test fun hudKeepsOriginalFrameWhenSystemBarsAreHidden() {
+        val f = SkyPeepScreenFrame.forPixels(1080, 2400)
+        val safe = SkyPeepScreenFrame.hudSafeFrame(f, 1080, 2400,
+            SkyPeepScreenFrame.PixelInsets(0, 0, 0, 0))
+        assertEquals(f.left, safe.left, .001f)
+        assertEquals(f.right, safe.right, .001f)
+        assertEquals(f.bottom, safe.bottom, .001f)
+        assertEquals(f.top, safe.top, .001f)
+    }
+
+    @Test fun hudMovesAwayFromCutoutWithoutShiftingGameplayWorld() {
+        val full = SkyPeepScreenFrame.forPixels(1080, 2400)
+        val safe = SkyPeepScreenFrame.hudSafeFrame(full, 1080, 2400,
+            SkyPeepScreenFrame.PixelInsets(32, 84, 12, 30))
+        assertTrue(safe.left > full.left)
+        assertTrue(safe.top < full.top)
+        assertTrue(safe.right < full.right)
+        assertTrue(safe.bottom > full.bottom)
+        assertEquals(full.top, SkyPeepScreenFrame.forPixels(1080, 2400).top, .001f)
+        assertEquals(941f * 84f / 1080f, full.top - safe.top, .02f)
+    }
+
+    @Test fun pauseTouchBoundsFollowTransientSystemBars() {
+        val full = SkyPeepScreenFrame.forPixels(941, 1672)
+        val safe = SkyPeepScreenFrame.hudSafeFrame(full, 941, 1672,
+            SkyPeepScreenFrame.PixelInsets(0, 60, 30, 0))
+        val centerX = SkyPeepHudLayout.pauseX(safe) + 60f
+        assertTrue(SkyPeepHudLayout.pauseContains(safe, centerX, 110f))
+        assertFalse(SkyPeepHudLayout.pauseContains(safe, centerX, 20f))
+    }
+
     @Test(expected=IllegalArgumentException::class)
     fun invalidScreenWidthIsRejected() {
         SkyPeepScreenFrame.forPixels(0,2000)

@@ -1,6 +1,5 @@
 plugins {
     id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
 }
 
 android {
@@ -10,12 +9,13 @@ android {
         applicationId 'com.brendigo.skypeep'
         minSdk 24
         targetSdk 36
-        versionCode 51
-        versionName '0.3.39'
+        versionCode 52
+        versionName '0.3.40'
     }
     sourceSets.main {
         manifest.srcFile 'AndroidManifest.xml'
-        java.srcDirs = ['src/com']
+        // AGP 9 built-in Kotlin reads the Kotlin source set, not java.srcDirs.
+        kotlin.srcDirs = ['src/com']
         // Original icon art remains intact; generated resources contain the
         // larger branded aviator icon and correctly masked adaptive layers.
         res.srcDirs = ["$buildDir/generated/skypeep-res"]
@@ -26,7 +26,6 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = '17' }
 }
 
 configurations {
@@ -83,12 +82,16 @@ tasks.register('restoreSkyPeepArtwork') {
         // Source art is immutable and hash-checked. The in-game backgrounds
         // are rebuilt from these assets to erase fixed bird/pillars/HUD ghosts.
         def outputAssets = file("$buildDir/generated/skypeep-assets")
-        project.exec {
-            commandLine 'java', '-Djava.awt.headless=true',
-                file("$rootDir/tools/RebuildWorlds.java").absolutePath,
-                outputAssets.absolutePath,
-                file("$rootDir/assets/previews/gameplay.jpg").absolutePath
-        }
+        // Gradle 9 removed Project.exec. Run the original source-art tool
+        // at task execution time without shell interpolation.
+        def rebuild = new ProcessBuilder(
+            'java', '-Djava.awt.headless=true',
+            file("$rootDir/tools/RebuildWorlds.java").absolutePath,
+            outputAssets.absolutePath,
+            file("$rootDir/assets/previews/gameplay.jpg").absolutePath
+        ).directory(rootDir).inheritIO().start()
+        if (rebuild.waitFor() != 0)
+            throw new GradleException('SkyPeep source-art rebuild failed')
     }
 }
 tasks.named('preBuild').configure { dependsOn('restoreSkyPeepArtwork') }
@@ -106,11 +109,13 @@ tasks.register('generateSkyPeepAppIcons') {
             from file('res')
             into destination
         }
-        project.exec {
-            commandLine 'java', '-Djava.awt.headless=true',
-                file("$rootDir/tools/ImproveSkyPeepIcons.java").absolutePath,
-                file('res').absolutePath, destination.absolutePath
-        }
+        def icons = new ProcessBuilder(
+            'java', '-Djava.awt.headless=true',
+            file("$rootDir/tools/ImproveSkyPeepIcons.java").absolutePath,
+            file('res').absolutePath, destination.absolutePath
+        ).directory(rootDir).inheritIO().start()
+        if (icons.waitFor() != 0)
+            throw new GradleException('SkyPeep icon generation failed')
         ['mdpi':48,'hdpi':72,'xhdpi':96,'xxhdpi':144,'xxxhdpi':192].each { density, size ->
             def path = file("$destination/mipmap-$density/ic_launcher.png")
             if (!path.isFile() || path.length() < 100)
