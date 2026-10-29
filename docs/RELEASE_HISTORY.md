@@ -1,6 +1,14 @@
 # SkyPeep — release history and development status
 
-## SkyPeep 0.3.38 (candidate — CI pending)
+## SkyPeep 0.3.39 (candidate — testing)
+
+- Correct actual LibGDX font top-origin calculations, previously causing Shop/Settings banners and Victory/Loss captions to spill **below** source-art panels.
+- Preserve the original pixel positions for text already inside its illustrated button; constrain the live score and large balances safely to the corresponding artwork.
+- Audit Splash, Main Menu, Levels, all six gameplay worlds, Pause, Game Over, Victory, Skins, Shop and Settings from actual successful Android screenshot run #772; add regression tests for text orientation and one-to-ten-digit scores.
+- Make a new signed-debug APK and explicitly unsigned release APK / AAB available **only after** final CI emulator success, together with SHA-256, F-Droid metadata and 16 real emulator PNG captures.
+- Original art, physics, local data, game economy and Issue #44 status unchanged. Do not claim pixel-perfect parity before checking new screenshots.
+
+## SkyPeep 0.3.38 (published — automated CI verified)
 
 - Corrected optional Android vibration permission and added explicit source/merged-manifest CI gate.
 - Prevented a partial successful flush from clearing a previous failed save; a full progress snapshot must first recover. BUY/EQUIP operations cannot proceed while storage is unsafe.
