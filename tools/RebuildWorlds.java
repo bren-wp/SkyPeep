@@ -494,28 +494,32 @@ class RebuildWorlds {
         for(int y=0;y<h;y++)for(int x=0;x<w;x++) {
             int id=y*w+x;
             if(known[id]!=0)continue;
-            int[] candidates={left[id],right[id],above[id],below[id]};
-            long[] sums=new long[3];
-            double weights=0;
+            double sr=0,sg=0,sb=0,weights=0;
             int nearest=maxDistance+1;
-            for(int candidate:candidates) {
+            for(int direction=0;direction<4;direction++) {
+                int candidate=switch(direction) {
+                    case 0 -> left[id];
+                    case 1 -> right[id];
+                    case 2 -> above[id];
+                    default -> below[id];
+                };
                 if(candidate<0)continue;
-                int d=(candidate/w==y)?
-                    Math.abs(x-candidate%w):Math.abs(y-candidate/w);
+                int d=(direction<2)?Math.abs(x-candidate%w):
+                      Math.abs(y-candidate/w);
                 if(d==0 || d>maxDistance)continue;
                 nearest=Math.min(nearest,d);
                 double weight=1.0/((d+14.0)*(d+14.0));
                 int rgb=source.getRGB(candidate%w,candidate/w);
-                sums[0]+=(long)(((rgb>>>16)&255)*weight*1000000);
-                sums[1]+=(long)(((rgb>>>8)&255)*weight*1000000);
-                sums[2]+=(long)((rgb&255)*weight*1000000);
+                sr+=((rgb>>>16)&255)*weight;
+                sg+=((rgb>>>8)&255)*weight;
+                sb+=(rgb&255)*weight;
                 weights+=weight;
             }
             if(weights==0)continue;
             int originalField=field[id];
-            int r=(int)Math.round(sums[0]/(weights*1000000));
-            int g=(int)Math.round(sums[1]/(weights*1000000));
-            int b=(int)Math.round(sums[2]/(weights*1000000));
+            int r=(int)Math.round(sr/weights);
+            int g=(int)Math.round(sg/weights);
+            int b=(int)Math.round(sb/weights);
             int donor=(Math.max(0,Math.min(255,r))<<16)|
                       (Math.max(0,Math.min(255,g))<<8)|
                        Math.max(0,Math.min(255,b));
