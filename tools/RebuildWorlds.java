@@ -112,7 +112,13 @@ class RebuildWorlds {
        new Capsule(362,880,360,1160,92),
        new Capsule(456,960,432,1160,99),
        new Area(281,1140,501,1280)},
-      {new Area(0,0,706,207),new Area(233,103,580,528),new Area(-20,418,618,774),new Area(219,695,591,1280)},
+      // Moon Glow: the former x=-20..618 / y=418..774 rectangle erased
+      // clouds and near/far islands across almost the ENTIRE play corridor.
+      // The baked bird, scarf and speed streak occupy only these curved
+      // silhouettes, as in the original six matching gameplay illustrations.
+      {new Area(0,0,706,207),new Area(233,103,580,528),
+       new Oval(251,634,154,129),new Oval(85,663,201,78),
+       new Area(219,695,591,1280)},
       // Sun Peak: retain the illustrated sunrise, floating waterfalls and
       // temple. Historical world-6 masks erased nearly the entire middle
       // scene: x=-20..618,y=418..774, including scenery well away from
@@ -567,8 +573,10 @@ class RebuildWorlds {
         BufferedImage air=sky(w,h,world);
         // Sample local painted colours, including the source Sun Peak
         // sunset, instead of introducing unrelated procedural sky bands.
-        int[] matchedSky=(world==1||world==2||world==3||world==4||world==6)?
-            sourceMatchedSky(original,world):null;
+        // All six restored worlds now use their OWN original sky paint.
+        // Moon Glow was the only remaining world filled with generic
+        // procedural colours, leaving a flat blue rectangle beside the moon.
+        int[] matchedSky=sourceMatchedSky(original,world);
         if(matchedSky!=null)for(int y=1;y<h;y++){
             // Reject a hard horizontal colour seam in the reconstructed sky.
             // Original floating islands/clouds remain untouched outside masks.
