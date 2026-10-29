@@ -2,8 +2,11 @@ package com.brendigo.skypeep
 
 /**
  * Pure UI geometry. LibGDX BitmapFont.draw uses a bottom-up baseline, with
- * glyphs rising above that baseline. Keeping only a maximum text WIDTH is
- * insufficient: live wallet totals and EQUIPPED/REPLAY can protrude above
+ * glyphs extending DOWNWARDS from the draw y (font top-line baseline).
+ * The older upper-edge formula treated the glyphs as extending upwards,
+ * pushing shop titles, settings labels and result values BELOW their panels.
+ * Keeping only a maximum text WIDTH is also insufficient: live wallet
+ * totals and EQUIPPED/REPLAY can protrude beyond
  * their illustrated panels. This helper bounds both text dimensions while
  * preserving the original desired alignment whenever it already fits.
  */
@@ -27,8 +30,12 @@ internal object SkyPeepTextBounds {
         val minCenter = frame.left + padding + textWidth / 2f
         val maxCenter = frame.left + frame.width - padding - textWidth / 2f
         val bottom = canvasHeight - frame.top - frame.height
-        val minBaseline = bottom + padding
-        val maxBaseline = bottom + frame.height - padding - textHeight
+        // BitmapFont.draw's y is the top origin for the glyph layout:
+        // the text occupies [y - height, y], NOT [y, y + height].
+        // Constraining the wrong side caused the actual rendered captions
+        // to protrude below the illustrated wood and cream rectangles.
+        val minBaseline = bottom + padding + textHeight
+        val maxBaseline = bottom + frame.height - padding
         require(minCenter <= maxCenter + .01f && minBaseline <= maxBaseline + .01f) {
             "Text size must be fitted into the button before positioning"
         }
