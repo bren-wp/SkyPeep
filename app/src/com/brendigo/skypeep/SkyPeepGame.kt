@@ -383,7 +383,7 @@ class SkyPeepGame(private val shareText: ((String) -> Unit)? = null,
     }
 
     /** The Android UI thread publishes safe insets; GL reads one immutable snapshot. */
-    fun updateSafeInsets(insets: SkyPeepScreenFrame.PixelInsets) {
+    internal fun updateSafeInsets(insets: SkyPeepScreenFrame.PixelInsets) {
         safeInsetsPx = insets
         Gdx.app?.postRunnable { Gdx.graphics.requestRendering() }
     }
